@@ -3,9 +3,7 @@
 
 class EnumMatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-	EnumMatchHandler(const std::string &name);
-
-	Enum enumeration() const;
+	EnumMatchHandler(Document &doc, const std::string &name);
 
 	virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
@@ -19,6 +17,7 @@ public:
 	void handleQFlagsType(const clang::ClassTemplateSpecializationDecl *tmpl);
 
 private:
+	Document &m_document;
 	Enum m_enum;
 };
 

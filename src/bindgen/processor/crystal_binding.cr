@@ -11,7 +11,6 @@ module Bindgen
         type_name: "Void",
         reference: false,
         pointer: 0,
-        conversion: nil,
         nilable: false,
       )
 

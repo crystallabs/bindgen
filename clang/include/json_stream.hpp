@@ -4,6 +4,7 @@
 #include "helper.hpp"
 #include <ostream>
 #include <vector>
+#include <map>
 
 /* Simple stream writer for JSON data. */
 class JsonStream {
@@ -47,6 +48,21 @@ public:
 		}
 
 		*this << ArrayEnd;
+		return *this;
+	}
+
+	template< typename K, typename V >
+	JsonStream &operator<<(const std::map<K, V> &hash) {
+		bool first = true;
+		*this << ObjectBegin;
+
+		for (const auto &kv : hash) {
+			if (!first) *this << Comma;
+			*this << kv;
+			first = false;
+		}
+
+		*this << ObjectEnd;
 		return *this;
 	}
 

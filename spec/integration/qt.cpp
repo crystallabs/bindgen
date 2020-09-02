@@ -20,6 +20,21 @@ struct QObject {
   }
 };
 
+// Test object conversion at Proc boundaries
+struct Conv {
+};
+
+struct ConvCpp {
+};
+
+ConvCpp conv_from_cpp(const Conv &) {
+  return { };
+}
+
+Conv conv_to_cpp(const ConvCpp &) {
+  return { };
+}
+
 // On to the actual test classes:
 
 // Tests signal/slots connection wrapping
@@ -27,6 +42,7 @@ class SomeObject {
   Q_OBJECT
 public:
   int normalMethod() { return 1; }
+  Conv convMethod() { return { }; }
 
 signals:
   void stuffHappened() {
@@ -46,6 +62,10 @@ signals:
   }
 
   void privateSignal(QPrivateSignal) {
+    // Empty.
+  }
+
+  void convSignal(const Conv &) {
     // Empty.
   }
 };

@@ -4,8 +4,8 @@
 
 static llvm::cl::opt<std::string> FunctionRegex("f", llvm::cl::desc("Functions to inspect"), llvm::cl::value_desc("function regex"));
 
-FunctionMatchHandler::FunctionMatchHandler()
-	: m_regex(FunctionRegex)
+FunctionMatchHandler::FunctionMatchHandler(Document &doc)
+	: m_document(doc), m_regex(FunctionRegex)
 {
 }
 
@@ -53,6 +53,6 @@ void FunctionMatchHandler::runOnFunction(const clang::FunctionDecl *func) {
 	std::string fullName = func->getQualifiedNameAsString();
 
 	if (isFunctionInteresting(fullName)) {
-		this->m_functions.push_back(buildMethod(func, fullName));
+		this->m_document.functions.push_back(buildMethod(func, fullName));
 	}
 }

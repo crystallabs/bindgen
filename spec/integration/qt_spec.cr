@@ -3,6 +3,26 @@ require "./spec_helper"
 describe "Qt-specific wrapper features" do
   it "works" do
     build_and_run("qt") do
+      module Test
+        lib Binding
+          struct ConvBinding
+            x : Int32
+          end
+        end
+
+        alias ConvBinding = Binding::ConvBinding
+
+        module BindgenHelper
+          def conv_to_crystal(x : Binding::ConvBinding) : ConvCrystal
+            ConvCrystal.new
+          end
+
+          def conv_from_crystal(x : ConvCrystal) : Binding::ConvBinding
+            Binding::ConvBinding.new x: 0
+          end
+        end
+      end
+
       context "signal behaviour" do
         it "creates a on_X method" do
           subject = Test::SomeObject.new

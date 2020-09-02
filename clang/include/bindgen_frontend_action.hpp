@@ -14,7 +14,7 @@ public:
 	std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(clang::CompilerInstance &ci, llvm::StringRef file) override;
 
 private:
-	std::vector<Macro> m_macros;
+	Document m_document;
 };
 
 #endif // BINDGEN_FRONTEND_ACTION_HPPd

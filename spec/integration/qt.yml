@@ -14,9 +14,22 @@ classes:
   "QMetaObject::Connection": SignalConnection
   SomeObject: SomeObject
   SomeGadget: SomeGadget
+  Conv: Conv
 
 types:
   "QMetaObject::Connection":
     crystal_type: SignalConnection
     cpp_type: "QMetaObject::Connection"
     binding_type: QMetaObjectConnection
+  Conv:
+    crystal_type: ConvCrystal
+    cpp_type: ConvCpp
+    binding_type: ConvBinding
+    to_cpp: "conv_to_cpp(%)"
+    from_cpp: "conv_from_cpp(%)"
+    to_crystal: "BindgenHelper.conv_to_crystal(%)"
+    from_crystal: "BindgenHelper.conv_from_crystal(%)"
+    kind: Struct
+    builtin: true
+    pass_by: Value
+    wrapper_pass_by: Value

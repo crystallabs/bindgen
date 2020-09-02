@@ -3,9 +3,7 @@
 
 class RecordMatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-	RecordMatchHandler(const std::string &name);
-
-	Class klass() const;
+	RecordMatchHandler(Document &doc, const std::string &name);
 
 	virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
@@ -20,7 +18,9 @@ public:
 	std::string getSourceFromRange(clang::SourceRange range, clang::SourceManager &sourceMgr);
 
 	BaseClass handleBaseClass(const clang::CXXBaseSpecifier &base);
+
 private:
+	Document &m_document;
 	Class m_class;
 };
 

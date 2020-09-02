@@ -18,6 +18,13 @@ module Bindgen
       end
     end
 
+    # YAML converter for building a conversion template from a string.
+    module ConversionTemplateConverter
+      def self.from_yaml(ctx : YAML::ParseContext, node : YAML::Nodes::Node) : Template::Base
+        Template.from_string(Union(String, Nil).new(ctx, node), simple: false)
+      end
+    end
+
     # Configuration of instance variables.
     class InstanceVariableConfig
       include YAML::Serializable
@@ -70,20 +77,36 @@ module Bindgen
         binding_type: {type: String, nilable: true},
 
         # Template code ran to turn the real C++ type into the crystal type.
-        from_cpp: {type: String, nilable: true},
+        from_cpp: {
+          type:      Template::Base,
+          default:   Template::None.new,
+          converter: ConversionTemplateConverter,
+        },
 
         # Template code ran to turn the crystal type into the real C++ type.
-        to_cpp: {type: String, nilable: true},
+        to_cpp: {
+          type:      Template::Base,
+          default:   Template::None.new,
+          converter: ConversionTemplateConverter,
+        },
 
         # Converter for this type in Crystal.  Takes precedence over the
         # `#to_crystal` and `#from_crystal` fields.
         converter: {type: String, nilable: true},
 
         # Template code ran to turn the binding type to Crystal.
-        to_crystal: {type: String, nilable: true},
+        to_crystal: {
+          type:      Template::Base,
+          default:   Template::None.new,
+          converter: ConversionTemplateConverter,
+        },
 
         # Template code ran to turn the Crystal type for the binding.
-        from_crystal: {type: String, nilable: true},
+        from_crystal: {
+          type:      Template::Base,
+          default:   Template::None.new,
+          converter: ConversionTemplateConverter,
+        },
 
         # How to pass this type to C++?
         pass_by: {
@@ -164,8 +187,8 @@ module Bindgen
 
       def initialize(
         @crystal_type = nil, @cpp_type = nil, @binding_type = nil,
-        @from_cpp = nil, @to_cpp = nil, @converter = nil,
-        @from_crystal = nil, @to_crystal = nil,
+        @from_cpp = Template::None.new, @to_cpp = Template::None.new, @converter = nil,
+        @from_crystal = Template::None.new, @to_crystal = Template::None.new,
         @kind = Parser::Type::Kind::Class, @ignore = false,
         @pass_by = PassBy::Original, @wrapper_pass_by = nil,
         @sub_class = true, @copy_structure = false, @generate_wrapper = true,

@@ -1,12 +1,10 @@
 #include "common.hpp"
 #include "enum_match_handler.hpp"
 
-EnumMatchHandler::EnumMatchHandler(const std::string &name) {
+EnumMatchHandler::EnumMatchHandler(Document &doc, const std::string &name)
+	: m_document(doc)
+{
 	this->m_enum.name = name;
-}
-
-Enum EnumMatchHandler::enumeration() const {
-	return this->m_enum;
 }
 
 void EnumMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResult &Result) {
@@ -25,6 +23,8 @@ void EnumMatchHandler::runOnEnum(const clang::EnumDecl *enumeration) {
 		int64_t value = field->getInitVal().getExtValue();
 		this->m_enum.values.push_back(std::make_pair(name, value));
 	}
+
+	this->m_document.enums[this->m_enum.name] = this->m_enum;
 }
 
 void EnumMatchHandler::runOnTypedef(const clang::TypedefNameDecl *typeDecl) {

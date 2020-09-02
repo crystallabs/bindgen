@@ -35,11 +35,11 @@ module Bindgen
         # Conversion checks
         pass = Cpp::Pass.new(@db)
         any_arg_uses_conversion = method.origin.arguments.any? do |arg|
-          pass.to_cpp(arg).conversion != nil
+          !pass.to_cpp(arg).conversion.no_op?
         end
 
-        return if pass.to_crystal(method.origin.return_type).conversion != nil # Rule 3
-        return if any_arg_uses_conversion                                      # Rule 2
+        return if !pass.to_crystal(method.origin.return_type).conversion.no_op? # Rule 3
+        return if any_arg_uses_conversion                                       # Rule 2
 
         # If we end up here, the method can be bound to directly.
         method.set_tag(Graph::Method::EXPLICIT_BIND_TAG, method.origin.name)

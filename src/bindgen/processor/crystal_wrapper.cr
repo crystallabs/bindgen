@@ -31,7 +31,7 @@ module Bindgen
 
         if structure = klass.structure
           type = klass.origin.as_type(pointer: 0)
-          type_name = Graph::Path.local(klass, structure).to_s
+          type_name = Graph::Path.local(from: klass, to: structure).to_s
         else
           type = klass.origin.as_type(pointer: 1)
           type_name = typer.qualified(*typer.binding(type))
@@ -42,7 +42,6 @@ module Bindgen
           type_name: type_name,
           pointer: type.pointer,
           reference: false,
-          conversion: nil,
         )
       end
 

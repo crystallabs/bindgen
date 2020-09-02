@@ -242,7 +242,7 @@ module Bindgen
           method: method,
           class_name: class_name,
           target: target,
-          virtual_target: to_crystal.build(method, proc_name),
+          virtual_target: to_crystal.build(method, proc_name: proc_name),
           in_superclass: in_superclass,
         )
       end
@@ -302,7 +302,6 @@ module Bindgen
           type_name: pass.type_name_base(proc_type),
           reference: false,
           pointer: 0,
-          conversion: nil,
         )
       end
 
@@ -316,7 +315,6 @@ module Bindgen
           type_name: proc_type.base_name,
           reference: false,
           pointer: 0,
-          conversion: nil,
         )
       end
 

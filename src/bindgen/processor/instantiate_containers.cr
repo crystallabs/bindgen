@@ -87,11 +87,10 @@ module Bindgen
           type_name: type.full_name,
           reference: false,
           pointer: 0,
-          conversion: nil,
         )
 
         Graph::Alias.new( # Build the `typedef`.
-origin: origin,
+          origin: origin,
           name: klass.name,
           parent: host,
         )
@@ -111,10 +110,21 @@ origin: origin,
         rules.binding_type = "Void"
         rules.crystal_type ||= "Enumerable(#{result.type_name})"
         rules.cpp_type ||= cpp_type_name
-        rules.to_crystal ||= "#{klass.name}.new(unwrap: %)"
-        rules.from_crystal ||= "BindgenHelper.wrap_container(#{klass.name}, %).to_unsafe"
-        rules.from_cpp ||= @db.cookbook.value_to_pointer(klass.name)
-        rules.to_cpp ||= @db.cookbook.pointer_to_reference(klass.name)
+
+        if rules.to_crystal.no_op?
+          rules.to_crystal = Template.from_string(
+            "#{klass.name}.new(unwrap: %)", simple: true)
+        end
+        if rules.from_crystal.no_op?
+          rules.from_crystal = Template.from_string(
+            "BindgenHelper.wrap_container(#{klass.name}, %).to_unsafe", simple: true)
+        end
+        if rules.from_cpp.no_op?
+          rules.from_cpp = Template.from_string(@db.cookbook.value_to_pointer(klass.name))
+        end
+        if rules.to_cpp.no_op?
+          rules.to_cpp = Template.from_string(@db.cookbook.pointer_to_reference(klass.name))
+        end
       end
 
       # Name of *container* with *instance* for diagnostic purposes.

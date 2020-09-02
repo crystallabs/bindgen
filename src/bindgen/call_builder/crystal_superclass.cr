@@ -14,7 +14,6 @@ module Bindgen
           type_name: superklass.name,
           reference: false,
           pointer: 0,
-          conversion: nil,
         )
 
         Call.new(

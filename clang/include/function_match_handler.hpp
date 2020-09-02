@@ -11,19 +11,16 @@ namespace clang {
 
 class FunctionMatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-	FunctionMatchHandler();
+	FunctionMatchHandler(Document &doc);
 	static bool isActive();
-
-	const std::vector<Method> &functions() const
-	{ return this->m_functions; };
 
 	virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 	bool isFunctionInteresting(const std::string &name) const;
 	void runOnFunction(const clang::FunctionDecl *func);
 
 private:
+	Document &m_document;
 	Regex m_regex;
-	std::vector<Method> m_functions;
 };
 
 #endif // FUNCTION_MATCH_HANDLER_HPP

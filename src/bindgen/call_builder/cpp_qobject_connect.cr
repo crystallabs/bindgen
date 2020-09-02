@@ -18,22 +18,18 @@ module Bindgen
       end
 
       class Body < Call::Body
-        def initialize(@proc : Call)
+        def initialize(@lambda : Call)
         end
 
         def to_code(call : Call, platform : Graph::Platform) : String
           formatter = Cpp::Format.new
-          ptr = formatter.function_pointer(@proc)
-          lambda_args = formatter.argument_list(call.arguments)
 
-          inner = @proc.body.to_code(@proc, platform)
-          code = %[QObject::connect(_self_, (#{ptr})&#{call.name}, [_proc_](#{lambda_args}){ #{inner}; })]
+          lambda_body = @lambda.body.to_code(@lambda, platform)
+          ptr = formatter.function_pointer(@lambda)
 
-          if templ = call.result.conversion
-            code = Util.template(templ, code)
-          end
+          code = %[QObject::connect(_self_, (#{ptr})&#{call.name}, #{lambda_body})]
 
-          code
+          call.result.apply_conversion(code)
         end
       end
     end

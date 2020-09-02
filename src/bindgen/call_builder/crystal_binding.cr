@@ -64,11 +64,7 @@ module Bindgen
           post = @post_hook
 
           pass_args = call.arguments.map(&.call).join(", ")
-          code = %[Binding.#{call.name}(#{pass_args})]
-
-          if templ = call.result.conversion
-            code = Util.template(templ, code)
-          end
+          code = call.result.apply_conversion %[Binding.#{call.name}(#{pass_args})]
 
           # Support for pre- and post hooks.
           String.build do |b|

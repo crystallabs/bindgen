@@ -2,12 +2,10 @@
 #include "record_match_handler.hpp"
 #include "type_helper.hpp"
 
-RecordMatchHandler::RecordMatchHandler(const std::string &name) {
+RecordMatchHandler::RecordMatchHandler(Document &doc, const std::string &name)
+	: m_document(doc)
+{
 	this->m_class.name = name;
-}
-
-Class RecordMatchHandler::klass() const {
-  return this->m_class;
 }
 
 void RecordMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResult &result) {
@@ -76,6 +74,7 @@ void RecordMatchHandler::runOnRecord(const clang::CXXRecordDecl *record) {
 
 	bool isPublic = record->isStruct(); // Default public for structs!
 	bool isSignal = false; // Qt signal support
+
 	for (clang::Decl *decl : record->decls()) {
 		if (clang::CXXMethodDecl *method = llvm::dyn_cast<clang::CXXMethodDecl>(decl)) {
 			runOnMethod(method, isSignal);
@@ -85,6 +84,8 @@ void RecordMatchHandler::runOnRecord(const clang::CXXRecordDecl *record) {
 			runOnField(field);
 		}
 	}
+
+	this->m_document.classes[this->m_class.name] = this->m_class;
 }
 
 void RecordMatchHandler::runOnField(const clang::FieldDecl *field) {

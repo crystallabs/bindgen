@@ -167,13 +167,15 @@ module Bindgen
         call = method.calls[@platform]?
         return if call.nil?
 
+        namespace = method.parent.not_nil!
+
         call.arguments.each_with_index do |arg, idx|
-          unless type_reachable?(arg, method)
+          unless type_reachable?(arg, namespace)
             add_error(method, "Argument #{idx + 1} has unreachable type #{arg.type_name}")
           end
         end
 
-        unless type_reachable?(call.result, method)
+        unless type_reachable?(call.result, namespace)
           add_error(method, "Result type #{call.result.type_name} is unreachable")
         end
 

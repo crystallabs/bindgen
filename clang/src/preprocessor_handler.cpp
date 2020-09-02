@@ -8,8 +8,8 @@
 
 static llvm::cl::opt<std::string> MacroChecker("m", llvm::cl::desc("Macros to copy"), llvm::cl::value_desc("regex"));
 
-PreprocessorHandler::PreprocessorHandler(std::vector<Macro> &macros, clang::Preprocessor &preprocessor)
-		: m_preprocessor(preprocessor), m_macros(macros), m_regex(MacroChecker)
+PreprocessorHandler::PreprocessorHandler(Document &doc, clang::Preprocessor &preprocessor)
+		: m_preprocessor(preprocessor), m_document(doc), m_regex(MacroChecker)
 {
 }
 
@@ -31,7 +31,7 @@ void PreprocessorHandler::MacroDefined(const clang::Token &token, const clang::M
   m.name = name;
 
   if (initializeMacro(m, token, md)) {
-    this->m_macros.push_back(m);
+    this->m_document.macros.push_back(m);
   }
 }
 

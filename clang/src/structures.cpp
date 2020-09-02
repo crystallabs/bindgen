@@ -231,3 +231,14 @@ JsonStream &operator<<(JsonStream &s, const Macro &value) {
 	s << JsonStream::ObjectEnd;
 	return s;
 }
+
+JsonStream &operator<<(JsonStream &s, const Document &value) {
+	auto c = JsonStream::Comma;
+	return s
+		<< JsonStream::ObjectBegin
+		<< std::make_pair("enums", value.enums) << c
+		<< std::make_pair("classes", value.classes) << c
+		<< std::make_pair("functions", value.functions) << c
+		<< std::make_pair("macros", value.macros)
+		<< JsonStream::ObjectEnd;
+}

@@ -13,8 +13,8 @@ describe Bindgen::Processor::ExternC do
 
   doc = Bindgen::Parser::Document.new
   db = Bindgen::TypeDatabase.new(Bindgen::TypeDatabase::Configuration.new, "boehmgc-cpp")
-  db.add("HasToCpp", to_cpp: "TO_CPP", copy_structure: true)
-  db.add("HasFromCpp", from_cpp: "FROM_CPP", copy_structure: true)
+  db.add("HasToCpp", to_cpp: Bindgen::Template.from_string("TO_CPP"), copy_structure: true)
+  db.add("HasFromCpp", from_cpp: Bindgen::Template.from_string("FROM_CPP"), copy_structure: true)
   db.add("PassByValue", pass_by: Bindgen::TypeDatabase::PassBy::Reference)
 
   extern_c_void_func = Bindgen::Parser::Method.new(

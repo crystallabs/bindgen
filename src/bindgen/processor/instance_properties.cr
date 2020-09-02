@@ -80,12 +80,7 @@ module Bindgen
       private class GetterBody < Call::Body
         def to_code(call : Call, _platform : Graph::Platform) : String
           code = call.name
-
-          if templ = call.result.conversion
-            code = Util.template(templ, code)
-          end
-
-          code
+          call.result.apply_conversion(code)
         end
       end
 
@@ -120,12 +115,7 @@ module Bindgen
       private class SetterBody < Call::Body
         def to_code(call : Call, _platform : Graph::Platform) : String
           code = call.arguments.first.call
-
-          if templ = call.result.conversion
-            code = Util.template(templ, code)
-          end
-
-          "#{call.name} = #{code}"
+          "#{call.name} = #{call.result.apply_conversion code}"
         end
       end
     end

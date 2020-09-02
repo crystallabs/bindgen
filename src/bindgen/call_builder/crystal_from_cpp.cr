@@ -6,7 +6,12 @@ module Bindgen
       end
 
       # Calls the *method*, using the *proc_name* to call-through to Crystal.
-      def build(method : Parser::Method, receiver = "self") : Call
+      #
+      # If `do_block` is true, the generated `Proc` expression will use
+      # `do ... end` instead of `{ ... }`.  This allows embedding the code body
+      # inside a string conversion template, without the code block being
+      # interpreted as an environment variable (see also `Template::Basic`).
+      def build(method : Parser::Method, receiver = "self", do_block = false) : Call
         pass = Crystal::Pass.new(@db)
         argument = Crystal::Argument.new(@db)
 
@@ -26,32 +31,25 @@ module Bindgen
           name: method.crystal_name,
           result: result,
           arguments: arguments,
-          body: Body.new(@db, receiver),
+          body: Body.new(@db, receiver, do_block),
         )
       end
 
       # Combines the results *outer* to *inner*.
       private def combine_result(outer, inner)
-        conv_out = outer.conversion
-        conv_in = inner.conversion
-
-        if conv_out && conv_in
-          conversion = Util.template(conv_out, conv_in)
-        else
-          conversion = conv_out || conv_in
-        end
+        combined_conversion = inner.conversion.followed_by(outer.conversion)
 
         Call::Result.new(
           type: outer.type,
           type_name: outer.type_name,
           pointer: outer.pointer,
           reference: outer.reference,
-          conversion: conversion,
+          conversion: combined_conversion,
         )
       end
 
       class Body < Call::Body
-        def initialize(@db : TypeDatabase, @receiver : String)
+        def initialize(@db : TypeDatabase, @receiver : String, @do_block : Bool)
         end
 
         def to_code(call : Call, platform : Graph::Platform) : String
@@ -67,12 +65,12 @@ module Bindgen
           block_arg_names = call.arguments.map(&.name).join(", ")
           block_args = "|#{block_arg_names}|" unless pass_args.empty?
 
-          body = "#{@receiver}.#{call.name}(#{pass_args})"
-          if templ = call.result.conversion
-            body = Util.template(templ, body)
+          body = call.result.apply_conversion "#{@receiver}.#{call.name}(#{pass_args})"
+          if @do_block
+            %[Proc(#{proc_args}).new do #{block_args} #{body} end]
+          else
+            %[Proc(#{proc_args}).new{#{block_args} #{body} }]
           end
-
-          %[Proc(#{proc_args}).new{#{block_args} #{body} }]
         end
       end
     end

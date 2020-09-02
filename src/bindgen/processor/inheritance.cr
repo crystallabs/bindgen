@@ -28,7 +28,7 @@ module Bindgen
 
         unless wrapped.empty?
           # We inherit the first wrapped base-class in Crystal.
-          klass.base_class = Graph::Path.local(klass, wrapped.first).to_s
+          klass.base_class = Graph::Path.local(from: klass, to: wrapped.first).to_s
 
           # For all other base-classes, we provide `#as_X` methods.
           if wrapped.size > 1

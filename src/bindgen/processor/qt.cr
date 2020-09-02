@@ -90,7 +90,7 @@ module Bindgen
         call = CallBuilder::CppQobjectConnect.new(@db)
         wrapper = CallBuilder::CppWrapper.new(@db)
 
-        proc = to_proc.build(method)
+        proc = to_proc.build(method, lambda: true)
         connector.calls[Graph::Platform::Cpp] = wrapper.build(
           method: connector.origin,
           target: call.build(method, proc),

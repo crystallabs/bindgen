@@ -21,7 +21,6 @@ module Bindgen
         type_name: type.base_name,
         reference: type.reference?,
         pointer: type_pointer_depth(type),
-        conversion: nil,
       )
     end
 

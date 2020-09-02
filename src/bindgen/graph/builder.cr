@@ -90,11 +90,11 @@ module Bindgen
       # Iterates over the *path*, descending from *root* onwards.  If a part of
       # the path does not exist yet, it'll be created as `Namespace`.
       def get_or_create_path(root : Graph::Container, path : Path) : Graph::Node
-        if path.global?
+        if path.global? || path.self_path?
           return root
         end
 
-        path.nodes.not_nil!.reduce(root) do |ctr, name|
+        path.parts.reduce(root) do |ctr, name|
           unless ctr.is_a?(Graph::Container)
             raise "Path #{path.inspect} is illegal, as #{name.inspect} is not a container"
           end

@@ -87,11 +87,7 @@ module Bindgen
 
       class MethodBody < Body
         def encapsulate(call, code)
-          if templ = call.result.conversion
-            Util.template(templ, code)
-          else
-            code
-          end
+          call.result.apply_conversion(code)
         end
       end
 

@@ -5,7 +5,7 @@
 
 class PreprocessorHandler : public clang::PPCallbacks {
 public:
-	PreprocessorHandler(std::vector<Macro> &macros, clang::Preprocessor &preprocessor);
+	PreprocessorHandler(Document &doc, clang::Preprocessor &preprocessor);
 
 	void MacroDefined(const clang::Token &token, const clang::MacroDirective *md) override;
 
@@ -15,8 +15,8 @@ private:
 	bool initializeMacro(Macro &m, const clang::Token &token, const clang::MacroDirective *md);
 
 	clang::Preprocessor &m_preprocessor;
-	std::vector<Macro> &m_macros;
-  Regex m_regex;
+	Document &m_document;
+	Regex m_regex;
 };
 
 #endif // PREPROCESSOR_HANDLER_HPP

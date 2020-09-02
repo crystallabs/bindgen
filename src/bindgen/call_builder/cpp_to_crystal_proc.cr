@@ -7,7 +7,9 @@ module Bindgen
       end
 
       # Calls the *method*, using the *proc_name* to call-through to Crystal.
-      def build(method : Parser::Method, proc_name : String = "_proc_") : Call
+      # If *lambda* is true, instead of invoking the *method*, builds a C++
+      # lambda expression that wraps the invocation.
+      def build(method : Parser::Method, *, proc_name : String = "_proc_", lambda = false) : Call
         pass = Cpp::Pass.new(@db)
 
         arguments = pass.arguments_from_cpp(method.arguments)
@@ -18,20 +20,32 @@ module Bindgen
           name: proc_name,
           result: result,
           arguments: arguments,
-          body: Body.new,
+          body: lambda ? LambdaBody.new : InvokeBody.new,
         )
       end
 
-      class Body < Call::Body
+      # Method invocation.
+      class InvokeBody < Call::Body
         def to_code(call : Call, platform : Graph::Platform) : String
           pass_args = call.arguments.map(&.call).join(", ")
           code = %[#{call.name}(#{pass_args})]
+          call.result.apply_conversion(code)
+        end
+      end
 
-          if templ = call.result.conversion
-            code = Util.template(templ, code)
-          end
+      # Lambda expression.  Captures the `CrystalProc` by value (therefore it
+      # is *not* convertible to a C function pointer).
+      class LambdaBody < Call::Body
+        def to_code(call : Call, platform : Graph::Platform) : String
+          formatter = Cpp::Format.new
 
-          code
+          lambda_args = formatter.argument_list(call.arguments)
+          pass_args = call.arguments.map(&.call).join(", ")
+          inner = %[#{call.name}(#{pass_args})]
+
+          prefix = "return " unless call.result.type.pure_void?
+
+          "[#{call.name}](#{lambda_args}){ #{prefix}#{inner}; }"
         end
       end
     end

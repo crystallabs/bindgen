@@ -13,7 +13,6 @@ module Bindgen
           type_name: method.name,
           reference: false,
           pointer: 0,
-          conversion: nil,
         )
 
         Call.new(
