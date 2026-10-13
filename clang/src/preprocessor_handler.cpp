@@ -19,66 +19,66 @@ void PreprocessorHandler::MacroDefined(const clang::Token &token, const clang::M
 	if (md->getMacroInfo()->isBuiltinMacro())
 		return;
 
-  std::string name = std::string(token.getIdentifierInfo()->getName());
-  if (!isMacroInteresting(name)) {
-    return; // Skip!
-  }
+	std::string name = std::string(token.getIdentifierInfo()->getName());
+	if (!isMacroInteresting(name)) {
+		return; // Skip!
+	}
 
-  // Store it
+	// Store it
 	Macro m;
-  m.name = name;
+	m.name = name;
 
-  if (initializeMacro(m, token, md)) {
-    this->m_document.macros.push_back(m);
-  }
+	if (initializeMacro(m, token, md)) {
+		this->m_document.macros.push_back(m);
+	}
 }
 
 static void tryCopyArguments(Macro &m, const clang::MacroInfo *info) {
 	if (info->param_empty()) return;
 
-  auto iter = info->param_begin();
-  for (auto end = info->param_end(); iter + 1 != end; ++iter) {
-    m.arguments.push_back(std::string((*iter)->getName()));
-  }
+	auto iter = info->param_begin();
+	for (auto end = info->param_end(); iter + 1 != end; ++iter) {
+		m.arguments.push_back(std::string((*iter)->getName()));
+	}
 
-  // Last argument may be a var-arg identifier.
-  if ((*iter)->getName() == "__VA_ARGS__") {
-    m.isVarArg = true;
-  } else {
-    m.arguments.push_back(std::string((*iter)->getName()));
-  }
+	// Last argument may be a var-arg identifier.
+	if ((*iter)->getName() == "__VA_ARGS__") {
+		m.isVarArg = true;
+	} else {
+		m.arguments.push_back(std::string((*iter)->getName()));
+	}
 }
 
 static std::string readMacroValue(const clang::MacroInfo *info, clang::Preprocessor &preprocessor) {
-  llvm::SmallString<128> spellingBuffer;
-  std::string buffer;
-  llvm::raw_string_ostream value(buffer);
+	llvm::SmallString<128> spellingBuffer;
+	std::string buffer;
+	llvm::raw_string_ostream value(buffer);
 
-  bool first = true;
+	bool first = true;
 	for (const auto &token : info->tokens()) {
 		if (!first && token.hasLeadingSpace())
 			value << ' ';
 
-    first = false;
+		first = false;
 		value << preprocessor.getSpelling(token, spellingBuffer);
 	}
 
-  return value.str();
+	return value.str();
 }
 
 bool PreprocessorHandler::initializeMacro(Macro &m, const clang::Token &token, const clang::MacroDirective *md) {
-  const clang::IdentifierInfo *identifier = token.getIdentifierInfo();
-  const clang::MacroInfo *info = md->getMacroInfo();
+	const clang::IdentifierInfo *identifier = token.getIdentifierInfo();
+	const clang::MacroInfo *info = md->getMacroInfo();
 
-  m.isFunction = info->isFunctionLike();
-  m.isVarArg = false;
+	m.isFunction = info->isFunctionLike();
+	m.isVarArg = false;
 
-  tryCopyArguments(m, info);
-  m.value = readMacroValue(info, this->m_preprocessor);
+	tryCopyArguments(m, info);
+	m.value = readMacroValue(info, this->m_preprocessor);
 
-  if (info->isGNUVarargs()) {
-    return false; // TODO: Support GNU var-args extension
-  }
+	if (info->isGNUVarargs()) {
+		return false; // TODO: Support GNU var-args extension
+	}
 
-  return true; // Okay!
+	return true; // Okay!
 }

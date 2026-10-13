@@ -8,14 +8,14 @@
 // PCRE2 based regex helper.  Aborts if a regex is broken.
 class Regex {
 public:
-  Regex(const std::string &expression);
-  Regex(const Regex &other);
-  ~Regex();
+	Regex(const std::string &expression);
+	Regex(const Regex &other);
+	~Regex();
 
-  bool isMatch(const std::string &text) const;
+	bool isMatch(const std::string &text) const;
 
 private:
-  pcre2_code *m_regex;
+	pcre2_code *m_regex;
 };
 
 #endif // REGEX_HPP

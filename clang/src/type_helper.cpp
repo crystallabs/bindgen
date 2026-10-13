@@ -219,7 +219,7 @@ bool TypeHelper::valueFromApValue(LiteralData &value, const clang::APValue &apVa
 }
 
 bool TypeHelper::readValue(LiteralData &literal, const clang::QualType &qt,
-  clang::ASTContext &ctx, const clang::Expr *expr) {
+	clang::ASTContext &ctx, const clang::Expr *expr) {
 	clang::Expr::EvalResult result;
 
 	if (!expr) return false; // Sanity check
