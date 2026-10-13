@@ -37,7 +37,7 @@ parse_cli_args
 
 # Link against LLVM's shared rather than static libraries?  Auto-detected below
 # if unset.
-dynamic = ENV["BINDGEN_DYNAMIC"]?.try(&.==("1"))
+dynamic = ENV["BINDGEN_DYNAMIC"]?.presence.try(&.==("1"))
 
 # Determine which llvm-config we are using
 unless OPTIONS[:llvm_config] ||= find_llvm_config_binary min_version: "14.0.0"

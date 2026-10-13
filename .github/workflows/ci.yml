@@ -14,13 +14,14 @@ jobs:
       fail-fast: false
       matrix:
         llvm: [14, 16, 18, 20, 22]
-        link: [static]
+        link: [auto]
         include:
           - llvm: 22
             link: shared
     env:
       LLVM: ${{ matrix.llvm }}
-      BINDGEN_DYNAMIC: ${{ matrix.link == 'shared' && '1' || '0' }}
+      # Left empty, static or shared linking is detected.
+      BINDGEN_DYNAMIC: ${{ matrix.link == 'shared' && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
 
