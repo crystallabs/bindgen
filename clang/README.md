@@ -21,10 +21,12 @@ This tool uses `cmake`. Just run `cmake .` to build the usual `Makefile`. From
 there you can run `make -j` to build. If you need to rebuild the `Makefile`
 later, you might want to delete `CMakeCache.txt` first, to remove cmake's cache.
 
-If on SuSE or Fedora `find_clang.cr` can't find it, run it as:
+The static LLVM and Clang libraries are linked if they're installed, the shared
+ones (`libclang-cpp` and `libLLVM`) otherwise.  Set the environment variable
+`BINDGEN_DYNAMIC` to `1` or `0` to force shared or static linking:
 
 ```
-BINDGEN_DYNAMIC=1 crystal clang/find_clang.cr
+BINDGEN_DYNAMIC=1 cmake . && make
 ```
 
 ### On Clang

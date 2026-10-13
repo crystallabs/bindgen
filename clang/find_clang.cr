@@ -28,24 +28,15 @@ OPTIONS[:cppflags] = [] of String
 OPTIONS[:ldflags] = [] of String
 OPTIONS[:system_include_dirs] = [] of String
 OPTIONS[:system_lib_dirs] = [] of String
+OPTIONS[:system_libs] = [] of String
 OPTIONS[:generated_hpp] = File.expand_path "#{__DIR__}/include/generated.hpp"
 OPTIONS[:makefile_variables] = File.expand_path "#{__DIR__}/Makefile.variables"
 OPTIONS[:spec_base] = File.expand_path "#{__DIR__}/../spec/integration/spec_base.yml"
 parse_cli_args
 
-# See if we can find the os-release file. Can be used as help
-# in autodetection of features/flags/etc.
-dynamic = ENV["BINDGEN_DYNAMIC"]? # Link against LLVM's .so rather than .a files?
-if dynamic.nil?
-  if file = find_os_release_file
-    os_release_data = parse_os_release file
-    if os_name = os_release_data["NAME"]?
-      dynamic = "1" if os_name =~ /Fedora|openSUSE/i
-    end
-  end
-end
-dynamic = dynamic.try &.==("1") || false
-log "Link against LLVM shared libraries: #{dynamic}. (Adjust with env BINDGEN_DYNAMIC=0/1 if needed)"
+# Link against LLVM's shared rather than static libraries?  Auto-detected below
+# if unset.
+dynamic = ENV["BINDGEN_DYNAMIC"]?.try(&.==("1"))
 
 # Determine which llvm-config we are using
 unless OPTIONS[:llvm_config] ||= find_llvm_config_binary min_version: "14.0.0"
@@ -84,9 +75,22 @@ if output.size < 2 # Sanity check
 end
 parse_clang_output output
 
-# Now extract clang and llvm-specific libs:
-OPTIONS[:clang_libs] = find_libraries(system_lib_dirs, "clang", dynamic)
-OPTIONS[:llvm_libs] = find_libraries(system_lib_dirs, "LLVM", dynamic)
+# Now extract clang and llvm-specific libs.  Static libraries are preferred if
+# both kinds are available, but the two kinds are never mixed.
+static_clang_libs = find_static_libraries(system_lib_dirs, "clang")
+static_llvm_libs = find_static_libraries(system_lib_dirs, "LLVM")
+dynamic = static_clang_libs.empty? || static_llvm_libs.empty? if dynamic.nil?
+log "Linking LLVM and Clang #{dynamic ? "dynamically" : "statically"}. (Adjust with env BINDGEN_DYNAMIC=0/1 if needed)"
+
+if dynamic
+  OPTIONS[:clang_libs] = find_shared_libraries(system_lib_dirs, "clang", "clang-cpp")
+  OPTIONS[:llvm_libs] = find_shared_libraries(system_lib_dirs, "LLVM", "LLVM")
+else
+  OPTIONS[:clang_libs] = static_clang_libs
+  OPTIONS[:llvm_libs] = static_llvm_libs
+  # Static LLVM libraries don't pull in their own dependencies.
+  OPTIONS[:system_libs] = output_of(llvm_config, "--system-libs", "--link-static").split
+end
 # See if only partial info was requested:
 
 if OPTIONS[:debug]
@@ -102,7 +106,7 @@ end
 
 if OPTIONS[:print_llvm_libs]
   log "Option --print-llvm-libs detected. Printing libraries and exiting."
-  STDOUT << get_lib_args(llvm_libs).join(";")
+  STDOUT << (get_lib_args(llvm_libs) + system_libs).join(";")
   exit
 end
 
@@ -129,14 +133,14 @@ log "Generating #{makefile_variables}"
 makefile_variables_content = <<-VARS
   CLANG_BINARY := #{clang}
   CLANG_INCLUDES := #{system_include_dirs.map { |x| "-I#{File.expand_path(x)}" }.join(' ')}
-  CLANG_LIBS := #{get_lib_args(clang_libs + llvm_libs).join(' ')}
+  CLANG_LIBS := #{(get_lib_args(clang_libs + llvm_libs) + system_libs).join(' ')}
 
   LLVM_CONFIG_BINARY := #{llvm_config}
   LLVM_VERSION_MAJOR := #{llvm_version.split(/\./).first}
   LLVM_VERSION := #{llvm_version}
   LLVM_CXX_FLAGS := #{llvm_cxx_flags}
   LLVM_LD_FLAGS := #{llvm_ld_flags}
-  LLVM_LIBS := #{get_lib_args(llvm_libs).join(" ")}
+  LLVM_LIBS := #{(get_lib_args(llvm_libs) + system_libs).join(" ")}
   VARS
 write_if_changed(makefile_variables, makefile_variables_content)
 
@@ -232,23 +236,6 @@ def find_llvm_config_binary(paths = nil, min_version = "14.0.0") : String?
   path_finder.find(llvm_config_find_config)
 end
 
-# Finds file os-release
-def find_os_release_file : String?
-  log %(Searching for file 'os-release')
-  os_release_find_config = <<-YAML
-  kind: File
-  try:
-    - os-release
-  search_paths:
-    - /etc
-    - /usr/lib
-  YAML
-  os_release_find_config = Bindgen::FindPath::PathConfig.from_yaml os_release_find_config
-
-  path_finder = Bindgen::FindPath.new(__DIR__)
-  path_finder.find(os_release_find_config)
-end
-
 # Prints help and exits.
 def print_help_and_exit
   STDERR.puts <<-END
@@ -258,8 +245,8 @@ def print_help_and_exit
     1) Make sure that `llvm-config` or `llvm-config-*` is set with --llvm_config FILE or is in PATH. The first binary found which satisfies version will be used.
     2) In rare cases if clang++ isn't found or is incorrect, you can also specify it with --clang FILE.
 
-  If your distro does not support static libraries like openSUSE then set env var BINDGEN_DYNAMIC=1.
-  This will use .so instead of .a libraries during linking.
+  Static libraries are used if available, shared ones otherwise.  Set env var
+  BINDGEN_DYNAMIC=1 or BINDGEN_DYNAMIC=0 to force shared or static linking.
 
   If you are missing the packages, please install them:
     ArchLinux: pacman -S llvm clang gc libyaml
@@ -344,20 +331,29 @@ def shell_split(line : String)
   end
 end
 
-# Finds all LLVM and clang libraries, and links to them.  We don't need
-# all of them - Which totally helps with keeping linking times low.
-def find_libraries(paths, prefix, dynamic = false)
-  if dynamic
-    paths
-      .flat_map { |path| Dir["#{path}/lib#{prefix}*.so"] }
-      .map { |path| File.basename(path)[/^lib(.+)\.so$/, 1] }
-      .uniq
-  else
-    paths
-      .flat_map { |path| Dir["#{path}/lib#{prefix}*.a"] }
-      .map { |path| File.basename(path)[/^lib(.+)\.a$/, 1] }
-      .uniq
+# Finds all static LLVM or clang libraries.  We don't need all of them, but
+# the linker only picks what's used.
+def find_static_libraries(paths, prefix)
+  paths
+    .flat_map { |path| Dir["#{path}/lib#{prefix}*.a"] }
+    .map { |path| File.basename(path)[/^lib(.+)\.a$/, 1] }
+    .reject(&.starts_with?("clang_rt")) # Compiler runtime, not part of clang.
+    .uniq
+end
+
+# Finds the shared LLVM or clang libraries.  If the all-in-one library
+# *preferred* exists, only that one is used.
+def find_shared_libraries(paths, prefix, preferred)
+  suffix = {% if flag?(:darwin) %} "dylib" {% else %} "so" {% end %}
+
+  if paths.any? { |path| File.exists?("#{path}/lib#{preferred}.#{suffix}") }
+    return [preferred]
   end
+
+  paths
+    .flat_map { |path| Dir["#{path}/lib#{prefix}*.#{suffix}"] }
+    .map { |path| File.basename(path)[/^lib(.+)\.#{suffix}$/, 1] }
+    .uniq
 end
 
 # Gets the list of -l... link arguments.
@@ -470,19 +466,6 @@ def parse_clang_output(output)
   system_include_dirs.select! { |path| File.directory? path }
 end
 
-# Parses file os-release. Returns Hash with key=value pairs.
-# Values are reported as-is (i.e. without removing quotes in quoted strings.)
-def parse_os_release(path)
-  data = {} of String => String
-  File.each_line(path) do |line|
-    if (line =~ /=/) && (line !~ /^\s*#/)
-      key, val = line.split /\s*=\s*/, 2
-      data[key] = val
-    end
-  end
-  data
-end
-
 # Convenience functions for accessing OPTIONS
 def llvm_bindir
   OPTIONS[:llvm_bindir].as String
@@ -518,6 +501,10 @@ end
 
 def system_lib_dirs
   OPTIONS[:system_lib_dirs].as Array(String)
+end
+
+def system_libs
+  OPTIONS[:system_libs].as Array(String)
 end
 
 def clang_libs

@@ -8,14 +8,19 @@ on:
 
 jobs:
   spec:
-    name: LLVM ${{ matrix.llvm }}
+    name: LLVM ${{ matrix.llvm }} (${{ matrix.link }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         llvm: [14, 16, 18, 20, 22]
+        link: [static]
+        include:
+          - llvm: 22
+            link: shared
     env:
       LLVM: ${{ matrix.llvm }}
+      BINDGEN_DYNAMIC: ${{ matrix.link == 'shared' && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +39,7 @@ jobs:
           fi
 
           sudo apt-get install -y --no-install-recommends \
-            "clang-$LLVM" "libclang-$LLVM-dev" "llvm-$LLVM-dev" \
+            "clang-$LLVM" "libclang-$LLVM-dev" "libclang-cpp$LLVM-dev" "llvm-$LLVM-dev" \
             cmake libgc-dev libpcre2-dev libyaml-dev libevent-dev \
             libxml2-dev libz3-dev libzstd-dev zlib1g-dev libncurses-dev
 

@@ -47,13 +47,4 @@ elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   target_link_libraries(parser Threads::Threads)
 endif ()
 
-# Link against the system libraries LLVM itself depends on
-execute_process(
-        COMMAND ${LLVM_CONFIG} --system-libs --link-static
-        OUTPUT_VARIABLE llvm_system_libs
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-separate_arguments(llvm_system_libs)
-target_link_libraries(parser ${llvm_system_libs})
-
 target_link_libraries(parser pcre2-8)
