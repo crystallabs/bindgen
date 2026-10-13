@@ -27,6 +27,10 @@ module Bindgen
         # Qt signal
         Signal
 
+        # Crystal macro.  Only internally used by Bindgen to indicate that a
+        # macro is none of the other method types.
+        Macro
+
         # Is this one of the constructors?
         def any_constructor? : Bool
           constructor? || aggregate_constructor? || copy_constructor?
@@ -129,7 +133,7 @@ module Bindgen
       delegate constructor?, aggregate_constructor?, copy_constructor?,
         any_constructor?, member_method?, member_getter?, member_setter?,
         static?, static_method?, static_getter?, static_setter?, signal?,
-        operator?, conversion_operator?, destructor?, to: @type
+        operator?, conversion_operator?, destructor?, macro?, to: @type
       delegate public?, protected?, private?, to: @access
 
       def_equals_and_hash @type, @name, @class_name, @access, @arguments,
@@ -330,6 +334,8 @@ module Bindgen
           "clone"
         when .destructor?
           "finalize"
+        when .macro?
+          name
         else
           raise "BUG: No #crystal_name implementation for type #{@type}"
         end

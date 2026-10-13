@@ -75,12 +75,11 @@ module BindgenHelper
   end
 
   # Wraps a *list* into a container *wrapper*, if it's not already one.
-  macro wrap_container(wrapper, list)
-    %instance = {{ list }}
-    if %instance.is_a?({{ wrapper }})
-      %instance
+  def self.wrap_container(wrapper : T.class, list) : T forall T
+    if list.is_a?(T)
+      list
     else
-      {{wrapper}}.new.concat(%instance)
+      wrapper.new.concat(list)
     end
   end
 
@@ -118,6 +117,20 @@ module BindgenHelper
       io << "<Wrapped "
       to_a.inspect(io)
       io << ">"
+    end
+
+    # Note: Crystal has no dependent types, so this module must refer to its own
+    # type parameter `T`.
+    private module ClassMethods(T)
+      # Wraps the list of *values* into a container of this type, if it's not
+      # already one.
+      def from(values : Enumerable(T)) : self
+        BindgenHelper.wrap_container(self, values)
+      end
+    end
+
+    macro included
+      extend ClassMethods(T)
     end
   end
 end

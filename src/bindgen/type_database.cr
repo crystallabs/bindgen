@@ -131,6 +131,11 @@ module Bindgen
       @[YAML::Field(ignore: true)]
       property graph_node : Graph::Node?
 
+      # The name of the Crystal container module this type includes, if any.
+      # Used by `CrystalContainerOf`.
+      @[YAML::Field(ignore: true)]
+      property container_type : String?
+
       def initialize(
         @crystal_type : String? = nil, @cpp_type : String? = nil, @binding_type : String? = nil,
         @from_cpp = Template::None.new, @to_cpp = Template::None.new, @converter = nil,
@@ -142,7 +147,7 @@ module Bindgen
         @builtin = false, @ignore_methods = [] of String,
         @superclass_ignore_methods = Util::FAIL_RX,
         @instance_variables = InstanceVariableConfig::Collection.new,
-        @graph_node = nil
+        @graph_node = nil, @container_type = nil
       )
       end
 

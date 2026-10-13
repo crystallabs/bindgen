@@ -35,4 +35,20 @@ public:
 
     return d;
   }
+
+  std::vector<std::vector<double>> transpose(const std::vector<std::vector<double>> &mat) {
+    std::size_t height = mat.size();
+    std::size_t width = mat[0].size();
+
+    std::vector<std::vector<double>> trsp;
+    for (std::size_t x = 0; x < width; ++x) {
+      std::vector<double> row;
+      for (std::size_t y = 0; y < height; ++y) {
+        row.push_back(mat[y][x]);
+      }
+      trsp.push_back(std::move(row));
+    }
+
+    return trsp;
+  }
 };

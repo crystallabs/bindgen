@@ -8,13 +8,22 @@ module Bindgen
       def initialize(@db : TypeDatabase)
       end
 
-      # Returns the full Crystal type-name of *result*.
-      def full(result : Call::Expression)
+      # Returns the full Crystal type-name of *result*.  If *expects_type* is
+      # false, the type-name may appear in regular code, which affects how
+      # pointers are formatted.
+      def full(result : Call::Expression, *, expects_type = true)
         ptr = result.pointer
         ptr += 1 if result.reference
-        stars = "*" * ptr
         nilable = "?" if result.nilable?
-        "#{result.type_name}#{stars}#{nilable}"
+
+        if expects_type
+          stars = "*" * ptr if ptr > 0
+          "#{result.type_name}#{stars}#{nilable}"
+        else
+          prefix = "Pointer(" * ptr if ptr > 0
+          suffix = ")" * ptr if ptr > 0
+          "#{prefix}#{result.type_name}#{suffix}#{nilable}"
+        end
       end
 
       # The type-name of *type* for use in a wrapper.

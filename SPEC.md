@@ -577,6 +577,12 @@ module Container(T)
     values.each { |v| self << v }
     self
   end
+
+  # Wrapper selection macro
+  macro of(*type_args) end
+
+  # General conversion method (§2.6.1)
+  # abstract def self.from(values : Enumerable(T)) : Container(T)
 end
 ```
 
@@ -584,6 +590,79 @@ Bindgen automatically collects all instantiations of each container type that
 appear in method argument types or return types; explicit instantiations may be
 configured with the `containers` section.  Aliases to complete container types
 and container type arguments are both supported.
+
+It is possible to store containers as Crystal instance variables using the
+container module.  However, the generic module does not name the actual wrapper
+type instantiated by Bindgen.  To do this, the `.of` macro should be used:
+
+```crystal
+class Foo
+  # `Container(Int32)` is the module type
+  # `Container.of(Int32)` produces the concrete, non-generic wrapper type
+  # corresponding to the `Int32` instantiation
+  # For all `T`, `Container.of(T) < Container(T)`, and no other types include
+  # the same instantiated module
+  @x : Container(Int32) = Container.of(Int32).new
+
+  # Referring to a non-instantiated type is a compilation error
+  # @x = Container.of(NoReturn).new
+
+  # If the wrapper type is stored in a constant, it can be used in array literal
+  # initializers
+  BitArray = Container.of(Bool)
+  SECRET = BitArray{true, false, false, true}
+
+  # Type restrictions, like instance variables, can only use module types due to
+  # grammar restrictions
+  def matches_secret?(bits : Container(Bool))
+    bits.to_a == SECRET.to_a
+  end
+
+  # Module types can be nested
+  def transpose(ary : Container(Container(Float64)))
+    Container.of(Container(Float64)).new
+  end
+
+  # One level of nested `Enumerable`s can be automatically wrapped in an array
+  # literal initializer
+  FloatMatrix = Container.of(Container(Float32))
+  def skew(x : Float32, y : Float32, z : Float32)
+    FloatMatrix{
+      [0_f32,    -z,     y],
+      [    z, 0_f32,    -x],
+      [   -y,     x, 0_f32],
+    }
+  end
+end
+```
+
+### §2.6.1 Automatic container conversion
+
+Every container wrapper class defines a `.from` class method, which takes any
+matching enumerable and converts it into that wrapper type.  Enumerables passed
+to C++ are automatically converted using the same method.  In both cases, the
+argument is reused if it is already of the wrapper type.
+
+```cpp
+struct Foo {
+  static double sum(const Container<double> &values);
+};
+```
+
+```crystal
+class Foo
+  def self.sum(values : Enumerable(Float64)) : Float64
+    # converted = Container.of(Float64).from(values)
+    # ...
+  end
+end
+
+Foo.sum([1.2, 3.4]) # => 4.6
+Foo.sum({1.2, 3.4}) # => 4.6
+
+# No copies are generated
+Foo.sum(Container.of(Float64).from [1.2, 3.4]) # => 4.6
+```
 
 ## §3. Crystal bindings
 

@@ -100,6 +100,11 @@ module Bindgen
         end
       end
 
+      # Returns a copy of this path with every part CamelCased.
+      def camelcase
+        Path.new(@parts.map(&.camelcase), global?)
+      end
+
       # Gives the path as Crystal constants look-up path.
       def to_s(io)
         io << "::" if global?
@@ -115,14 +120,16 @@ module Bindgen
         end
       end
 
-      # Returns a new `Path` on *path*.  Supports generic parts.
-      def self.from(path : String) : Path
+      # Returns a new `Path` on *path*.  All generic type arguments are removed,
+      # unless *generic* is true.
+      def self.from(path : String, *, generic : Bool = false) : Path
         if path == ""
           self_path
         elsif path == "::"
           global_root
         else
-          parts = path.gsub(Util::BALANCED_PARENS_RX, "").split("::")
+          path = remove_generics(path) unless generic
+          parts = path.split("::")
           if global = parts.first?.try(&.empty?)
             parts.shift
           end
@@ -132,22 +139,27 @@ module Bindgen
       end
 
       # :ditto:
-      def self.from(path : Path) : Path
-        new(path.parts.dup, path.global?)
+      def self.from(path : Path, *, generic : Bool = false) : Path
+        if generic
+          new(path.parts.dup, path.global?)
+        else
+          new(path.parts.map(&->remove_generics(String)), path.global?)
+        end
       end
 
-      # Returns a new `Path` formed by concatenating the given paths.  An empty
-      # collection produces a self-path.
-      def self.from(paths : Enumerable(String | Path)) : Path
+      # Returns a new `Path` formed by concatenating the given *paths*.  Each
+      # path in the collection may correspond to more than one namespace level;
+      # an empty collection produces a self-path.
+      def self.from(paths : Enumerable(String | Path), *, generic : Bool = false) : Path
         paths.reduce(self_path) do |path, other|
-          path.join!(other.is_a?(Path) ? other : from(other))
+          path.join!(from(other, generic: generic))
         end
       end
 
       # :ditto:
-      def self.from(first_path : String | Path, *remaining : String | Path) : Path
-        remaining.reduce(from(first_path)) do |path, other|
-          path.join!(other.is_a?(Path) ? other : from(other))
+      def self.from(first_path : String | Path, *remaining : String | Path, generic : Bool = false) : Path
+        remaining.reduce(from(first_path, generic: generic)) do |path, other|
+          path.join!(from(other, generic: generic))
         end
       end
 
@@ -264,6 +276,11 @@ module Bindgen
         end
 
         nil # Not found.
+      end
+
+      # Removes the generic types from the given *path*.
+      private def self.remove_generics(path)
+        path.gsub(Util::BALANCED_PARENS_RX, "")
       end
 
       # Finds the last common element in the lists *a* and *b*, and returns it.
