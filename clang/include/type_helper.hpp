@@ -10,6 +10,9 @@ namespace clang {
 };
 
 namespace TypeHelper {
+	// Returns the fully qualified name of *qt*, without tag keywords.
+	std::string fullyQualifiedName(const clang::QualType &qt, const clang::ASTContext &ctx);
+
 	Type qualTypeToType(const clang::QualType &qt, clang::ASTContext &ctx);
 
 	void qualTypeToType(Type &target, const clang::QualType &qt, clang::ASTContext &ctx);

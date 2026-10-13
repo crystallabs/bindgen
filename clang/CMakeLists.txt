@@ -41,14 +41,19 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     target_link_libraries(parser Threads::Threads)
   endif ()
 elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-  # Add -ltinfo and -pthread
-  target_link_libraries(parser tinfo)
-
   # Enable threads
   set(THREADS_PREFER_PTHREAD_FLAG ON)
   find_package(Threads REQUIRED)
   target_link_libraries(parser Threads::Threads)
 endif ()
 
-# -ldl -lz -lcurses -lpcre2-8
-target_link_libraries(parser dl z curses pcre2-8)
+# Link against the system libraries LLVM itself depends on
+execute_process(
+        COMMAND ${LLVM_CONFIG} --system-libs --link-static
+        OUTPUT_VARIABLE llvm_system_libs
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+separate_arguments(llvm_system_libs)
+target_link_libraries(parser ${llvm_system_libs})
+
+target_link_libraries(parser pcre2-8)

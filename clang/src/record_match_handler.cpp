@@ -39,7 +39,11 @@ bool RecordMatchHandler::runOnMethod(Method &m, Class &klass, const clang::CXXMe
 	m.className = method->getParent()->getQualifiedNameAsString();
 	m.isConst = method->isConst();
 	m.isVirtual = method->isVirtual();
+#if CLANG_VERSION_MAJOR >= 18
+	m.isPure = method->isPureVirtual();
+#else
 	m.isPure = method->isPure();
+#endif
 	m.isExternC = method->isExternC();
 	m.access = method->getAccess();
 	m.isBuiltin = !method->isUserProvided();
@@ -87,9 +91,14 @@ bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *r
 	klass.isAbstract = record->isAbstract();
 	klass.typeKind = record->getTagKind();
 
-	clang::TypeInfo typeInfo = record->getASTContext().getTypeInfo(record->getTypeForDecl());
+#if CLANG_VERSION_MAJOR >= 22
+	clang::QualType recordType = record->getASTContext().getCanonicalTagType(record);
+#else
+	clang::QualType recordType = record->getASTContext().getRecordType(record);
+#endif
+	clang::TypeInfo typeInfo = record->getASTContext().getTypeInfo(recordType);
 	uint64_t bitSize = typeInfo.Width;
-	if (typeInfo.AlignIsRequired) bitSize += typeInfo.Align;
+	if (typeInfo.isAlignRequired()) bitSize += typeInfo.Align;
 	klass.byteSize = bitSize / 8;
 
 	for (clang::CXXBaseSpecifier base : record->bases()) {

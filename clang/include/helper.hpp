@@ -68,11 +68,4 @@ struct CopyPtr {
 	const T &operator*() const { return *this->ptr; }
 };
 
-// compatibility for C++11
-template< typename T, typename... Args >
-std::unique_ptr<T> make_unique(Args&&... args)
-{
-	return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-
 #endif // HELPER_HPP

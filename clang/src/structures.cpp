@@ -181,13 +181,20 @@ JsonStream &operator<<(JsonStream &s, const Field &value) {
 	return s << JsonStream::ObjectEnd;
 }
 
+// `TagTypeKind` became a scoped enum in Clang 18.
+#if CLANG_VERSION_MAJOR >= 18
+#  define BG_TAG_KIND(kind) clang::TagTypeKind::kind
+#else
+#  define BG_TAG_KIND(kind) clang::TTK_##kind
+#endif
+
 JsonStream &operator<<(JsonStream &s, clang::TagTypeKind value) {
 	switch (value) {
-		case clang::TTK_Class: return s << "Class";
-		case clang::TTK_Struct: return s << "Struct";
-		case clang::TTK_Union: return s << "CppUnion"; // avoid confusion with Crystal union
-		case clang::TTK_Interface: return s << "Interface";
-		case clang::TTK_Enum: return s << "Enum";
+		case BG_TAG_KIND(Class): return s << "Class";
+		case BG_TAG_KIND(Struct): return s << "Struct";
+		case BG_TAG_KIND(Union): return s << "CppUnion"; // avoid confusion with Crystal union
+		case BG_TAG_KIND(Interface): return s << "Interface";
+		case BG_TAG_KIND(Enum): return s << "Enum";
 		default: return s << "BUG IN Bindgen";
 	}
 }

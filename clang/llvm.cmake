@@ -11,17 +11,13 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 string(REGEX MATCH "^([0-9]+)" LLVM_VER ${LLVM_PACKAGE_VERSION})
 message(STATUS "LLVM Major version: ${LLVM_VER}")
 
-# If LLVM 10+ change std version
-if(LLVM_VER GREATER 9)
-  message(STATUS "Setting std version: c++14")
-  set(CMAKE_CXX_STANDARD 14)
-else()
-  message(STATUS "Setting std version: c++11")
-  set(CMAKE_CXX_STANDARD 11)
+if(LLVM_VER LESS 14)
+  message(FATAL_ERROR "LLVM 14 or newer is required, found ${LLVM_PACKAGE_VERSION}")
 endif()
 
-# Add llvm version definition
-add_definitions(-D__LLVM_VERSION_${LLVM_VER})
+# LLVM 16+ headers require C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find the LLVM clang++ path
 message(STATUS "LLVM Tools Dir: ${LLVM_TOOLS_BINARY_DIR}")
@@ -43,3 +39,6 @@ include_directories(${LLVM_INCLUDE_DIRS})
 
 message(STATUS "Add LLVM definitions: ${LLVM_DEFINITIONS}")
 add_definitions(${LLVM_DEFINITIONS})
+
+# Clang doesn't necessarily search its own library directory
+link_directories(${LLVM_LIBRARY_DIRS})

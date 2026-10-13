@@ -4,6 +4,7 @@
 #include "helper.hpp"
 #include "json_stream.hpp"
 #include "clang/AST/DeclCXX.h"
+#include "clang/Basic/Version.h"
 
 // Forward declare for `Type::templ`
 struct Template;

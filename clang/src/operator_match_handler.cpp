@@ -2,12 +2,6 @@
 #include "operator_match_handler.hpp"
 #include "type_helper.hpp"
 
-# if defined(__LLVM_VERSION_8)
-  #include "clang_type_name_llvm_8.hpp"
-# else
-  #include "clang_type_name.hpp"
-# endif
-
 OperatorMatchHandler::OperatorMatchHandler(Document &doc, const std::string &name)
 	: m_document(doc), m_className(name)
 {

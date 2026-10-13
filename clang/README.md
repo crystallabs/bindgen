@@ -11,8 +11,8 @@ of arguments to this tool, and captures its standard output.
 
 ## Supported Clang versions
 
-All versions above **4.0.0**.  Previous versions may or may not work.  Please
-file a ticket if it fails with a supported version at
+All versions from **14** on.  Please file a ticket if it fails with a supported
+version at
 https://github.com/Papierkorb/bindgen/issues
 
 ## Build system

@@ -1,24 +1,43 @@
 #include "type_helper.hpp"
 
-# if __clang_major__ < 6
-  #include "clang/Tooling/Core/QualTypeNames.h"
-# else
-  #include "clang/AST/QualTypeNames.h"
-# endif
-
+#include "clang/AST/QualTypeNames.h"
+#include "clang/Basic/Version.h"
 #include "clang/AST/Type.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/ExprCXX.h"
 
-# if defined(__LLVM_VERSION_8)
-  #include "clang_type_name_llvm_8.hpp"
-# else
-  #include "clang_type_name.hpp"
-# endif
-
 static CopyPtr<Template> handleTemplate(const clang::TemplateSpecializationType *tmpl, clang::ASTContext &ctx);
 static bool tryReadStringConstructor(LiteralData &literal, const clang::CXXConstructExpr *expr);
+
+static bool isIdentifierChar(char c) {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+}
+
+// Removes tag keywords like `struct` from the type *name*.  Clang keeps those
+// if they were written in the source, regardless of the printing policy.
+static void removeTagKeywords(std::string &name) {
+	for (const std::string keyword : { "struct ", "class ", "union ", "enum " }) {
+		size_t pos = 0;
+
+		while ((pos = name.find(keyword, pos)) != std::string::npos) {
+			if (pos == 0 || !isIdentifierChar(name[pos - 1])) {
+				name.erase(pos, keyword.size());
+			} else {
+				pos += keyword.size();
+			}
+		}
+	}
+}
+
+std::string TypeHelper::fullyQualifiedName(const clang::QualType &qt, const clang::ASTContext &ctx) {
+	clang::PrintingPolicy policy(ctx.getPrintingPolicy());
+	policy.SuppressTagKeyword = true; // No `struct`, `class`, ... prefix.
+
+	std::string name = clang::TypeName::getFullyQualifiedName(qt, ctx, policy);
+	removeTagKeywords(name);
+	return name;
+}
 
 Type TypeHelper::qualTypeToType(const clang::QualType &qt, clang::ASTContext &ctx) {
 	Type type;
@@ -27,11 +46,15 @@ Type TypeHelper::qualTypeToType(const clang::QualType &qt, clang::ASTContext &ct
 }
 
 void TypeHelper::qualTypeToType(Type &target, const clang::QualType &qt, clang::ASTContext &ctx) {
+#if CLANG_VERSION_MAJOR >= 22
+	clang::QualType ut = qt; // `ElaboratedType` is gone.
+#else
 	const auto *elab = llvm::dyn_cast<clang::ElaboratedType>(qt.getTypePtr());
 	clang::QualType ut = elab ? elab->getNamedType() : qt;
+#endif
 
 	if (target.fullName.empty()) {
-		target.fullName = ClangTypeName::getFullyQualifiedName(qt, ctx);
+		target.fullName = fullyQualifiedName(qt, ctx);
 	}
 
 	if (qt->isReferenceType() || qt->isPointerType()) {
@@ -45,7 +68,7 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &qt, clang::
 	target.isConst = qt.isConstQualified();
 	target.isVoid = qt->isVoidType();
 	target.isBuiltin = qt->isBuiltinType();
-	target.baseName = ClangTypeName::getFullyQualifiedName(qt.getUnqualifiedType(), ctx);
+	target.baseName = fullyQualifiedName(qt.getUnqualifiedType(), ctx);
 
 	if (const auto *tmpl = llvm::dyn_cast<clang::TemplateSpecializationType>(ut.getTypePtr())) {
 		target.templ = handleTemplate(tmpl, ctx);
@@ -99,20 +122,13 @@ Argument TypeHelper::processFunctionParameter(const clang::ParmVarDecl *decl) {
 
 static bool describesStringClass(const clang::CXXConstructorDecl *ctorDecl) {
 	std::string name = ctorDecl->getParent()->getQualifiedNameAsString();
-	if (name == "std::__cxx11::basic_string" || name == "std::__1::basic_string") {
-		return true;
-	} else {
-		return false;
-	}
+	// Newer Clang versions don't print the inline namespace.
+	return name == "std::basic_string" || name == "std::__cxx11::basic_string" || name == "std::__1::basic_string";
 }
 
 static bool stringLiteralFromExpression(LiteralData &literal, const clang::Expr *expr) {
 	if (const clang::MaterializeTemporaryExpr *argExpr = llvm::dyn_cast<clang::MaterializeTemporaryExpr>(expr)) {
-#if __clang_major__ >= 10
 		return stringLiteralFromExpression(literal, argExpr->getSubExpr());
-#else
-		return stringLiteralFromExpression(literal, argExpr->GetTemporaryExpr());
-#endif
 	} else if (const clang::ExprWithCleanups *cleanupExpr = llvm::dyn_cast<clang::ExprWithCleanups>(expr)) {
 		return stringLiteralFromExpression(literal, cleanupExpr->getSubExpr());
 	} else if (const clang::CXXBindTemporaryExpr *bindExpr = llvm::dyn_cast<clang::CXXBindTemporaryExpr>(expr)) {

@@ -48,7 +48,7 @@ dynamic = dynamic.try &.==("1") || false
 log "Link against LLVM shared libraries: #{dynamic}. (Adjust with env BINDGEN_DYNAMIC=0/1 if needed)"
 
 # Determine which llvm-config we are using
-unless OPTIONS[:llvm_config] ||= find_llvm_config_binary min_version: "6.0.0"
+unless OPTIONS[:llvm_config] ||= find_llvm_config_binary min_version: "14.0.0"
   log "Cant find llvm config"
   print_help_and_exit
 end
@@ -70,7 +70,7 @@ OPTIONS[:llvm_bindir] = output_of(OPTIONS[:llvm_config], "--bindir")
 OPTIONS[:llvm_libdir] = output_of(OPTIONS[:llvm_config], "--libdir")
 
 # Determine which clang++ we are using
-unless OPTIONS[:clang] ||= find_clang_binary([llvm_bindir], min_version: "6.0.0")
+unless OPTIONS[:clang] ||= find_clang_binary([llvm_bindir], min_version: "14.0.0")
   log "Cant find clang"
   print_help_and_exit
 end
@@ -190,7 +190,7 @@ end
 
 # Finds clang binary (named 'clang++' or 'clang++-*'. Must
 # satisfy minimum version.
-def find_clang_binary(paths, min_version = "6.0.0") : String?
+def find_clang_binary(paths, min_version = "14.0.0") : String?
   log %(Searching for binary clang++ or clang++-* in #{paths.join ':'}. Minimum version #{min_version})
   clang_find_config = <<-YAML
   kind: Executable
@@ -212,7 +212,7 @@ end
 
 # Finds llvm-config binary inside directories in PATH. It must
 # satisfy minimum version.
-def find_llvm_config_binary(paths = nil, min_version = "6.0.0") : String?
+def find_llvm_config_binary(paths = nil, min_version = "14.0.0") : String?
   log %(Searching for binary `llvm-config` or `llvm-config-*` in PATH. Minimum version #{min_version})
   llvm_config_find_config = <<-YAML
   kind: Executable
@@ -263,9 +263,9 @@ def print_help_and_exit
 
   If you are missing the packages, please install them:
     ArchLinux: pacman -S llvm clang gc libyaml
-    Ubuntu: apt install clang-4.0 libclang-4.0-dev zlib1g-dev libncurses-dev libgc-dev llvm-4.0-dev libpcre3-dev
-    CentOS: yum install crystal libyaml-devel gc-devel pcre-devel zlib-devel clang-devel
-    openSUSE: zypper install llvm clang libyaml-devel gc-devel pcre-devel zlib-devel clang-devel ncurses-devel
+    Ubuntu: apt install clang-18 libclang-18-dev llvm-18-dev zlib1g-dev libzstd-dev libgc-dev libpcre2-dev
+    CentOS: yum install crystal libyaml-devel gc-devel pcre2-devel zlib-devel clang-devel
+    openSUSE: zypper install llvm clang libyaml-devel gc-devel pcre2-devel zlib-devel clang-devel ncurses-devel
     Mac OS: brew install crystal bdw-gc gmp libevent libxml2 libyaml llvm
   END
 
@@ -453,8 +453,13 @@ def parse_clang_output(output)
   # Need to add the clang includes if we can find them. This is just
   # in case and we don't fear duplicates as they will be sorted out
   # later.
-  clang_include_dir = File.join llvm_libdir, "clang", llvm_version, "include"
-  system_include_dirs << clang_include_dir
+  # The resource directory is named after the major version since LLVM 16.
+  {llvm_version, llvm_version.split('.').first}.each do |version|
+    system_include_dirs << File.join(llvm_libdir, "clang", version, "include")
+  end
+
+  # Clang doesn't necessarily search its own library directory.
+  system_lib_dirs.unshift llvm_libdir
 
   # Clean libs
   system_lib_dirs.uniq!
