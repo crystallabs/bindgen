@@ -43,15 +43,7 @@ module Bindgen
       private def run_path_try(path : String, search_paths) : Array(String)
         pattern = Util.template(path, @parent.root, env: @parent.variables)
         patterns = prefix_search_paths(search_paths, pattern)
-        # Band aid for https://github.com/crystal-lang/crystal/issues/5118
-        # TODO: Remove once #5118 is fixed.
-        candidates = Dir[patterns]
-        if candidates.empty?
-          # BUG: This still breaks for `/foo/*/..`
-          patterns
-        else
-          candidates
-        end
+        Dir[patterns]
       end
 
       # :ditto:
