@@ -5,7 +5,7 @@ module Bindgen
       def initialize(@db : TypeDatabase)
       end
 
-      def build(method : Parser::Method, container : Configuration::Container) : Call
+      def build(method : Parser::Method, containers : Array(Configuration::Container)) : Call
         raise "not a macro" unless method.macro?
 
         result = Call::Result.new(
@@ -20,12 +20,12 @@ module Bindgen
           name: method.name,
           arguments: [] of Call::Argument,
           result: result,
-          body: Body.new(@db, container),
+          body: Body.new(@db, containers),
         )
       end
 
       class Body < Call::Body
-        def initialize(@db : TypeDatabase, @container : Configuration::Container)
+        def initialize(@db : TypeDatabase, @containers : Array(Configuration::Container))
         end
 
         def to_code(call : Call, platform : Graph::Platform) : String
@@ -35,32 +35,38 @@ module Bindgen
         end
 
         private def macro_body
-          instantiations = @container.instantiations.map do |inst|
-            inst.map { |t| @db.resolve_aliases(t).full_name }
-          end.uniq
-
-          if instantiations.empty?
-            return %[  {% raise "\#{self} has no instantiations" %}]
-          end
-
           pass = Crystal::Pass.new(@db)
           typer = Crystal::Typename.new(@db)
           cpp_typer = Cpp::Typename.new
 
-          branches = instantiations.map_with_index do |inst, i|
-            type_name = cpp_typer.template_class(@container.class, inst)
-            templ_type = Parser::Type.parse(type_name)
-            templ_args = templ_type.template.not_nil!.arguments
+          # Maps the Crystal type arguments to the wrapper class.  If several
+          # containers offer the same instantiation, the first one wins.
+          wrappers = {} of String => String
 
-            klass_name = "Container_#{templ_type.mangled_name}"
-            arg_list = templ_args.join(", ") do |t|
-              @db.try_or(t, typer.full(pass.to_wrapper(t), expects_type: false), &.container_type)
+          @containers.each do |container|
+            container.instantiations.each do |inst|
+              inst = inst.map { |t| @db.resolve_aliases(t).full_name }
+              type_name = cpp_typer.template_class(container.class, inst)
+              templ_type = Parser::Type.parse(type_name)
+              templ_args = templ_type.template.not_nil!.arguments
+
+              arg_list = templ_args.join(", ") do |t|
+                @db.try_or(t, typer.full(pass.to_wrapper(t), expects_type: false), &.container_type)
+              end
+
+              wrappers[arg_list] ||= "Container_#{templ_type.mangled_name}"
             end
+          end
 
+          if wrappers.empty?
+            return %[  {% raise "\#{self} has no instantiations" %}]
+          end
+
+          branches = wrappers.map_with_index do |(arg_list, klass_name), i|
             %[  {% #{i == 0 ? "if" : "elsif"} types == {#{arg_list}} %} {{ #{klass_name} }}\n]
           end
 
-          module_name = Graph::Path.from(@container.class).last_part.camelcase
+          module_name = Graph::Path.from(@containers.first.class).last_part.camelcase
 
           %[  {% types = type_args.map(&.resolve) %}\n] \
           %[#{branches.join}] \

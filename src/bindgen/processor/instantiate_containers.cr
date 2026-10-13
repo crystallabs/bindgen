@@ -17,20 +17,25 @@ module Bindgen
       def process(graph : Graph::Node, _doc : Parser::Document)
         root = graph.as(Graph::Container)
 
+        # Containers like `std::vector` and `std::__1::vector` share a module.
+        used = @config.containers.reject(&.instantiations.empty?)
+        used.group_by { |container| module_name(container.class) }.each_value do |containers|
+          build_container_module(containers, root)
+        end
+
         @config.containers.each do |container|
-          build_container_module(container, root)
           instantiate_container(container, root)
         end
       end
 
-      # Builds the wrapper module under *root* for the given *container*.  The
-      # module is responsible for naming instantiated container wrappers.
-      private def build_container_module(container, root)
-        return if container.instantiations.empty?
+      # Builds the wrapper module under *root* shared by the given *containers*.
+      # The module is responsible for naming instantiated container wrappers.
+      private def build_container_module(containers, root)
+        container = containers.first
 
-        sizes = container.instantiations.map(&.size)
+        sizes = containers.flat_map(&.instantiations.map(&.size))
         unless sizes.uniq.size == 1
-          raise "All instantiations of #{container.class} must have the same number of arguments"
+          raise "All instantiations of #{containers.map(&.class).join(", ")} must have the same number of arguments"
         end
         arg_count = sizes.first
 
@@ -48,7 +53,7 @@ module Bindgen
           name: macro_method.name,
           parent: parent.platform_specific(Graph::Platform::Crystal),
         )
-        macro_node.calls[Graph::Platform::Crystal] = call.build(macro_method, container)
+        macro_node.calls[Graph::Platform::Crystal] = call.build(macro_method, containers)
       end
 
       # Instantiates the *container* (Of any type), placing the built classes
