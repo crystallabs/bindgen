@@ -28,7 +28,7 @@ module Bindgen
         def initialize(@db : TypeDatabase, @container : Configuration::Container)
         end
 
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           %[macro #{call.name}(*type_args)\n] \
           %[#{macro_body}\n] \
           %[end]

@@ -26,6 +26,8 @@ module Bindgen
       # Builds the wrapper module under *root* for the given *container*.  The
       # module is responsible for naming instantiated container wrappers.
       private def build_container_module(container, root)
+        return if container.instantiations.empty?
+
         sizes = container.instantiations.map(&.size)
         unless sizes.uniq.size == 1
           raise "All instantiations of #{container.class} must have the same number of arguments"
@@ -33,7 +35,7 @@ module Bindgen
         arg_count = sizes.first
 
         formal_args = arg_count == 1 ? %w[T] : Array(String).new(arg_count) { |i| "T#{i + 1}" }
-        crystal_name = "#{container.class}(#{formal_args.join(", ")})"
+        crystal_name = "#{module_name(container.class)}(#{formal_args.join(", ")})"
         path = Graph::Path.from(crystal_name, generic: true).camelcase
 
         builder = Graph::Builder.new(@db)
@@ -110,7 +112,13 @@ module Bindgen
         typer = Crystal::Typename.new(@db)
         args = types.map { |t| typer.full pass.to_wrapper(t) }.join(", ")
 
-        "#{Graph::Path.from(kind).camelcase}(#{args})"
+        "#{Graph::Path.from(module_name(kind)).camelcase}(#{args})"
+      end
+
+      # Removes implementation namespaces like `__1` in `std::__1::vector` from
+      # *name*, as they don't map to a valid Crystal constant.
+      private def module_name(name : String) : String
+        name.split("::").reject(&.starts_with?("__")).join("::")
       end
 
       # Adds a `typedef Container<T...> Container_T...` for C++.

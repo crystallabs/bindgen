@@ -418,6 +418,10 @@ Generates getter and setter methods for static and instance members.
 
 Adds the container instantiation classes and wrappers.
 
+Each container class also gets a generic module, e.g. `QList(T)`.  Use it as
+type restriction, or get the wrapper class of an instantiation through its `of`
+macro: `QList.of(Int32).new`.  See `SPEC.md` for details.
+
 ## `Macros`
 
 * **Kind**: Refining
