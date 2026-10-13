@@ -119,7 +119,13 @@ module BindgenHelper
   module SequentialContainer(T)
     include Indexable(T)
 
-    # `#unsafe_fetch` and `#size` will be implemented by the wrapper class.
+    # `#unsafe_at` and `#size` will be implemented by the wrapper class.
+
+    # Implements `Indexable#unsafe_fetch`, which takes any `Int`, through the
+    # wrapper's `#unsafe_at`, which takes the C++ index type.
+    def unsafe_fetch(index : Int) : T
+      unsafe_at(index.to_i32)
+    end
 
     # Adds an element at the end.  Implemented by the wrapper.
     abstract def push(value : T)

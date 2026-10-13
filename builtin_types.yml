@@ -16,7 +16,6 @@ short: { binding_type: Int16, kind: Struct, builtin: true }
 "unsigned short": { binding_type: UInt16, kind: Struct, builtin: true }
 int: { binding_type: Int32, kind: Struct, builtin: true }
 "unsigned int": { binding_type: UInt32, kind: Struct, builtin: true }
-_Int: { binding_type: Int, crystal_type: Int, cpp_type: int, kind: Struct, builtin: true }
 
 # Long types
 "long int": { binding_type: "LibC::Long", kind: Struct, builtin: true }

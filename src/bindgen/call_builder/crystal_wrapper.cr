@@ -62,16 +62,9 @@ module Bindgen
           # type.
           result = call.result unless call.origin.any_constructor?
 
-          arguments = call.arguments
-          if call.name == "unsafe_fetch" && arguments.size == 1 && arguments[0].name == "index"
-            idx_type = Parser::Type.builtin_type("_Int")
-            idx_arg = Parser::Argument.new("index", idx_type)
-            arguments = Crystal::Pass.new(@db).arguments_to_wrapper([idx_arg])
-          end
-
           head_line = method.prototype(
             name: call.name,
-            arguments: arguments,
+            arguments: call.arguments,
             result: result,
             static: call.origin.static?,
             abstract: call.origin.pure?,

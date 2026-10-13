@@ -5,7 +5,7 @@ module Bindgen
     # specific `Call`s, like `Crystal` or `Cpp`.
     class InstantiateContainers < Base
       # Name of the "standard" built-in integer C++ type.  Required for the
-      # generated `#size` method, and `#unsafe_fetch` of sequential containers.
+      # generated `#size` method, and `#unsafe_at` of sequential containers.
       CPP_INTEGER_TYPE = "int"
 
       # Module for sequential containers
@@ -231,7 +231,7 @@ module Bindgen
           class_name: klass_name,
           arguments: [idx_arg],
           return_type: var_type,
-          crystal_name: "unsafe_fetch", # Will implement `Indexable#unsafe_fetch`
+          crystal_name: "unsafe_at", # Used by `SequentialContainer#unsafe_fetch`
         )
       end
 
