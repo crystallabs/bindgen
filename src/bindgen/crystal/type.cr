@@ -52,7 +52,7 @@ module Bindgen
         end
       end
 
-      private def as_number(value)
+      private def as_number(value, &)
         case value
         when Number then yield(value)
         when String then yield(value) # Responds to `#to_i` variants

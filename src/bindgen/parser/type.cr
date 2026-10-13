@@ -336,7 +336,7 @@ module Bindgen
       def initialize(
         @base_name, @full_name, @const, @reference, @pointer, @move = false,
         @builtin = false, @void = false, @kind = Kind::Class, @template = nil,
-        @nilable = false, @extents = Array(UInt64).new
+        @nilable = false, @extents = Array(UInt64).new,
       )
       end
 

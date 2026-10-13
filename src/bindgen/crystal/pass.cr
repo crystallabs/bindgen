@@ -144,7 +144,7 @@ module Bindgen
         end
       end
 
-      def to(type : Parser::Type) : Call::Result
+      def to(type : Parser::Type, &) : Call::Result
         is_copied = type_copied?(type)
         is_ref = type.reference?
         is_val = type.pointer < 1
@@ -253,7 +253,7 @@ module Bindgen
         end
       end
 
-      def from(type : Parser::Type, is_constructor = false, no_slice = false) : Call::Result
+      def from(type : Parser::Type, is_constructor = false, no_slice = false, &) : Call::Result
         is_copied = type_copied?(type)
         is_ref = type.reference?
         is_val = type.pointer < 1

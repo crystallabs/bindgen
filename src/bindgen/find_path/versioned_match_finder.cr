@@ -13,7 +13,7 @@ module Bindgen
 
       # Iterates over the set of candidates, yielding each candidate in sorted
       # order.
-      def each
+      def each(&)
         candidates = run_version_check
         store_additional_variables(candidates)
 

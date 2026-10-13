@@ -39,7 +39,7 @@ module Bindgen
     # afterwards.
     # If *additional* is given, additional variables set by matches are stored
     # within it.  If no *additional* is given, these variables are lost.
-    def find_all(config : Configuration) : Array(Error)
+    def find_all(config : Configuration, &) : Array(Error)
       errors = [] of Error
 
       config.each do |name, single|

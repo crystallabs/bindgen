@@ -119,7 +119,7 @@ module Bindgen
 
       # Increments the indention depth by one, yields, and decrements the depth
       # afterwards again.
-      def indented
+      def indented(&)
         @depth += 1
         yield
       ensure

@@ -9,7 +9,7 @@ module Bindgen
       def prototype(
         name, arguments, result = nil, static = false,
         abstract abstract_ = false, protected protected_ = false,
-        private private_ = false, named_args = false
+        private private_ = false, named_args = false,
       ) : String
         formatter = Format.new(@db)
         typer = Typename.new(@db)

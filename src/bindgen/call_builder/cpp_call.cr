@@ -7,7 +7,7 @@ module Bindgen
 
       def build(
         method : Parser::Method, self_var = "_self_", body : Call::Body? = nil,
-        name : String? = nil, braces : Bool = false
+        name : String? = nil, braces : Bool = false,
       )
         pass = Cpp::Pass.new(@db)
 

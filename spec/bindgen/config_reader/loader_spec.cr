@@ -1,6 +1,6 @@
 require "../../spec_helper"
 
-private def with_dependency(content)
+private def with_dependency(content, &)
   name = "loader_spec_#{rand 1..1_000_000}"
   full_path = "#{Dir.tempdir}/#{name}.yml"
   File.write(full_path, content)

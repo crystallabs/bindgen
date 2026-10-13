@@ -47,8 +47,6 @@ module Bindgen
       print_stats(stats) if @show_stats
       logger.info { "success!" }
       0 # Success!
-
-
     rescue err : ExitError
       logger.error(exception: err) { err.message }
       err.code # Failure

@@ -22,7 +22,7 @@ module Bindgen
       # method is called, bypassing dynamic lookup.
       def generate(
         method : Parser::Method, self_var : String,
-        type : Parser::Method::Type? = nil, exact_member = false
+        type : Parser::Method::Type? = nil, exact_member = false,
       )
         type ||= method.type
         case type

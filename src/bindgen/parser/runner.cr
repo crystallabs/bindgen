@@ -16,7 +16,7 @@ module Bindgen
       # resides.
       def initialize(
         @classes : Array(String), @enums : Array(String), @macros : Array(String),
-        @functions : Array(String), @config : Configuration, @project_root : String
+        @functions : Array(String), @config : Configuration, @project_root : String,
       )
         @binary_path = ENV["BINDGEN_BIN"]? || @config.binary || BINARY_PATH
 
@@ -57,7 +57,7 @@ module Bindgen
       end
 
       # Generates a dummy C++ header file, which `#include`s all given files
-      private def generate_source_file
+      private def generate_source_file(&)
         result = nil
 
         File.tempfile("bindgen") do |file|

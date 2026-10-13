@@ -47,6 +47,9 @@ jobs:
       - name: Install shards
         run: shards install
 
+      - name: Check formatting
+        run: crystal tool format --check src spec clang/find_clang.cr
+
       - name: Build clang tool
         working-directory: clang
         run: cmake -DLLVM_DIR="/usr/lib/llvm-$LLVM/lib/cmake/llvm" . && make

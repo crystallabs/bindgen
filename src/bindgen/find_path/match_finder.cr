@@ -17,7 +17,7 @@ module Bindgen
       end
 
       # Iterates over the set of candidates, yielding for each valid one.
-      def each
+      def each(&)
         @config.try.each do |try|
           run_path_try(try, @search_paths).each do |path|
             if run_path_checkers(path, @config.kind, @checkers)

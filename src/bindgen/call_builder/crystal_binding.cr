@@ -15,7 +15,7 @@ module Bindgen
       # wrapper struct for *myself_type*.
       def build(
         method : Parser::Method, klass_type : Parser::Type?, body = FunBody,
-        explicit_binding : String? = nil, myself_type : Parser::Type? = nil
+        explicit_binding : String? = nil, myself_type : Parser::Type? = nil,
       ) : Call
         logger.trace { "build for method #{method.name}" }
 

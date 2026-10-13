@@ -8,7 +8,7 @@ module Bindgen
 
       def build(
         method : Parser::Method, target : Call?, virtual_target : Call,
-        class_name : String? = nil, in_superclass = false
+        class_name : String? = nil, in_superclass = false,
       )
         pass = Cpp::Pass.new(@db)
         class_name ||= method.class_name

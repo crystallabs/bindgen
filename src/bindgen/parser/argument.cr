@@ -26,7 +26,7 @@ module Bindgen
         @name, @base_name, @full_name, @const, @reference, @move, @builtin,
         @void, @pointer, @template, @kind = Type::Kind::Class,
         @has_default = false, @value = nil, @nilable = false, @variadic = false,
-        @extents = Array(UInt64).new
+        @extents = Array(UInt64).new,
       )
       end
 

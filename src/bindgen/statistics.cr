@@ -42,7 +42,7 @@ module Bindgen
 
     # Measures execution of the given block.  Returns the result of the block.
     # The measured data is put into `#stages`.
-    def measure(stage_name : String)
+    def measure(stage_name : String, &)
       before_gc = GC.stats
       before = Time.local
       result = yield

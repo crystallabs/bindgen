@@ -83,7 +83,7 @@ module Bindgen
       end
 
       # Increments `@depth`, yields, and decrements `@depth` afterwards again.
-      private def indented
+      private def indented(&)
         @depth += 1
         yield
       ensure

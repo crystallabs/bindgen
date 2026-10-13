@@ -24,7 +24,7 @@ describe Bindgen::FindPath::AnyOfChecker do
       - path: PASSES
         contains: "Contains This"
       - path: FAILS
-        contains: "Doesn\'t Contain This"
+        contains: "Doesn't Contain This"
     YAML
     ).should be_true
   end
@@ -33,7 +33,7 @@ describe Bindgen::FindPath::AnyOfChecker do
     run_check(<<-YAML
     any_of:
       - path: FAILS
-        contains: "Doesn\'t Contain This"
+        contains: "Doesn't Contain This"
       - path: PASSES
         contains: "Contains This"
     YAML
@@ -44,9 +44,9 @@ describe Bindgen::FindPath::AnyOfChecker do
     run_check(<<-YAML
     any_of:
       - path: FAILS
-        contains: "Doesn\'t Contain This"
+        contains: "Doesn't Contain This"
       - path: FAILS
-        contains: "Doesn\'t Contain This Either"
+        contains: "Doesn't Contain This Either"
     YAML
     ).should be_false
   end

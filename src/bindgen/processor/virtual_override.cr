@@ -230,7 +230,7 @@ module Bindgen
       end
 
       private def build_cpp_forwarder(
-        method : Parser::Method, class_name, parent_class, in_superclass : Bool
+        method : Parser::Method, class_name, parent_class, in_superclass : Bool,
       ) : Call
         original = CallBuilder::CppMethodCall.new(@db)
         wrapper = CallBuilder::CppMethod.new(@db)
@@ -251,7 +251,7 @@ module Bindgen
 
       private def build_superclass_forwarder(
         orig_method : Parser::Method, target_method : Parser::Method,
-        klass : Parser::Class, superclass : Parser::Class
+        klass : Parser::Class, superclass : Parser::Class,
       ) : Call
         call = CallBuilder::CrystalBinding.new(@db)
         wrapper = CallBuilder::CrystalWrapper.new(@db)
@@ -269,7 +269,7 @@ module Bindgen
 
       # Builds the `Graph::Struct` jumptable for *klass*, putting it into
       # *parent*.
-      private def build_jumptable_struct(klass, parent)
+      private def build_jumptable_struct(klass, parent, &)
         Graph::Struct.new(
           fields: jumptable_fields(klass) { |m| yield m },
           name: jumptable_name(klass),
@@ -279,7 +279,7 @@ module Bindgen
 
       # Builds the jumptable fields hash for *klass*, yielding out to let the
       # caller decide the kind of `Call::Result`.
-      private def jumptable_fields(klass)
+      private def jumptable_fields(klass, &)
         hsh = {} of String => Call::Result
 
         klass.nodes.each do |node|

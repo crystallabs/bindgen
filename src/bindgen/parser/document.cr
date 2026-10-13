@@ -25,7 +25,7 @@ module Bindgen
         @classes = Class::Collection.new,
         @macros = Macro::Collection.new,
         @functions = Method::Collection.new,
-        @format_version = FORMAT_VERSION
+        @format_version = FORMAT_VERSION,
       )
       end
 

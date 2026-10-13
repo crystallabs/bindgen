@@ -56,7 +56,7 @@ module Bindgen
         @has_copy_constructor = false, @type_kind = TypeKind::Class,
         @abstract = false, @anonymous = false, @destructible = true,
         @bases = [] of BaseClass, @fields = [] of Field,
-        @methods = [] of Method, @access = AccessSpecifier::Public
+        @methods = [] of Method, @access = AccessSpecifier::Public,
       )
       end
 
@@ -119,7 +119,7 @@ module Bindgen
       # **Note**: This method hard-codes which methods to ignore.  If you're
       # wondering why a method doesn't even reach the graph in the first place,
       # look in here.
-      def each_wrappable_method
+      def each_wrappable_method(&)
         @methods.each do |method|
           next if method.private?
           next if method.name == "operator="  # TODO: Support assignments!

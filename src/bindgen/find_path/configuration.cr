@@ -117,7 +117,7 @@ module Bindgen
 
       def initialize(
         @min = nil, @max = nil, @prefer = Bindgen::FindPath::VersionCheck::Prefer::Highest,
-        @fallback = Bindgen::FindPath::VersionCheck::Fallback::Fail, @regex = "-([0-9.]+)$", @command = nil
+        @fallback = Bindgen::FindPath::VersionCheck::Fallback::Fail, @regex = "-([0-9.]+)$", @command = nil,
       )
       end
     end
@@ -186,7 +186,7 @@ module Bindgen
 
       def initialize(
         @try, @kind = Bindgen::FindPath::Kind::Directory, @optional = false, @error_message = nil,
-        @checks = [] of (Bindgen::FindPath::PathCheck | Bindgen::FindPath::ShellCheck)
+        @checks = [] of (Bindgen::FindPath::PathCheck | Bindgen::FindPath::ShellCheck),
       )
       end
     end

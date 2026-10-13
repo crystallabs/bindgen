@@ -98,7 +98,7 @@ module Bindgen
         end
       end
 
-      def code_block(*header)
+      def code_block(*header, &)
         puts header.reject(&.nil?).join(" ")
         indented { yield }
         puts "end"

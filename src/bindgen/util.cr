@@ -15,7 +15,7 @@ module Bindgen
     # block returned a falsy value.
     #
     # This method is `O(n²)`, prefer `Enumerable#uniq` if possible.
-    def self.uniq_by(list : Array)
+    def self.uniq_by(list : Array, &)
       result = list.class.new
 
       list.each do |elem|

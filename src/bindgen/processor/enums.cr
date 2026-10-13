@@ -124,7 +124,7 @@ module Bindgen
       # Yields all keys in *hash* and returns a new hash with the yield
       # returned new keys.  Keys are tracked to make sure they're unique.
       # Keys are afterwards sent through `#fixed_constant_name`.
-      private def transform_keys_unique(hash : Hash(K, _)) forall K
+      private def transform_keys_unique(hash : Hash(K, _), &) forall K
         seen = Hash(K, Int32).new(default_value: 0)
 
         hash.map do |key, value|

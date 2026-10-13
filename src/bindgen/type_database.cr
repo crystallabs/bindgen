@@ -147,7 +147,7 @@ module Bindgen
         @builtin = false, @ignore_methods = [] of String,
         @superclass_ignore_methods = Util::FAIL_RX,
         @instance_variables = InstanceVariableConfig::Collection.new,
-        @graph_node = nil, @container_type = nil
+        @graph_node = nil, @container_type = nil,
       )
       end
 
@@ -369,7 +369,7 @@ module Bindgen
     end
 
     # Helper, equivalent to calling `#[type]?.try(&.x) || default`
-    def try_or(type : Parser::Type | String, default)
+    def try_or(type : Parser::Type | String, default, &)
       result = self[type]?.try { |x| yield x }
 
       if result.nil?

@@ -104,7 +104,7 @@ module Bindgen
         @name, @class_name, @return_type, @arguments, @first_default_argument = nil,
         @access = AccessSpecifier::Public, @type = Type::MemberMethod,
         @const = false, @virtual = false, @pure = false, @extern_c = false,
-        @builtin = false, @origin = nil, @crystal_name = nil, @binding_name = nil
+        @builtin = false, @origin = nil, @crystal_name = nil, @binding_name = nil,
       )
       end
 
@@ -113,7 +113,7 @@ module Bindgen
       def self.build(
         name, return_type : Parser::Type, arguments : Array(Parser::Argument), class_name : String,
         type = Parser::Method::Type::MemberMethod, access = AccessSpecifier::Public,
-        crystal_name = nil
+        crystal_name = nil,
       ) : self
         method = Parser::Method.new(
           type: type,
@@ -164,7 +164,7 @@ module Bindgen
       # in the example), no default value will be set.
       #
       # Also see `#find_variant_splits` for the algorithm.
-      def variants
+      def variants(&)
         first_default = @first_default_argument || @arguments.size
 
         find_variant_splits.each do |idx|

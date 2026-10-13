@@ -31,8 +31,8 @@ module Bindgen
         container = @config.containers.find(&.class.== templ.base_name)
         return if container.nil? # Not a configured container type
 
-        # Check for the correct amount of template arguments.  There may be more
-        # than those arguments, which are usually allocators.
+                  # Check for the correct amount of template arguments.  There may be more
+                  # than those arguments, which are usually allocators.
         arg_count = container_type_arguments(container.type)
         return if templ.arguments.size < arg_count
 
