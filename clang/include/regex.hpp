@@ -1,10 +1,11 @@
 #ifndef REGEX_HPP
 #define REGEX_HPP
 
-#include <pcre.h>
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
 #include <string>
 
-// PCRE based regex helper.  Aborts if a regex is broken.
+// PCRE2 based regex helper.  Aborts if a regex is broken.
 class Regex {
 public:
   Regex(const std::string &expression);
@@ -14,8 +15,7 @@ public:
   bool isMatch(const std::string &text) const;
 
 private:
-  pcre *m_regex;
-  pcre_extra *m_extra;
+  pcre2_code *m_regex;
 };
 
 #endif // REGEX_HPP

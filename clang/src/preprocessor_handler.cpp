@@ -4,8 +4,6 @@
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Lex/MacroInfo.h"
 
-#include <pcre.h>
-
 static llvm::cl::opt<std::string> MacroChecker("m", llvm::cl::desc("Macros to copy"), llvm::cl::value_desc("regex"));
 
 PreprocessorHandler::PreprocessorHandler(Document &doc, clang::Preprocessor &preprocessor)

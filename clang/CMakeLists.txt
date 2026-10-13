@@ -50,5 +50,5 @@ elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   target_link_libraries(parser Threads::Threads)
 endif ()
 
-# -ldl -lz -lcurses -lpcre
-target_link_libraries(parser dl z curses pcre)
+# -ldl -lz -lcurses -lpcre2-8
+target_link_libraries(parser dl z curses pcre2-8)
