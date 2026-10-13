@@ -42,7 +42,7 @@ module Bindgen
       class BraceBody < Call::Body
         def to_code(call : Call, platform : Graph::Platform) : String
           pass_args = call.arguments.map(&.call).join(", ")
-          code = %[#{call.name} {#{pass_args}}]
+          code = %[#{call.name}(#{call.origin.class_name} {#{pass_args}})]
           call.result.apply_conversion(code)
         end
       end

@@ -62,6 +62,8 @@ static __attribute__((noreturn)) void bindgen_fatal_panic(const char *message) {
 #ifdef __cplusplus
 #include <gc/gc_cpp.h>
 #include <string>
+#include <type_traits>
+#include <utility>
 
 // Break C++'s encapsulation to allow easy wrapping of protected methods.
 #define protected public
@@ -105,10 +107,19 @@ struct CrystalProc {
 };
 
 template <typename T>
-struct CrystalGCWrapper: public T, public gc_cleanup
+struct CrystalGCCleanupWrapper: public T, public gc_cleanup
 {
   using T::T;
+
+  // Used for aggregate initialization, as `T`'s copy and move constructors
+  // aren't inherited.
+  CrystalGCCleanupWrapper(T &&value) : T(std::move(value)) { }
 };
+
+// Unions can't be inherited from, these are allocated as they are.
+template <typename T>
+using CrystalGCWrapper = typename std::conditional<
+  std::is_union<T>::value, T, CrystalGCCleanupWrapper<T>>::type;
 
 /// A simple wrapper around a non-pointer type that allows a single
 /// dereference operation.
@@ -120,6 +131,9 @@ struct bg_deref {
   bg_deref(Args&&... args) : data(std::forward<Args>(args)...) {}
 
   T operator*() && { return std::move(data); }
+
+  // Allows passing the value straight on into a converter function.
+  operator T() && { return std::move(data); }
 };
 
 #endif // __cplusplus
