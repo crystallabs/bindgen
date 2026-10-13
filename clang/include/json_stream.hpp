@@ -1,7 +1,7 @@
 #ifndef JSON_STREAM_HPP
 #define JSON_STREAM_HPP
 
-#include "helper.hpp"
+#include <optional>
 #include <ostream>
 #include <vector>
 #include <map>
@@ -81,8 +81,12 @@ public:
 	}
 
 	template< typename T >
-	JsonStream &operator<<(const CopyPtr<T> object) {
-		return *this << object.ptr;
+	JsonStream &operator<<(const std::optional<T> &object) {
+		if (object) {
+			return *this << *object;
+		} else {
+			return *this << Null;
+		}
 	}
 
 	/* // Use once C++17 is enabled.

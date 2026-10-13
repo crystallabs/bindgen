@@ -7,7 +7,7 @@
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/ExprCXX.h"
 
-static CopyPtr<Template> handleTemplate(const clang::TemplateSpecializationType *tmpl, clang::ASTContext &ctx);
+static std::optional<Template> handleTemplate(const clang::TemplateSpecializationType *tmpl, clang::ASTContext &ctx);
 static bool tryReadStringConstructor(LiteralData &literal, const clang::CXXConstructExpr *expr);
 
 static bool isIdentifierChar(char c) {
@@ -100,10 +100,10 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &qt, clang::
 	}
 }
 
-static CopyPtr<Template> handleTemplate(const clang::TemplateSpecializationType *tmpl, clang::ASTContext &ctx) {
+static std::optional<Template> handleTemplate(const clang::TemplateSpecializationType *tmpl, clang::ASTContext &ctx) {
 	Template t;
 
-	if (!tmpl) return CopyPtr<Template>();
+	if (!tmpl) return std::nullopt;
 
 	if (const clang::TemplateDecl *decl = tmpl->getTemplateName().getAsTemplateDecl()) {
 		t.baseName = decl->getQualifiedNameAsString();
@@ -112,13 +112,13 @@ static CopyPtr<Template> handleTemplate(const clang::TemplateSpecializationType 
 	for (const clang::TemplateArgument &argument : tmpl->template_arguments()) {
 		// Don't allow non-type template arguments yet.
 		if (argument.getKind() != clang::TemplateArgument::Type)
-			return CopyPtr<Template>();
+			return std::nullopt;
 
 		Type type = TypeHelper::qualTypeToType(argument.getAsType(), ctx);
 		t.arguments.push_back(type);
 	}
 
-	return CopyPtr<Template>(t);
+	return t;
 }
 
 Argument TypeHelper::processFunctionParameter(const clang::ParmVarDecl *decl) {

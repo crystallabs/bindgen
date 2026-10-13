@@ -1,13 +1,21 @@
 #ifndef STRUCTURES_HPP
 #define STRUCTURES_HPP
 
-#include "helper.hpp"
 #include "json_stream.hpp"
 #include "clang/AST/DeclCXX.h"
 #include "clang/Basic/Version.h"
+#include <optional>
 
-// Forward declare for `Type::templ`
-struct Template;
+// Forward declare for `Template::arguments`
+struct Type;
+
+struct Template {
+	std::string fullName; // The template class, e.g. `std::vector<_Tp, _Alloc>` in `std::vector<std::string>`
+	std::string baseName; // The template class-name, e.g. `std::vector`
+	std::vector<Type> arguments; // Arguments, e.g. `std::string`
+};
+
+JsonStream &operator<<(JsonStream &s, const Template &value);
 
 struct Type {
 	bool isConst = false; // Constant?
@@ -20,18 +28,10 @@ struct Type {
 	std::string baseName; // Base type. E.g., `const Foo *&` => `Foo`
 	std::string fullName; // Full name, for C++. E.g. `const Foo *&`
 
-	CopyPtr<Template> templ = nullptr;
+	std::optional<Template> templ; // Set if this is a template type
 };
 
 JsonStream &operator<<(JsonStream &s, const Type &value);
-
-struct Template {
-	std::string fullName; // The template class, e.g. `std::vector<_Tp, _Alloc>` in `std::vector<std::string>`
-	std::string baseName; // The template class-name, e.g. `std::vector`
-	std::vector<Type> arguments; // Arguments, e.g. `std::string`
-};
-
-JsonStream &operator<<(JsonStream &s, const Template &value);
 
 struct LiteralData {
 	enum Kind {
@@ -180,7 +180,7 @@ struct Macro {
 	bool isVarArg; // Does it end in a variable argument list?
 	std::string value; // The unparsed macro body
 	LiteralData evaluated; // The evaluated macro value
-	CopyPtr<Type> type; // The type of the evaluated macro value
+	std::optional<Type> type; // The type of the evaluated macro value
 };
 
 JsonStream &operator<<(JsonStream &s, const Macro &value);

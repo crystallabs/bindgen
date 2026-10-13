@@ -1,5 +1,4 @@
 #include "structures.hpp"
-#include "helper.hpp"
 #include "json_stream.hpp"
 
 static JsonStream &writeTypeJson(JsonStream &s, const Type &value) {

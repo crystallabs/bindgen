@@ -18,7 +18,6 @@
 #include <vector>
 #include <map>
 
-#include "helper.hpp"
 #include "structures.hpp"
 
 #endif // COMMON_HPP
