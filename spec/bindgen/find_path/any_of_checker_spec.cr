@@ -1,5 +1,7 @@
 require "../../spec_helper"
 
+# The checks run on this very file.  The texts which must not be found are
+# thus escaped on the YAML level, so they don't appear in here literally.
 private def run_check(yaml)
   config = Bindgen::FindPath::AnyOfCheck.from_yaml(yaml)
   checker = Bindgen::FindPath::AnyOfChecker.new(config, is_file: true)
@@ -24,7 +26,7 @@ describe Bindgen::FindPath::AnyOfChecker do
       - path: PASSES
         contains: "Contains This"
       - path: FAILS
-        contains: "Doesn't Contain This"
+        contains: "Doesn\\x27t Contain This"
     YAML
     ).should be_true
   end
@@ -33,7 +35,7 @@ describe Bindgen::FindPath::AnyOfChecker do
     run_check(<<-YAML
     any_of:
       - path: FAILS
-        contains: "Doesn't Contain This"
+        contains: "Doesn\\x27t Contain This"
       - path: PASSES
         contains: "Contains This"
     YAML
@@ -44,9 +46,9 @@ describe Bindgen::FindPath::AnyOfChecker do
     run_check(<<-YAML
     any_of:
       - path: FAILS
-        contains: "Doesn't Contain This"
+        contains: "Doesn\\x27t Contain This"
       - path: FAILS
-        contains: "Doesn't Contain This Either"
+        contains: "Doesn\\x27t Contain This Either"
     YAML
     ).should be_false
   end
