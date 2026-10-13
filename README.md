@@ -46,6 +46,7 @@ dependencies:
       * [InstanceProperties](#instanceproperties)
       * [InstantiateContainers](#instantiatecontainers)
       * [Macros](#macros)
+      * [Operators](#operators)
       * [Qt](#qt)
       * [SanityCheck](#sanitycheck)
       * [VirtualOverride](#virtualoverride)
@@ -59,8 +60,6 @@ dependencies:
    * [Contributing](#contributing)
       * [Contributors](#contributors)
    * [License](#license)
-
-<!-- Added by: docelic, at: Thu 28 May 2020 09:55:45 PM CEST -->
 
 <!--te-->
 
