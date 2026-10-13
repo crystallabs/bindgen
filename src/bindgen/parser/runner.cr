@@ -53,7 +53,7 @@ module Bindgen
 
       # Calls the clang tool and directly parses its output
       def run_and_parse : Document
-        Document.from_json(run)
+        Document.from_json(run).tap(&.check_format_version!)
       end
 
       # Generates a dummy C++ header file, which `#include`s all given files

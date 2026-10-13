@@ -252,6 +252,7 @@ JsonStream &operator<<(JsonStream &s, const Document &value) {
 	auto c = JsonStream::Comma;
 	return s
 		<< JsonStream::ObjectBegin
+		<< std::make_pair("version", BG_FORMAT_VERSION) << c
 		<< std::make_pair("enums", value.enums) << c
 		<< std::make_pair("classes", value.classes) << c
 		<< std::make_pair("functions", value.functions) << c

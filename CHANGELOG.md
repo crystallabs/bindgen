@@ -29,6 +29,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   and `.from` builds one from any `Enumerable`.
 * Shared linking uses `libclang-cpp` and `libLLVM` (#66).
 * `tool.sh` builds `bin/bindgen` once and reuses it.
+* The clang tool's output carries a format version, so an outdated
+  `clang/parser` is reported instead of being misread.
 * The clang tool is built by the default C++ compiler, not necessarily by the
   `clang++` of the LLVM it links against.
 * GitHub Actions workflow, replacing Travis CI.
