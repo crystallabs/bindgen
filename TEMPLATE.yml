@@ -330,6 +330,11 @@ functions:
 # List of container-types to wrap.  (Keyword: C++ Templates)
 # Requires the `instantiate_containers` processor.  Optionally, you can also use
 # the `auto_container_instantiation` processor before.
+#
+# Each container class gets a generic Crystal module, e.g. `QList(T)`, which
+# its instantiations include.  Use it in type restrictions.  The wrapper class
+# of an instantiation is returned by its `of` macro, and built from any
+# `Enumerable` by `.from`:  `QList.of(Int32).from([1, 2, 3])`
 containers:
   - class: Name of the C++ class
     type: "Sequential" or "Associative"
