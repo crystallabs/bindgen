@@ -49,3 +49,19 @@ concern the tool giving the expected output for a given input.
 
 To force the clang tool path set the `BINDGEN_BIN` environment variable.
 If not set, the default `clang/parser` will be used.
+
+Set `VERBOSE=1` to print the command line of each clang tool invocation.  The
+clang tool tests then also keep their temporary input file.
+
+## Testing against a specific LLVM version
+
+The tests use whatever `clang/parser` was built against.  To pick one of
+several installed LLVM versions, rebuild the tool first:
+
+```
+git clean -fdX clang
+cd clang && cmake -DLLVM_DIR=/usr/lib/llvm-18/lib/cmake/llvm . && make
+```
+
+This also regenerates `integration/spec_base.yml`, which holds the compiler
+and include paths used by the integration tests.
