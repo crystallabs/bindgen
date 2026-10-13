@@ -40,6 +40,18 @@ this out.  It's used by build system, and is supposed to be portable.
 
 ## Tips for direct usage
 
+The tool takes the file to parse, what to look for, and after `--` the
+compiler flags:
+
+```
+clang/parser my_lib.h -c MyClass -e MyEnum -f 'my_func_.*' -m 'MY_MACRO_.*' -- -x c++ -std=c++17 -Iinclude
+```
+
+`-c` and `-e` name a class or enumeration and can be repeated, `-f` and `-m`
+take a regular expression matching functions or macros.  Only what was asked
+for ends up in the output.  If macros were found, the file is parsed a second
+time to evaluate them.
+
 You can see the whole command line by setting `VERBOSE=1` before calling
 bindgen: `$ VERBOSE=1 lib/bindgen/tool.sh my-config.yml`.
 
