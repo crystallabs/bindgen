@@ -11,6 +11,7 @@
 # This script is called automatically from `Makefile`.
 # Can be invoked manually. Invoke with --help for options.
 
+require "option_parser"
 require "yaml"
 require "../src/bindgen/util"
 require "../src/bindgen/find_path"
@@ -20,10 +21,10 @@ require "../src/bindgen/find_path"
 OPTIONS = Hash(Symbol, Bool | String | Nil | Array(String)).new
 OPTIONS[:clang] = nil
 OPTIONS[:llvm_config] = nil
-OPTIONS[:print_llvm_libs] = ARGV.includes?("--print-llvm-libs")
-OPTIONS[:print_clang_libs] = ARGV.includes?("--print-clang-libs")
-OPTIONS[:quiet] = ARGV.includes?("--quiet")
-OPTIONS[:debug] = ARGV.includes?("--debug")
+OPTIONS[:print_llvm_libs] = false
+OPTIONS[:print_clang_libs] = false
+OPTIONS[:quiet] = false
+OPTIONS[:debug] = false
 OPTIONS[:cppflags] = [] of String
 OPTIONS[:ldflags] = [] of String
 OPTIONS[:system_include_dirs] = [] of String
@@ -176,19 +177,32 @@ write_if_changed(spec_base, spec_base_content)
 #################################################
 # Helper functions found below.
 
-# Parses command line in an ad hoc way. Could be replaced
-# with OptionParser.
+# Parses the command line into `OPTIONS`.
 def parse_cli_args
-  if ARGV.includes?("--clang")
-    index = ARGV.index("--clang")
-    OPTIONS[:clang] = ARGV[index + 1] unless index.nil?
-  end
-  if ARGV.includes?("--llvm-config")
-    index = ARGV.index("--llvm-config")
-    OPTIONS[:llvm_config] = ARGV[index + 1] unless index.nil?
-  end
-  if ARGV.includes?("--help")
-    print_usage_and_exit
+  # `crystal find_clang.cr -- --option` passes the `--` on.
+  OptionParser.parse(ARGV.reject("--")) do |parser|
+    parser.banner = "find_clang.cr [options]"
+
+    parser.on("--llvm-config PATH", "Path to llvm-config binary (default: find llvm-config[-*] in PATH)") { |path| OPTIONS[:llvm_config] = path }
+    parser.on("--clang PATH", "Path to clang binary (default: find clang++[-*] in llvm bindir)") { |path| OPTIONS[:clang] = path }
+    parser.on("--print-clang-libs", "Print detected clang libs and exit") { OPTIONS[:print_clang_libs] = true }
+    parser.on("--print-llvm-libs", "Print detected llvm libs and exit") { OPTIONS[:print_llvm_libs] = true }
+    parser.on("--quiet", "Suppress diagnostic/debug STDERR output") { OPTIONS[:quiet] = true }
+    parser.on("--debug", "Print the complete internal and parsed config and exit") { OPTIONS[:debug] = true }
+    parser.on("--help", "This help") do
+      STDERR.puts parser
+      exit 1
+    end
+
+    parser.invalid_option do |flag|
+      STDERR.puts "Unknown option #{flag}", parser
+      exit 1
+    end
+
+    parser.missing_option do |flag|
+      STDERR.puts "Option #{flag} expects a value", parser
+      exit 1
+    end
   end
 end
 
@@ -254,27 +268,6 @@ def print_help_and_exit
     CentOS: yum install crystal libyaml-devel gc-devel pcre2-devel zlib-devel clang-devel
     openSUSE: zypper install llvm clang libyaml-devel gc-devel pcre2-devel zlib-devel clang-devel ncurses-devel
     Mac OS: brew install crystal bdw-gc gmp libevent libxml2 libyaml llvm
-  END
-
-  exit 1
-end
-
-def print_usage_and_exit
-  STDERR.puts <<-END
-    find_clang.cr [options]
-
-    Options:
-    --llvm-config PATH   Path to llvm-config binary (default: find llvm-config[-*] in PATH)
-    --clang PATH         Path to clang binary (default: find clang++[-*] in llvm bindir)
-
-    --print-clang-libs   Print detected clang libs and exit (default: false)
-    --print-llvm-libs    Print detected llvm libs and exit (default: false)
-
-    --quiet              Supress diagnostic/debug STDERR output (default: false)
-    --debug              Print the complete internal and parsed config and exit (default: false)
-    --help               This help
-
-
   END
 
   exit 1
