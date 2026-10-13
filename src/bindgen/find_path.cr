@@ -9,7 +9,7 @@ module Bindgen
   class FindPath
     # Pure multi-line option.  Crystal by defaults combines multi-line with the
     # dot-all option, which we don't want.
-    MULTILINE_OPTION = Regex::Options.from_value(2)
+    MULTILINE_OPTION = Regex::Options::MULTILINE_ONLY
 
     {% if flag?(:windows) %}
       PATH_SEPARATOR = ';'
