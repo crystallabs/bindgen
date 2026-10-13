@@ -18,14 +18,11 @@ def clang_tool(cpp_code, arguments, **checks)
 
   tool = ENV["BINDGEN_BIN"]? || Bindgen::Parser::Runner::BINARY_PATH
 
+  # Written by `clang/find_clang.cr` when building the tool.
   cxx_flags = "-std=c++11 -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS"
-  makefile_vars = File.join(__DIR__, "../../clang/Makefile.variables")
-  if File.exists?(makefile_vars)
-    File.read_lines(makefile_vars).each do |line|
-      if line =~ /^LLVM_CXX_FLAGS/
-        cxx_flags = line.split(" := ").last.chomp
-      end
-    end
+  variables = File.join(__DIR__, "../../clang/variables.yml")
+  if File.exists?(variables)
+    cxx_flags = YAML.parse(File.read(variables))["llvm_cxx_flags"].as_s
   end
   command = "#{tool} #{file.path} #{arguments} -- " \
             "-x c++ #{cxx_flags} " \

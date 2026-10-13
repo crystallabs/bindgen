@@ -1,4 +1,4 @@
 parser
 include/generated.hpp
 *.o
-Makefile.variables
+variables.yml

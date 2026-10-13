@@ -8,7 +8,7 @@
 # As part of the run, it generates some files.
 # It outputs all LLVM and Clang libraries to link to.
 # Provides diagnostics to standard error.
-# This script is called automatically from `Makefile`.
+# This script is called automatically by CMake.
 # Can be invoked manually. Invoke with --help for options.
 
 require "option_parser"
@@ -31,7 +31,7 @@ OPTIONS[:system_include_dirs] = [] of String
 OPTIONS[:system_lib_dirs] = [] of String
 OPTIONS[:system_libs] = [] of String
 OPTIONS[:generated_hpp] = File.expand_path "#{__DIR__}/include/generated.hpp"
-OPTIONS[:makefile_variables] = File.expand_path "#{__DIR__}/Makefile.variables"
+OPTIONS[:variables] = File.expand_path "#{__DIR__}/variables.yml"
 OPTIONS[:spec_base] = File.expand_path "#{__DIR__}/../spec/integration/spec_base.yml"
 parse_cli_args
 
@@ -129,21 +129,19 @@ write_if_changed(generated_hpp, String.build do |b|
   b.puts "#define BG_SYSTEM_INCLUDES { #{system_include_dirs.map(&.inspect).join(", ")} }"
 end)
 
-# Generate Makefile.variables file
-log "Generating #{makefile_variables}"
-makefile_variables_content = <<-VARS
-  CLANG_BINARY := #{clang}
-  CLANG_INCLUDES := #{system_include_dirs.map { |x| "-I#{File.expand_path(x)}" }.join(' ')}
-  CLANG_LIBS := #{(get_lib_args(clang_libs + llvm_libs) + system_libs).join(' ')}
-
-  LLVM_CONFIG_BINARY := #{llvm_config}
-  LLVM_VERSION_MAJOR := #{llvm_version.split(/\./).first}
-  LLVM_VERSION := #{llvm_version}
-  LLVM_CXX_FLAGS := #{llvm_cxx_flags}
-  LLVM_LD_FLAGS := #{llvm_ld_flags}
-  LLVM_LIBS := #{(get_lib_args(llvm_libs) + system_libs).join(" ")}
-  VARS
-write_if_changed(makefile_variables, makefile_variables_content)
+# Generate variables.yml file
+log "Generating #{variables}"
+variables_content = {
+  clang:          clang,
+  llvm_config:    llvm_config,
+  llvm_version:   llvm_version,
+  llvm_cxx_flags: llvm_cxx_flags,
+  llvm_ld_flags:  llvm_ld_flags,
+  includes:       system_include_dirs.map { |x| File.expand_path(x) },
+  clang_libs:     get_lib_args(clang_libs),
+  llvm_libs:      get_lib_args(llvm_libs) + system_libs,
+}.to_yaml
+write_if_changed(variables, variables_content)
 
 # Generate spec_base.yml
 log "Generating #{spec_base}"
@@ -512,8 +510,8 @@ def generated_hpp
   OPTIONS[:generated_hpp].as String
 end
 
-def makefile_variables
-  OPTIONS[:makefile_variables].as String
+def variables
+  OPTIONS[:variables].as String
 end
 
 def spec_base
