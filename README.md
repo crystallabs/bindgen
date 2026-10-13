@@ -120,6 +120,7 @@ The following rules are automatically applied to all bindings:
 |  +- Getters and setters for instance variables   | **YES** |
 |  +- Getters and setters for static variables     | **YES** |
 |  +- Constructors                                 | **YES** |
+|  +- Copy constructors, assignment operators      |   TBD   |
 |  +- Overloaded operators                         | Partial |
 |  +- Conversion functions                         |   TBD   |
 | Mapping C/C++ global functions                   |         |
@@ -132,10 +133,14 @@ The following rules are automatically applied to all bindings:
 | Enumerations                                     | **YES** |
 | Copying structures                               | **YES** |
 |  +- C array members of built-in types            | **YES** |
+|  +- C array members of wrapped types             |   TBD   |
+|  +- Bit-fields                                   |   TBD   |
 | Custom type conversions between C/++ and Crystal | **YES** |
 | Automatic type wrapping and conversion           | **YES** |
 | Integration with Crystals GC                     | **YES** |
-| C++ Template instantiation for containers types  | **YES** |
+| C++ Template instantiation for containers types  |         |
+|  +- Sequential containers                        | **YES** |
+|  +- Associative containers                       |   TBD   |
 | Virtual methods                                  | **YES** |
 | Override virtual methods from Crystal            | **YES** |
 | Abstract classes                                 | **YES** |
