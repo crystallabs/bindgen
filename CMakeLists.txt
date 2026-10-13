@@ -20,7 +20,8 @@ if(NOT EXISTS ${shards_bin})
 endif()
 
 add_custom_target(shards ALL
-  COMMAND ${shards_bin} update
+  COMMAND ${shards_bin} install
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
 if(NOT EXISTS ${PROJECT_SOURCE_DIR}/bin)
@@ -29,5 +30,6 @@ endif()
 
 add_custom_target(bindgen ALL
   COMMAND ${crystal_bin} build --release src/bindgen.cr --error-trace -o ${PROJECT_SOURCE_DIR}/bin/bindgen
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   DEPENDS parser shards
 )

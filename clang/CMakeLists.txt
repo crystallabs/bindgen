@@ -14,6 +14,9 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 file(GLOB source_files "${PROJECT_SOURCE_DIR}/src/*.cpp")
 add_executable(parser ${source_files})
 
+# bindgen looks for the tool next to its sources, wherever it was built.
+set_target_properties(parser PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
+
 # Link against clang libraries
 target_link_libraries(parser ${clang_libs})
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
