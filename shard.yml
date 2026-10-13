@@ -9,10 +9,8 @@ authors:
 
 dependencies:
   toka:
-    # github: Papierkorb/toka
-    # version: ">= 0.1.2"
-    github: kalinon/toka
-    branch: patch-1
+    github: Papierkorb/toka
+    commit: b2044c8410bd82a905db75f1ab23e895760544c7
   spoved:
     github: spoved/spoved.cr
     version: ">= 0.5.5"
