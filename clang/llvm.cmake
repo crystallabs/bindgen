@@ -1,8 +1,6 @@
 ######################
 # LLVM Setup
 ######################
-set(LLVM_ENABLE_LIBCXX ON)
-
 # Search for LLVM
 find_package(LLVM REQUIRED CONFIG)
 
@@ -22,10 +20,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find the LLVM clang++ path
 message(STATUS "LLVM Tools Dir: ${LLVM_TOOLS_BINARY_DIR}")
 
+# The tool itself is built by the default C++ compiler.  This clang++ is
+# queried for its search paths, and builds the C++ code in the specs.
 find_program(llvm_clang_bin NAMES "clang++" PATHS ${LLVM_TOOLS_BINARY_DIR} NO_DEFAULT_PATH REQUIRED)
-# message(STATUS "Found clang bin: ${llvm_clang_bin}")
-set(CMAKE_CXX_COMPILER ${llvm_clang_bin})
-message(STATUS "Using clang++ exec: ${CMAKE_CXX_COMPILER}")
+message(STATUS "Found clang++ exec: ${llvm_clang_bin}")
 
 # Find llvm-config bin
 find_program(llvm_config_bin NAMES "llvm-config" PATHS ${LLVM_TOOLS_BINARY_DIR} NO_DEFAULT_PATH REQUIRED)

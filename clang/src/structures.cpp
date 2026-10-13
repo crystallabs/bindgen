@@ -146,7 +146,7 @@ JsonStream &operator<<(JsonStream &s, clang::AccessSpecifier value) {
 		case clang::AS_public: return s << "Public";
 		case clang::AS_protected: return s << "Protected";
 		case clang::AS_private: return s << "Private";
-		case clang::AS_none: return s << "BUG IN Bindgen";
+		default: return s << "BUG IN Bindgen";
 	}
 }
 

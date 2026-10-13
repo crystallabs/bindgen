@@ -36,18 +36,11 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
   include_directories(/usr/local/include)
   include_directories(/usr/local/opt/libevent/include)
 
-  # for MacOS X or iOS, watchOS, tvOS (since 3.10.3)
-  if (${LLVM_PACKAGE_VERSION} VERSION_GREATER "4")
-    # Enable threads if LLVM over 4
-    set(THREADS_PREFER_PTHREAD_FLAG ON)
-    find_package(Threads REQUIRED)
-    target_link_libraries(parser Threads::Threads)
-  endif ()
-elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-  # Enable threads
-  set(THREADS_PREFER_PTHREAD_FLAG ON)
-  find_package(Threads REQUIRED)
-  target_link_libraries(parser Threads::Threads)
 endif ()
+
+# Enable threads
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(parser Threads::Threads)
 
 target_link_libraries(parser pcre2-8)
