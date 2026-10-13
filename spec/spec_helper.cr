@@ -3,32 +3,6 @@ require "../src/bindgen/library"
 
 # ## Helpers
 
-Spec.before_suite {
-# spoved_logger :debug, bind: true, dispatcher: :sync
-}
-
-def watchdog(deadline = 10.seconds)
-  # alarm() / SIGALRM doesn't trigger reliably :(
-  watcher = Process.fork do
-    sleep deadline
-    STDERR.puts "WATCHDOG: Deadline reached after #{deadline.seconds}s"
-    STDERR.puts "Aborting."
-    {% if compare_versions(::Crystal::VERSION, "0.34.0") > 0 %}
-      Process.signal(Signal::ABRT, Process.ppid)
-    {% else %}
-      Process.kill(Signal::ABRT, Process.ppid)
-    {% end %}
-  end
-
-  yield
-ensure
-  {% if compare_versions(::Crystal::VERSION, "0.34.0") > 0 %}
-    watcher.try(&.signal(Signal::KILL))
-  {% else %}
-    watcher.try(&.kill)
-  {% end %}
-end
-
 # Short-hand functions
 module Parser
   include Bindgen::Parser
