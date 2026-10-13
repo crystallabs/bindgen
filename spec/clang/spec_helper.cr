@@ -34,6 +34,8 @@ def clang_tool(cpp_code, arguments, **checks)
   puts "Command: #{command}" if ENV["VERBOSE"]?
   json_doc = `#{command}`
 
+  # HACK: `JSON.parse` can't read integers exceeding `Int64`, wrap them around.
+  json_doc = json_doc.gsub(/(?<=: )\d{19,}(?=[,}])/) { |n| n.to_u64.unsafe_as(Int64).to_s }
   doc = JSON.parse(json_doc)
 
   checks.each do |path, value|

@@ -34,7 +34,7 @@ describe "C-specific functionality" do
           Test::Value::NEGATIVE_INT64.should be_a(Int64)
           Test::Value::NEGATIVE_INT64.should eq(-123)
           Test::Value::LARGE_UINT64.should be_a(UInt64)
-          Test::Value::LARGE_UINT64.should eq(9223372036854775808)
+          Test::Value::LARGE_UINT64.should eq(9223372036854775808_u64)
           Test::Value::LARGE_INT64.should be_a(Int64)
           Test::Value::LARGE_INT64.should eq(9223372036854775807)
           Test::Value::TRUE.should be_a(Bool)
