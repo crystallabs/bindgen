@@ -8,7 +8,7 @@ class FunctionMatchHandler;
 
 class BindgenASTConsumer : public clang::ASTConsumer {
 public:
-	BindgenASTConsumer(Document &doc, clang::CompilerInstance &compiler);
+	BindgenASTConsumer(Document &doc);
 
 	~BindgenASTConsumer() override;
 
@@ -19,10 +19,7 @@ private:
 	clang::ast_matchers::MatchFinder makeDependentMatchFinder();
 
 	void gatherTypeInfo(clang::ASTContext &ctx);
-	void evaluateMacros(clang::ASTContext &ctx);
-	void serializeAndOutput();
 
-	clang::CompilerInstance &m_compiler;
 	std::vector<std::unique_ptr<RecordMatchHandler>> m_classHandlers;
 	std::vector<std::unique_ptr<OperatorMatchHandler>> m_operatorHandlers;
 	std::vector<std::unique_ptr<EnumMatchHandler>> m_enumHandlers;

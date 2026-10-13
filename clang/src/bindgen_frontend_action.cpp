@@ -7,28 +7,31 @@
 
 #include "clang/Lex/Preprocessor.h"
 
-bool BindgenFrontendAction::BeginInvocation(clang::CompilerInstance &ci) {
+BindgenFrontendAction::BindgenFrontendAction(Document &doc)
+	: m_document(doc)
+{
+}
+
+void BindgenFrontendAction::addSystemIncludes(clang::CompilerInstance &ci) {
 	clang::HeaderSearchOptions &headerOpts = ci.getHeaderSearchOpts();
 
-	// Add built-in system include paths.
 	for (const char *path : BG_SYSTEM_INCLUDES) {
 		headerOpts.AddPath(llvm::StringRef(path), clang::frontend::System, false, false);
 	}
+}
 
+bool BindgenFrontendAction::BeginInvocation(clang::CompilerInstance &ci) {
+	addSystemIncludes(ci);
 	return true;
 }
 
-#if __clang_major__ < 5
-bool BindgenFrontendAction::BeginSourceFileAction(clang::CompilerInstance &ci, llvm::StringRef)
-#else
 bool BindgenFrontendAction::BeginSourceFileAction(clang::CompilerInstance &ci)
-#endif
 {
 	clang::Preprocessor &preprocessor = ci.getPreprocessor();
-	preprocessor.addPPCallbacks(make_unique<PreprocessorHandler>(this->m_document, preprocessor));
+	preprocessor.addPPCallbacks(std::make_unique<PreprocessorHandler>(this->m_document, preprocessor));
 	return true;
 }
 
 std::unique_ptr<clang::ASTConsumer> BindgenFrontendAction::CreateASTConsumer(clang::CompilerInstance &ci, llvm::StringRef file) {
-	return make_unique<BindgenASTConsumer>(this->m_document, ci);
+	return std::make_unique<BindgenASTConsumer>(this->m_document);
 }

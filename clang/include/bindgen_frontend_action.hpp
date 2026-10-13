@@ -3,18 +3,19 @@
 
 class BindgenFrontendAction : public clang::ASTFrontendAction {
 public:
+	BindgenFrontendAction(Document &doc);
+
+	// Adds the built-in system include paths to *ci*.
+	static void addSystemIncludes(clang::CompilerInstance &ci);
+
 	bool BeginInvocation(clang::CompilerInstance &ci) override;
 
-#if __clang_major__ < 5
-	bool BeginSourceFileAction(clang::CompilerInstance &ci, llvm::StringRef) override;
-#else
 	bool BeginSourceFileAction(clang::CompilerInstance &ci) override;
-#endif
 
 	std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(clang::CompilerInstance &ci, llvm::StringRef file) override;
 
 private:
-	Document m_document;
+	Document &m_document;
 };
 
-#endif // BINDGEN_FRONTEND_ACTION_HPPd
+#endif // BINDGEN_FRONTEND_ACTION_HPP

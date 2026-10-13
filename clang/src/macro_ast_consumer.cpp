@@ -8,8 +8,8 @@ MacroAstConsumer::MacroAstConsumer(std::vector<Macro> &macros) : m_macros(macros
 void MacroAstConsumer::checkVarDecl(clang::VarDecl *var, clang::ASTContext &ctx) {
 	llvm::StringRef varName = var->getName();
 
-	if (!varName.startswith("bg_macro_val_")) return; // Check prefix
-	std::string macroName = varName.substr(sizeof("bg_macro_val_") - 1).str();
+	if (!varName.consume_front("bg_macro_val_")) return; // Check prefix
+	std::string macroName = varName.str();
 
 	for (Macro &m : this->m_macros) {
 		if (m.name == macroName) {
