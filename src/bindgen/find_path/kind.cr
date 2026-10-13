@@ -14,7 +14,7 @@ module Bindgen
         when File
           ::File.file?(path)
         when Executable
-          ::File.file?(path) && ::File.executable?(path)
+          ::File.file?(path) && ::File::Info.executable?(path)
         else
           raise "BUG: Unreachable!"
         end

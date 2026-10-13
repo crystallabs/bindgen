@@ -399,7 +399,7 @@ module Bindgen
 
       # Body for `CallBuilder::CppCall`, setting the `bgJump` member in C++.
       class BgJumpSetBody < Call::Body
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           pass_arg = call.arguments.first.call
           %[_self_->bgJump = (#{pass_arg})]
         end

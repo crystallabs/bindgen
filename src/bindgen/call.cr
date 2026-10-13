@@ -157,7 +157,7 @@ module Bindgen
 
     # Dummy body, storing a fixed empty body.
     class EmptyBody < Body
-      def to_code(_call : Call, _platform : Graph::Platform) : String
+      def to_code(call : Call, platform : Graph::Platform) : String
         ""
       end
     end

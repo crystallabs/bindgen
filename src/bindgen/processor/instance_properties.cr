@@ -119,7 +119,7 @@ module Bindgen
 
       # Code body for reading from a C++ data member.
       private class GetterBody < Call::Body
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           code = call.name
           call.result.apply_conversion(code)
         end
@@ -155,7 +155,7 @@ module Bindgen
 
       # Code body for writing to a C++ data member.
       private class SetterBody < Call::Body
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           code = call.arguments.first.call
           "#{call.name} = #{call.result.apply_conversion code}"
         end

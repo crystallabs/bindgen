@@ -28,7 +28,7 @@ module Bindgen
         def initialize(@db : TypeDatabase)
         end
 
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           formatter = Crystal::Format.new(@db)
 
           %[def #{call.name}(#{formatter.argument_list(call.arguments)})\n] \

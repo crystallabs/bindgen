@@ -34,7 +34,7 @@ module Bindgen
         def initialize(@use_pointerof : Bool)
         end
 
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           if @use_pointerof
             var = "pointerof(@unwrap)"
           else

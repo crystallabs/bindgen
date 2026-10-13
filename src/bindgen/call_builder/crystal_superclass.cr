@@ -36,7 +36,7 @@ module Bindgen
       end
 
       class Body < Call::Body
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           %[private def #{call.name}\n] \
           %[  #{call.result.type.base_name}.new(self)\n] \
           %[end]

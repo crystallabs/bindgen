@@ -29,7 +29,7 @@ module Bindgen
       end
 
       class Body < Call::Body
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           call.name
         end
       end

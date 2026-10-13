@@ -31,7 +31,7 @@ module Bindgen
 
       # Body used by `CppCall` and `CppMethodCall`.
       class Body < Call::Body
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           pass_args = call.arguments.map(&.call).join(", ")
           code = %[#{call.name}(#{pass_args})]
           call.result.apply_conversion(code)
@@ -40,7 +40,7 @@ module Bindgen
 
       # Body used for brace initialization.
       class BraceBody < Call::Body
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           pass_args = call.arguments.map(&.call).join(", ")
           code = %[#{call.name} {#{pass_args}}]
           call.result.apply_conversion(code)
@@ -49,7 +49,7 @@ module Bindgen
 
       # Body invoking a C++ operator.
       class OperatorBody < Call::Body
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           case call.origin.binding_operator_name
           when "call"
             pass_args = call.arguments.map(&.call).join(", ")

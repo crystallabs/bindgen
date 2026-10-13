@@ -6,7 +6,7 @@ module Bindgen
     # Has to be run before the `CrystalBinding` processor.
     class CopyStructs < Base
       def process(graph : Graph::Node, doc : Parser::Document)
-        root = graph.by_name(Graph::LIB_BINDING)
+        root = graph.by_name(Graph::LIB_BINDING).as(Graph::Library)
 
         unused_structures = find_unused_structures(doc)
 

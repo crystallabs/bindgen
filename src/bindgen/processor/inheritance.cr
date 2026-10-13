@@ -235,7 +235,7 @@ module Bindgen
 
       # C++ body doing a `static_cast<T*>(_self_)`.
       class CastBody < Call::Body
-        def to_code(call : Call, _platform : Graph::Platform) : String
+        def to_code(call : Call, platform : Graph::Platform) : String
           typer = Cpp::Typename.new
           type_name = typer.full(call.result)
           "static_cast<#{type_name}>(_self_)"
