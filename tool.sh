@@ -30,13 +30,21 @@ fi
 OLD_PWD="$PWD"
 cd "$BASE"
 
-if [[ "$@" == *"--chdir"* ]]; then
-  exec crystal run "$SOURCE_FILE" -- $@
-else
-  exec crystal run "$SOURCE_FILE" -- --chdir "$OLD_PWD" $@
+# Build bindgen itself, unless it's up to date.
+BINARY="$BASE/bin/bindgen"
+
+if [ ! -x "$BINARY" ] || [ -n "$(find src assets builtin_types.yml shard.yml -newer "$BINARY" -print -quit)" ]; then
+  echo "** Building bin/bindgen." >&2
+  mkdir -p bin
+  crystal build "$SOURCE_FILE" -o "$BINARY" || {
+    echo '  1) Make sure you have crystal installed' >&2
+    echo '  2) Make sure `crystal` is in your $PATH' >&2
+    exit 127
+  }
 fi
 
-echo 'If you see this, something went horribly wrong.'
-echo '  1) Make sure you have crystal installed'
-echo '  2) Make sure `crystal` is in your $PATH'
-exit 127
+if [[ "$*" == *"--chdir"* ]]; then
+  exec "$BINARY" "$@"
+else
+  exec "$BINARY" --chdir "$OLD_PWD" "$@"
+fi
