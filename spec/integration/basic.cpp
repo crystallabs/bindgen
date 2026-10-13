@@ -162,3 +162,13 @@ class PrivateConstructor {
 struct DeletedConstructor {
   DeletedConstructor() = delete;
 };
+
+struct PlainStruct {
+  int x;
+  int *xp;
+  int y[4];
+  int *yp[6];
+  int z[8][16];
+  void *vp;
+  void **vpp;
+};

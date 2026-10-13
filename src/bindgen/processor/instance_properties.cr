@@ -21,6 +21,10 @@ module Bindgen
           # Ignore all reference fields for now.
           next if field.reference? || field.move?
 
+          # For C arrays only built-in types are supported; user types will need
+          # a custom `Slice`-like wrapper so that raw pointers are not returned.
+          next if field.c_array? && (!field.builtin? || !field.c_complete_array?)
+
           pattern, config = lookup_member_config(var_config, field.name)
           next if config.ignore
 
@@ -36,7 +40,7 @@ module Bindgen
             add_static_constant(klass, field, init)
           else
             add_getter(klass, access, field_type, field.name, static, method_name)
-            add_setter(klass, access, field_type, field.name, static, method_name) unless field.const?
+            add_setter(klass, access, field_type, field.name, static, method_name) unless field.const? || field.c_array?
           end
         end
 

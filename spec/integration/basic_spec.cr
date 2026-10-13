@@ -161,6 +161,21 @@ describe "a basic C++ wrapper" do
         end
       end
 
+      context "copy structure" do
+        it "supports normal members" do
+          Test::Binding::PlainStruct.new.x.should be_a(Int32)
+          Test::Binding::PlainStruct.new.xp.should be_a(Pointer(Int32))
+          Test::Binding::PlainStruct.new.vp.should be_a(Pointer(Void))
+          Test::Binding::PlainStruct.new.vpp.should be_a(Pointer(Pointer(Void)))
+        end
+
+        it "supports array members" do
+          Test::Binding::PlainStruct.new.y.should be_a(StaticArray(Int32, 4))
+          Test::Binding::PlainStruct.new.yp.should be_a(StaticArray(Pointer(Int32), 6))
+          Test::Binding::PlainStruct.new.z.should be_a(StaticArray(StaticArray(Int32, 16), 8))
+        end
+      end
+
       context "type decay matching" do
         it "supports specialized matching" do
           subject = Test::TypeConversion.new
@@ -172,11 +187,11 @@ describe "a basic C++ wrapper" do
           subject = Test::TypeConversion.new
           subject.next(5u8).should eq(6u8)
         end
-      end
 
-      it "returns a void pointer" do
-        subject = Test::TypeConversion.new
-        subject.void_pointer.address.should eq(0x11223344)
+        it "returns a void pointer" do
+          subject = Test::TypeConversion.new
+          subject.void_pointer.address.should eq(0x11223344)
+        end
       end
     end
   end

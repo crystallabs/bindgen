@@ -64,6 +64,36 @@ describe "C++ instance properties" do
           position.y.should eq(35)
         end
 
+        it "supports array members" do
+          props = Test::Props.new(5, 8)
+
+          v = props.v
+          v.should be_a(Slice(Int32))
+          v.size.should eq(4)
+          v.read_only?.should be_false
+          v[2].should eq(2001)
+          v[2] = 0
+          v[2].should eq(0)
+
+          v2 = props.v2
+          v2.should be_a(Slice(Int32[7][6]))
+          v2.size.should eq(5)
+          v2.read_only?.should be_false
+          v2[4][3][2].should eq(2002)
+
+          v_c = props.v_c
+          v_c.read_only?.should be_true
+          v_c[0].should eq(2003)
+
+          props.v_ptr.should be_a(Slice(Int32*))
+          props.v2_ptr.should be_a(Slice(Int32*[11]))
+        end
+
+        it "is ignored for arrays of user types" do
+          {{ Test::Props.has_method?("points") }}.should be_false
+          {{ Test::Props.has_method?("points_ptr") }}.should be_false
+        end
+
         it "supports static members" do
           position = Test::Props.corner
           position.should be_a(Test::Point)
@@ -142,6 +172,12 @@ describe "C++ instance properties" do
           got = props.position_val
           got.x.should eq(60)
           got.y.should eq(61)
+        end
+
+        it "is ignored for array members" do
+          {% for member in %w[v= v2= v_c= v_ptr= v2_ptr= points= points_ptr=] %}
+            {{ Test::Props.has_method?(member) }}.should be_false
+          {% end %}
         end
 
         it "supports static members" do

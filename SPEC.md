@@ -301,7 +301,8 @@ the following criteria are met:
   (this is supported by §3.2.2)
 * The member does not satisfy the requirements for wrapped static constants (see
   §2.4.5)
-* The method is not a setter for a `const` member
+* The method is not a setter for a `const` member or a C array
+* If the member is a C array, it is a complete array of C/C++ built-in types
 
 The names of property methods are underscored according to the member name.
 
@@ -467,6 +468,31 @@ struct Application {
 class Application
   VERSION = 103
   EPSILON = 1.0e-6
+end
+```
+
+### §2.4.6 Array properties
+
+Getters are generated for complete C arrays of built-in types, which return
+`Slice`s instead of Crystal `Array`s.  The `Slice`s are marked as read-only if
+the array member is `const`.  Multi-dimensional arrays are also supported.
+
+```cpp
+struct Foo {
+  int bar[15][20][25];
+  void *baz[8];
+  const float quux[2];
+  Foo *children[3];
+};
+```
+
+```crystal
+class Foo
+  def bar : Slice(Int32[25][20]) end
+  def baz : Slice(Void*) end
+  def quux : Slice(Float32) end # read_only: true
+
+  # `#children` is not defined
 end
 ```
 

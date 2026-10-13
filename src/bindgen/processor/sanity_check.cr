@@ -158,6 +158,25 @@ module Bindgen
         super
       end
 
+      # Check for invalid types in structures
+      def visit_struct(structure)
+        structure.fields.each do |name, result|
+          if result.reference
+            add_error(structure, "Struct field #{name} is a reference")
+          end
+
+          if result.type.c_array?
+            if !result.type.builtin?
+              add_error(structure, "Struct field #{name} is a C array of user type")
+            end
+
+            if !result.type.c_complete_array?
+              add_error(structure, "Struct field #{name} is a C array with unknown bounds")
+            end
+          end
+        end
+      end
+
       # Check reachability of all types
       private def visit_method(method)
         call = method.calls[@platform]?

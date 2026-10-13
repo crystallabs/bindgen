@@ -10,19 +10,26 @@ module Bindgen
 
       # Returns the full Crystal type-name of *result*.  If *expects_type* is
       # false, the type-name may appear in regular code, which affects how
-      # pointers are formatted.
+      # pointers and arrays are formatted.
       def full(result : Call::Expression, *, expects_type = true)
         ptr = result.pointer
         ptr += 1 if result.reference
         nilable = "?" if result.nilable?
 
+        # Crystal's `Int32[2][3]` is equivalent to C's `int [3][2]`.
+        extents = result.type.extents.reverse
+
         if expects_type
           stars = "*" * ptr if ptr > 0
-          "#{result.type_name}#{stars}#{nilable}"
+          subscripts = extents.join { |v| "[#{v unless v.zero?}]" }
+          "#{result.type_name}#{stars}#{subscripts}#{nilable}"
         else
           prefix = "Pointer(" * ptr if ptr > 0
           suffix = ")" * ptr if ptr > 0
-          "#{prefix}#{result.type_name}#{suffix}#{nilable}"
+          name = extents.reduce("#{prefix}#{result.type_name}#{suffix}") do |inner, v|
+            "StaticArray(#{inner}, #{v})"
+          end
+          "#{name}#{nilable}"
         end
       end
 

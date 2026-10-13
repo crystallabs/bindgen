@@ -41,6 +41,14 @@ module Bindgen
             name = name[0..-2] # Remove ampersand
           end
 
+          # Is it a C array?
+          extents = [] of UInt64
+          while subscript = name.match(/\s*\[\s*(\d*)\s*\]\s*$/)
+            extents.unshift subscript[1].to_u64 { 0_u64 }
+            pointer_depth += 1
+            name = subscript.pre_match
+          end
+
           # Is it a pointer?
           while name.ends_with?('*')
             pointer += 1
@@ -72,8 +80,9 @@ module Bindgen
             builtin: false, # Oh well
             void: (name == "void"),
             pointer: pointer_depth,
+            extents: extents,
             base_name: name,
-            full_name: typer.full(name, const, pointer, reference),
+            full_name: typer.full(name, const, pointer, reference, extents),
             template: template,
             nilable: false,
           )

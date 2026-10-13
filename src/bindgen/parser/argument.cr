@@ -25,7 +25,8 @@ module Bindgen
       def initialize(
         @name, @base_name, @full_name, @const, @reference, @move, @builtin,
         @void, @pointer, @template, @kind = Type::Kind::Class,
-        @has_default = false, @value = nil, @nilable = false, @variadic = false
+        @has_default = false, @value = nil, @nilable = false, @variadic = false,
+        @extents = Array(UInt64).new
       )
       end
 
@@ -39,6 +40,7 @@ module Bindgen
         @void = type.void?
         @variadic = false
         @pointer = type.pointer
+        @extents = type.extents
         @kind = type.kind
         @template = type.template
         @nilable = type.nilable?
@@ -46,7 +48,7 @@ module Bindgen
 
       def_equals_and_hash @base_name, @full_name, @const, @reference, @move,
         @builtin, @void, @pointer, @has_default, @name, @value, @nilable,
-        @template
+        @template, @extents
 
       # Does this argument have an exposed default value?
       def has_exposed_default?
@@ -75,6 +77,7 @@ module Bindgen
           builtin: @builtin,
           void: @void,
           pointer: @pointer,
+          extents: extents,
           template: @template,
           kind: @kind,
           has_default: false,
@@ -97,6 +100,7 @@ module Bindgen
           builtin: @builtin,
           void: @void,
           pointer: @pointer,
+          extents: extents,
           template: @template,
           kind: @kind,
           has_default: @has_default || other.has_default?,
@@ -129,7 +133,7 @@ module Bindgen
 
       # Checks if the type-part of this equals the type-part of *other*.
       def type_equals?(other : Type)
-        {% for i in %i[base_name full_name const reference move builtin void pointer template] %}
+        {% for i in %i[base_name full_name const reference move builtin void pointer extents template] %}
           return false if @{{ i.id }} != other.@{{ i.id }}
         {% end %}
 

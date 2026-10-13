@@ -109,12 +109,24 @@ public:
   {
     (void)x_priv; // silence -Wunused-private-field
     (void)y_priv;
+
+    v[2] = 2001;
+    v2[4][3][2] = 2002;
   }
 
   int x_pub;
   const int y_pub;
   Point *position_ptr = new Point(12, 34);
   Point position_val {13, 35};
+
+  int v[4] = { };
+  int v2[5][6][7] = { };
+  const int v_c[8] = {2003};
+  int *v_ptr[9] = { };
+  int *v2_ptr[10][11] = { };
+
+  Point points[2] = {Point(0, 0), Point(0, 0)};
+  Point *points_ptr[2];
 
   static Point corner;
   static const Point origin;

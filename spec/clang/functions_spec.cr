@@ -1,7 +1,7 @@
 require "./spec_helper"
 
-describe "clang tool macros feature" do
-  it "exports the macros" do
+describe "clang tool functions feature" do
+  it "exports the C functions" do
     clang_tool(
       %[
         void simple();

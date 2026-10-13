@@ -57,6 +57,28 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &qt, clang::
 		target.fullName = fullyQualifiedName(qt, ctx);
 	}
 
+	if (const auto *arr = ctx.getAsArrayType(qt)) {
+		// Do not support `T [static 4]` or `T [*]` for now
+#if CLANG_VERSION_MAJOR >= 18
+		if (arr->getSizeModifier() == clang::ArraySizeModifier::Normal) {
+#else
+		if (arr->getSizeModifier() == clang::ArrayType::ArraySizeModifier::Normal) {
+#endif
+			// DependentSizedArrayType may be in class templates; assume it doesn't exist
+			// Do not support VariableArrayType for now
+			if (const auto *carr = llvm::dyn_cast<clang::ConstantArrayType>(arr)) {
+				target.pointer++;
+				target.extents.push_back(carr->getSize().getZExtValue());
+				return qualTypeToType(target, carr->getElementType(), ctx); // Recurse
+			}
+			else if (const auto *iarr = llvm::dyn_cast<clang::IncompleteArrayType>(arr)) {
+				target.pointer++;
+				target.extents.push_back(0);
+				return qualTypeToType(target, iarr->getElementType(), ctx); // Recurse
+			}
+		}
+	}
+
 	if (qt->isReferenceType() || qt->isPointerType()) {
 		target.isReference = target.isReference || qt->isReferenceType();
 		target.isMove = target.isMove || qt->isRValueReferenceType();

@@ -19,8 +19,8 @@ module Bindgen
         Function # `CrystalProc`; template type in C++, non-generic in Crystal
       end
 
-      # ATTENTION: Make sure to update other methods in here and in `Argument`
-      # as required!
+      # ATTENTION: Make sure to update other methods in here, in `Argument` and
+      # in `Field` as required!
 
       # Type kind.
       getter kind = Bindgen::Parser::Type::Kind::Class
@@ -46,8 +46,13 @@ module Bindgen
       @[JSON::Field(key: "isVoid")]
       getter? void : Bool
 
-      # Total number of indirections from pointers and lvalue references.
+      # Total number of indirections from pointers, lvalue references and C
+      # array extents.
       getter pointer : Int32
+
+      # C array extents, outermost first.  E.g. `int [][5][3]` has the extents
+      # `[0, 5, 3]`.
+      @extents = Array(UInt64).new
 
       # Unqualified base name for easier mapping to Crystal.
       #
@@ -153,27 +158,32 @@ module Bindgen
       # removed from this type.  Each rule is tried in the following order.
       # The first winning rule returns a new type.
       #
-      # 1. If `#const?`, remove const (`const int &` -> `int &`)
-      # 2. If `#reference?`, pointer-ize (`int &` -> `int *`)
-      # 3. If `#pointer > 0`, remove one (`int *` -> `int`)
-      # 4. Else, it's the base-type already.  Return `nil`.
+      # 1. If `#c_array?`, remove outermost extent (`int [4][3]` -> `int [3]`)
+      # 2. If `#const?`, remove const (`const int &` -> `int &`)
+      # 3. If `#reference?`, pointer-ize (`int &` -> `int *`)
+      # 4. If `#pointer > 0`, remove one (`int *` -> `int`)
+      # 5. Else, it's the base-type already.  Return `nil`.
       def decayed : Type?
         is_const = @const
         is_ref = @reference
         ptr = @pointer
+        extents = @extents
 
-        if is_const # 1.
-          is_const = false
-        elsif is_ref # 2.
-          is_ref = false
-        elsif ptr > 0 # 3.
+        if extents.size > 0 # 1.
+          extents = extents[1..]
           ptr -= 1
-        else # 4.
+        elsif is_const # 2.
+          is_const = false
+        elsif is_ref # 3.
+          is_ref = false
+        elsif ptr > 0 # 4.
+          ptr -= 1
+        else # 5.
           return nil
         end
 
         typer = Cpp::Typename.new
-        type_ptr = ptr
+        type_ptr = ptr - extents.size
         type_ptr -= 1 if is_ref
 
         Type.new(
@@ -184,8 +194,9 @@ module Bindgen
           builtin: @builtin,
           void: @void,
           pointer: ptr,
+          extents: extents,
           base_name: @base_name,
-          full_name: typer.full(@base_name, is_const, type_ptr, is_ref),
+          full_name: typer.full(@base_name, is_const, type_ptr, is_ref, extents),
           template: @template,
           nilable: @nilable,
         )
@@ -203,6 +214,7 @@ module Bindgen
             builtin: @builtin,
             void: @void,
             pointer: @pointer,
+            extents: extents,
             base_name: @base_name,
             full_name: @full_name,
             template: @template,
@@ -268,7 +280,7 @@ module Bindgen
         )
 
         typer = Cpp::Typename.new
-        type_ptr = @pointer - (reference? ? 1 : 0)
+        type_ptr = @pointer - @extents.size - (reference? ? 1 : 0)
 
         Type.new(
           kind: @kind,
@@ -278,8 +290,9 @@ module Bindgen
           builtin: @builtin,
           void: @void,
           pointer: @pointer,
+          extents: extents,
           base_name: template_full,
-          full_name: typer.full(template_full, @const, type_ptr, @reference),
+          full_name: typer.full(template_full, @const, type_ptr, @reference, @extents),
           template: subst_template,
           nilable: @nilable,
         )
@@ -299,7 +312,7 @@ module Bindgen
         end
 
         typer = Cpp::Typename.new
-        type_ptr = pointer - (reference ? 1 : 0)
+        type_ptr = pointer - @extents.size - (reference ? 1 : 0)
 
         Type.new(
           kind: type.kind,
@@ -309,26 +322,27 @@ module Bindgen
           builtin: type.builtin?,
           void: type.void?,
           pointer: pointer,
+          extents: extents,
           base_name: type.base_name,
-          full_name: typer.full(type.base_name, const, type_ptr, reference),
+          full_name: typer.full(type.base_name, const, type_ptr, reference, @extents),
           template: type.template,
           nilable: type.nilable?,
         )
       end
 
       def_equals_and_hash @base_name, @full_name, @const, @reference, @move,
-        @builtin, @void, @pointer, @kind, @nilable, @template
+        @builtin, @void, @pointer, @kind, @nilable, @template, @extents
 
       def initialize(
         @base_name, @full_name, @const, @reference, @pointer, @move = false,
         @builtin = false, @void = false, @kind = Kind::Class, @template = nil,
-        @nilable = false
+        @nilable = false, @extents = Array(UInt64).new
       )
       end
 
       # Checks if this type equals the *other* type, except for nil-ability.
       def equals_except_nil?(other : Type)
-        {% for i in %i[base_name full_name const reference move builtin void pointer kind template] %}
+        {% for i in %i[base_name full_name const reference move builtin void pointer kind template extents] %}
           return false if @{{ i.id }} != other.@{{ i.id }}
         {% end %}
 
@@ -338,6 +352,46 @@ module Bindgen
       # Returns `true` if this type is `void`, and nothing else.
       def pure_void?
         @void && @pointer == 0
+      end
+
+      # The array extents of this type.
+      def extents
+        @extents.dup
+      end
+
+      # Is this type a C array?
+      def c_array?
+        @extents.size > 0
+      end
+
+      # Is this type a C array with known size?
+      def c_complete_array?
+        c_array? && @extents.none?(&.zero?)
+      end
+
+      # Returns a copy of this type with C array extents removed.
+      def remove_all_extents : Type
+        ptr = @pointer - @extents.size
+        extents = Array(UInt64).new
+
+        typer = Cpp::Typename.new
+        type_ptr = ptr
+        type_ptr -= 1 if @reference
+
+        Type.new(
+          kind: @kind,
+          const: @const,
+          reference: @reference,
+          move: false,
+          builtin: @builtin,
+          void: @void,
+          pointer: ptr,
+          extents: extents,
+          base_name: @base_name,
+          full_name: typer.full(@base_name, @const, type_ptr, @reference, extents),
+          template: @template,
+          nilable: @nilable,
+        )
       end
 
       # The mangled type name for C++ bindings.

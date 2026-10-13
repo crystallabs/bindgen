@@ -46,9 +46,18 @@ module Bindgen
             ptr = result.pointer
             ptr = {ptr, 1}.max if result.type_name == "Void"
 
+            if result.type.c_array?
+              # Crystal's `Int32[2][3][4]` is really equivalent to C's
+              # `int [4][3][2]`, so the extents have to be reversed when they
+              # are written to a `lib`.
+              extents = result.type.extents.reverse
+              subscripts = extents.join { |v| "[#{v}]" }
+              ptr -= extents.size
+            end
+
             stars = "*" * ptr if ptr > 0
 
-            puts "#{name} : #{result.type_name}#{stars}"
+            puts "#{name} : #{result.type_name}#{stars}#{subscripts}"
           end
         end
         puts "end"

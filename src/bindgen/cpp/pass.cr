@@ -30,8 +30,22 @@ module Bindgen
         end
       end
 
+      # Returns the type name of *type*, ignoring conversion templates.
+      def type_name_base(type : Parser::Type) : String
+        if type.c_array?
+          # Note: `CrystalSlice` was supposed to be a template type, but
+          # `extern "C"` functions cannot return template types, so the element
+          # type is always erased.
+          "CrystalSlice"
+        elsif type.kind.function?
+          crystal_proc_name(type)
+        else
+          type.base_name
+        end
+      end
+
       # Returns the type name of *proc_type*.
-      def crystal_proc_name(proc_type : Parser::Type) : String
+      private def crystal_proc_name(proc_type : Parser::Type) : String
         typer = Typename.new
         inner_args = proc_type.template.not_nil!.arguments
 
@@ -67,7 +81,7 @@ module Bindgen
         ptr = type_pointer_depth(type)
         pass_by = TypeDatabase::PassBy::Original
 
-        type_name = type.base_name
+        type_name = type_name_base(type)
 
         if type.kind.function?
           type_name = crystal_proc_name(type)
@@ -126,9 +140,9 @@ module Bindgen
         ptr = type_pointer_depth(type)
         is_val = type.pointer < 1
         pass_by = TypeDatabase::PassBy::Original
+        template = Template::None.new
 
-        type_name = type.base_name
-        type_name = crystal_proc_name(type) if type.kind.function?
+        type_name = type_name_base(type)
 
         # TODO: Check for copy-constructor.
         if (is_constructor || is_val) && is_copied
@@ -140,12 +154,16 @@ module Bindgen
           is_ref = false
           ptr = 1
           pass_by = TypeDatabase::PassBy::Pointer
+        elsif type.c_array?
+          type = type.remove_all_extents
+          is_ref = false
+          ptr = 0
+          pass_by = TypeDatabase::PassBy::Value
+          template = Template::Basic.new("bindgen_array_to_slice(%)", simple: true)
         end
 
-        template = Template::None.new
-
         if rules = @db[type]?
-          template = rules.from_cpp
+          template = rules.from_cpp if template.no_op?
           type_name = rules.cpp_type || type_name
           pass_by = rules.pass_by unless rules.pass_by.original?
           is_ref, ptr = reconfigure_pass_type(pass_by, is_ref, ptr)
@@ -186,8 +204,7 @@ module Bindgen
       # type to the outside, as received by C++ (Thus even ignoring
       # `rules.cpp_type`!).  It still follows the passing rules towards Crystal.
       def passthrough_to_crystal(type : Parser::Type)
-        type_name = type.base_name
-        type_name = crystal_proc_name(type) if type.kind.function?
+        type_name = type_name_base(type)
         to_cr = to_crystal(type, is_constructor: false)
 
         Call::Result.new(
@@ -210,8 +227,7 @@ module Bindgen
 
       # Passes the *type* through without changes.
       def through(type : Parser::Type)
-        type_name = type.base_name
-        type_name = crystal_proc_name(type) if type.kind.function?
+        type_name = type_name_base(type)
 
         Call::Result.new(
           type: type,

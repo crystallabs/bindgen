@@ -50,8 +50,9 @@ lib Binding
 
   # Container for raw memory-data.  The `ptr` could be anything.
   struct CrystalSlice
+    size : Int32
+    read_only : Bool
     ptr : Void*
-    size : LibC::Int
   end
 end
 
@@ -72,6 +73,32 @@ module BindgenHelper
       ptr: Pointer(Void).null,
       context: Pointer(Void).null,
     )
+  end
+
+  # Wraps `Slice` to a `Binding::CrystalSlice`, which can then pass on to C++.
+  def self.wrap_slice(slice : Slice(T)) forall T
+    Binding::CrystalSlice.new(
+      size: slice.size,
+      read_only: slice.read_only?,
+      ptr: slice.to_unsafe.as(Pointer(Void)),
+    )
+  end
+
+  # Wraps `Slice` to a `Binding::CrystalSlice`, which can then pass on to C++.
+  # `Nil` version, returns an empty slice.
+  def self.wrap_slice(nothing : Nil) forall T
+    Binding::CrystalSlice.new(
+      size: 0,
+      read_only: true,
+      ptr: Pointer(Void).null,
+    )
+  end
+
+  # Unwraps a `Binding::CrystalSlice` to a Crystal `Slice(T)`.
+  module SliceConverter(T)
+    def self.unwrap(slice : Binding::CrystalSlice)
+      Slice(T).new(slice.ptr.as(Pointer(T)), slice.size, read_only: slice.read_only)
+    end
   end
 
   # Wraps a *list* into a container *wrapper*, if it's not already one.

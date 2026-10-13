@@ -16,6 +16,7 @@ struct Type {
 	bool isReference = false; // If this is a reference
 	bool isBuiltin = false; // If this is a C++ built-in type.
 	bool isVoid = false; // If the derefenced type is C++ `void`.
+	std::vector<uint64_t> extents; // C array extents, e.g. `int[][5][3]` => `{0, 5, 3}`
 	std::string baseName; // Base type. E.g., `const Foo *&` => `Foo`
 	std::string fullName; // Full name, for C++. E.g. `const Foo *&`
 
@@ -26,7 +27,7 @@ JsonStream &operator<<(JsonStream &s, const Type &value);
 
 struct Template {
 	std::string fullName; // The template class, e.g. `std::vector<_Tp, _Alloc>` in `std::vector<std::string>`
-  std::string baseName; // The template class-name, e.g. `std::vector`
+	std::string baseName; // The template class-name, e.g. `std::vector`
 	std::vector<Type> arguments; // Arguments, e.g. `std::string`
 };
 
@@ -96,6 +97,8 @@ struct Method {
 		CopyConstructor,
 		// Destructor,
 		MemberMethod,
+		// MemberGetter,
+		// MemberSetter,
 		StaticMethod,
 		Operator, // Overloaded operator
 		ConversionOperator, // Conversion operator

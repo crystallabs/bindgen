@@ -11,6 +11,7 @@ classes:
   PrivateConstructor: PrivateConstructor
   DeletedConstructor: DeletedConstructor
   TypeConversion: TypeConversion
+  PlainStruct: PlainStruct
 
 types:
   IgnoreMe: # Ignore by type
@@ -23,3 +24,7 @@ types:
     wrapper_pass_by: Value
     to_crystal: "String.new(%)"
     from_crystal: "%.to_unsafe"
+  PlainStruct:
+    generate_binding: false
+    generate_wrapper: false
+    copy_structure: true

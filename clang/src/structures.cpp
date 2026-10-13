@@ -10,6 +10,7 @@ static JsonStream &writeTypeJson(JsonStream &s, const Type &value) {
 		<< std::make_pair("isBuiltin", value.isBuiltin) << c
 		<< std::make_pair("isVoid", value.isVoid) << c
 		<< std::make_pair("pointer", value.pointer) << c
+		<< std::make_pair("extents", value.extents) << c
 		<< std::make_pair("baseName", value.baseName) << c
 		<< std::make_pair("fullName", value.fullName) << c
 		<< std::make_pair("template", value.templ);

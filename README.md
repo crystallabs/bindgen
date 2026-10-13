@@ -132,6 +132,7 @@ The following rules are automatically applied to all bindings:
 |  +- String                                       | **YES** |
 | Enumerations                                     | **YES** |
 | Copying structures                               | **YES** |
+|  +- C array members of built-in types            | **YES** |
 | Custom type conversions between C/++ and Crystal | **YES** |
 | Automatic type wrapping and conversion           | **YES** |
 | Integration with Crystals GC                     | **YES** |
