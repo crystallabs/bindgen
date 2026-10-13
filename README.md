@@ -2,7 +2,7 @@
 
 Standalone C, C++, and/or Qt binding and wrapper generator.
 
-![Logo](https://raw.githubusercontent.com/Papierkorb/bindgen/master/images/logo.png) [![Build Status](https://travis-ci.org/Papierkorb/bindgen.svg?branch=master)](https://travis-ci.org/Papierkorb/bindgen)
+![Logo](https://raw.githubusercontent.com/Papierkorb/bindgen/master/images/logo.png) [![CI](https://github.com/Papierkorb/bindgen/actions/workflows/ci.yml/badge.svg)](https://github.com/Papierkorb/bindgen/actions/workflows/ci.yml)
 
 ## Installation
 
@@ -679,19 +679,18 @@ An exception will be raised if any of the following occur:
 
 <!-- Table is sorted from A-Z ascending, versions descending. -->
 
-| Arch    | System            | CI          | Clang version  |
-| ------- | ----------------- | ----------- | -------------- |
-| x86_64  | ArchLinux         | Travis      | *Rolling*      |
-| x86_64  | Debian 9          | Travis      | 6.0, 7.0       |
-| x86_64  | Debian 7          | Travis      | 4.0, 5.0       |
-| x86_64  | Ubuntu 17.04      | *None*      | 5.0            |
-| x86_64  | Ubuntu 16.04      | Travis      | 4.0, 5.0       |
-|         | Other systems     | Help wanted | ?              |
+| Arch    | System            | CI             | Clang version      |
+| ------- | ----------------- | -------------- | ------------------ |
+| x86_64  | Debian 12         | *None*         | 14, 19, 22         |
+| x86_64  | Ubuntu 24.04      | GitHub Actions | 14, 16, 18, 20, 22 |
+|         | Other systems     | Help wanted    | ?                  |
+
+LLVM and Clang 14 or newer and Crystal 1.8 or newer are required.
 
 You require the LLVM and Clang development libraries and headers.  If you don't
 have them already installed, bindgen will tell you. These packages are usually
 named after the following pattern on Debian-based systems:
-`clang-7 libclang-7-dev llvm-7 llvm-7-dev`.
+`clang-18 libclang-18-dev llvm-18 llvm-18-dev`.
 
 
 # Contributing

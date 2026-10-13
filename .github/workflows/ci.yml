@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  spec:
+    name: LLVM ${{ matrix.llvm }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        llvm: [14, 16, 18, 20, 22]
+    env:
+      LLVM: ${{ matrix.llvm }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: crystal-lang/install-crystal@v1
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+
+          # Versions not packaged by Ubuntu come from apt.llvm.org
+          if ! apt-cache show "libclang-$LLVM-dev" > /dev/null 2>&1; then
+            codename="$(lsb_release -cs)"
+            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+            echo "deb http://apt.llvm.org/$codename/ llvm-toolchain-$codename-$LLVM main" | sudo tee /etc/apt/sources.list.d/llvm.list
+            sudo apt-get update
+          fi
+
+          sudo apt-get install -y --no-install-recommends \
+            "clang-$LLVM" "libclang-$LLVM-dev" "llvm-$LLVM-dev" \
+            cmake libgc-dev libpcre2-dev libyaml-dev libevent-dev \
+            libxml2-dev libz3-dev libzstd-dev zlib1g-dev libncurses-dev
+
+      - name: Install shards
+        run: shards install
+
+      - name: Build clang tool
+        working-directory: clang
+        run: cmake -DLLVM_DIR="/usr/lib/llvm-$LLVM/lib/cmake/llvm" . && make
+
+      - name: Run specs
+        run: crystal spec
