@@ -197,6 +197,7 @@ struct Document {
 	std::vector<Macro> macros;
 
 	std::map<std::string, TypeInfoResult> type_infos; // not serialized
+	std::vector<std::string> errors; // not serialized, makes the tool fail
 
 	TypeInfoResult *findTypeInfoResult(const std::string &klass) {
 		auto it = type_infos.find(klass);

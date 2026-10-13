@@ -11,6 +11,14 @@ RecordMatchHandler::RecordMatchHandler(Document &doc, const std::string &name)
 void RecordMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResult &result) {
 	const clang::CXXRecordDecl *record0 = result.Nodes.getNodeAs<clang::CXXRecordDecl>("recordDecl");
 	if (record0) {
+		// The pattern of a class template has no layout, only its
+		// instantiations do.
+		if (record0->isDependentType()) {
+			this->m_document.errors.push_back(
+				"'" + this->m_className + "' is a class template, which can't be wrapped as class");
+			return;
+		}
+
 		m_classesToRun.push_back(std::make_pair(record0, this->m_className));
 	}
 

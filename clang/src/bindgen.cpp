@@ -53,6 +53,14 @@ int main(int argc, const char **argv) {
 		return result;
 	}
 
+	if (!doc.errors.empty()) {
+		for (const std::string &error : doc.errors) {
+			llvm::errs() << "bindgen: error: " << error << "\n";
+		}
+
+		return 1;
+	}
+
 	if (MacroFrontendAction::isActive(doc)) {
 		evaluateMacros(doc, *op);
 	}
