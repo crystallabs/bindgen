@@ -2,7 +2,7 @@ require "../spec_helper"
 
 # A JSON value as returned by the clang tool.  Other than `JSON::Any`, this
 # also supports integers exceeding `Int64`.
-alias ClangValue = Nil | Bool | Int64 | UInt64 | Float64 | String | Array(ClangValue) | Hash(String, ClangValue)
+alias ClangValue = (Bool | Int64 | UInt64 | Float64 | String | Array(ClangValue) | Hash(String, ClangValue))?
 
 # Reads the next value from *pull*.
 private def read_clang_value(pull : JSON::PullParser) : ClangValue
