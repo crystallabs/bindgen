@@ -423,8 +423,8 @@ module Bindgen
         return true if private?
 
         # TODO: Support methods that take or return C arrays (which become
-        # `Slice` in Crystal).
-        return true if @return_type.c_array?
+        # `Slice` in Crystal).  The getters of array members do work.
+        return true if @return_type.c_array? && !member_getter? && !static_getter?
         return true if @arguments.any?(&.c_array?)
 
         # Check that all arguments, which pass in explicit by-value, either take
