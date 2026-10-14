@@ -12,13 +12,14 @@ void RecordMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResult
 	const clang::CXXRecordDecl *record0 = result.Nodes.getNodeAs<clang::CXXRecordDecl>("recordDecl");
 	if (record0) {
 		// The pattern of a class template has no layout, only its
-		// instantiations do.
+		// instantiations do.  It may also be another type of the same name in
+		// a different scope, so only remember it for `finish()`.
 		if (record0->isDependentType()) {
-			this->m_document.errors.push_back(
-				"'" + this->m_className + "' is a class template, which can't be wrapped as class");
+			this->m_foundTemplate = true;
 			return;
 		}
 
+		this->m_found = true;
 		m_classesToRun.push_back(std::make_pair(record0, this->m_className));
 	}
 
@@ -37,6 +38,13 @@ void RecordMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResult
 
 		// every added record is anonymous except the first one
 		anonymous = true;
+	}
+}
+
+void RecordMatchHandler::finish() {
+	if (this->m_foundTemplate && !this->m_found) {
+		this->m_document.errors.push_back(
+			"'" + this->m_className + "' is a class template, which can't be wrapped as class");
 	}
 }
 

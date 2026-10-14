@@ -7,6 +7,10 @@ public:
 
 	virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
+	// To be called once all matches were handled.  Reports an error if the
+	// class turned out to be a class template only.
+	void finish();
+
 private:
 	bool runOnMethod(Method &m, Class &klass, const clang::CXXMethodDecl *method, bool isSignal);
 
@@ -25,6 +29,8 @@ private:
 private:
 	Document &m_document;
 	std::string m_className;
+	bool m_found = false; // Was a record of this name exported?
+	bool m_foundTemplate = false; // Was a class template of this name seen?
 
 	// first = record definition, second = qualified type name
 	std::vector<std::pair<const clang::CXXRecordDecl *, std::string>> m_classesToRun;

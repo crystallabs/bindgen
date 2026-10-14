@@ -95,6 +95,10 @@ void BindgenASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
 		finder.matchAST(ctx);
 	}
 
+	for (auto &handler : this->m_classHandlers) {
+		handler->finish();
+	}
+
 	this->m_document.translationUnits++;
 }
 

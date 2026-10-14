@@ -44,6 +44,19 @@ describe "clang tool classes feature" do
     )
   end
 
+  it "ignores a class template of the same name in another scope" do
+    clang_tool(
+      %[
+        namespace detail { template<typename T> struct Node { T *next; }; }
+        struct Node { int value; };
+      ],
+      "-c Node",
+      classes: {
+        Node: {fields: [{name: "value"}]},
+      },
+    )
+  end
+
   it "rejects class templates" do
     file = File.tempfile("bindgen-clang-test")
     file.puts("template<typename T> class Templated { T *ptr; };")
