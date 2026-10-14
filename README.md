@@ -146,6 +146,11 @@ The following rules are automatically applied to all bindings:
 | C++ Template instantiation for containers types  |         |
 |  +- Sequential containers                        | **YES** |
 |  +- Associative containers                       | **YES** |
+| C++ class template instantiations                |         |
+|  +- Type and integral non-type arguments         | **YES** |
+|  +- Default template arguments                   | **YES** |
+|  +- Generic Crystal type (`Box(T)`)              |   TBD   |
+|  +- Automatic instantiation                      |   TBD   |
 | Virtual methods                                  | **YES** |
 | Override virtual methods from Crystal            | **YES** |
 | Abstract classes                                 | **YES** |

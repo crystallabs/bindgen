@@ -842,6 +842,41 @@ end
 map.to_h # => {1 => "One", 10 => "One", 20 => "Two"}
 ```
 
+### §2.6.3 Class template instantiations
+
+An instantiation of a class template listed in `classes:` is wrapped like any
+other class, with the template arguments substituted.  It's known by the
+configured name however it's spelled in C++, also through a `typedef`, so
+methods using it are wrapped.
+
+```cpp
+template<typename T, int N>
+struct Array {
+  T at(int index) const;
+};
+
+typedef Array<int, 3> Triple;
+
+struct Factory {
+  Triple make();
+};
+```
+
+```yaml
+classes:
+  "Array<int, 3>": IntArray3
+```
+
+```crystal
+class IntArray3
+  def at(index : Int32) : Int32
+end
+
+Factory.new.make # => IntArray3
+```
+
+The binding type is named after the C++ type, here `Binding::ArrayInt3`.
+
 ## §3. Crystal bindings
 
 ### §3.1 Naming scheme

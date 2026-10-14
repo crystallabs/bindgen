@@ -25,6 +25,10 @@ private def read_clang_value(pull : JSON::PullParser) : ClangValue
   end
 end
 
+# Path to the helper header the clang tool expects in its input, see
+# `Bindgen::Parser::Runner`.
+PARSER_HELPER = File.expand_path("../../assets/parser_helper.hpp", __DIR__)
+
 class ClangValidationError < Exception
   getter document : ClangValue
 

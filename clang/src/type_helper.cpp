@@ -6,9 +6,51 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/ExprCXX.h"
+#include "llvm/ADT/StringExtras.h"
+
+#include <map>
 
 static std::optional<Template> handleTemplate(const clang::TemplateSpecializationType *tmpl, clang::ASTContext &ctx);
+static std::optional<Type> handleValueArgument(const clang::TemplateArgument &argument, clang::ASTContext &ctx);
 static bool tryReadStringConstructor(LiteralData &literal, const clang::CXXConstructExpr *expr);
+
+// Names of the types registered through `TypeHelper::registerTypeName`, by
+// their canonical type.
+static std::map<const clang::Type *, std::string> registeredNames;
+
+static const clang::Type *canonicalTypePtr(const clang::QualType &qt) {
+	return qt.getCanonicalType().getUnqualifiedType().getTypePtr();
+}
+
+void TypeHelper::registerTypeName(const clang::QualType &qt, const std::string &name) {
+	registeredNames[canonicalTypePtr(qt)] = name;
+}
+
+void TypeHelper::clearTypeNames() {
+	registeredNames.clear();
+}
+
+std::optional<std::string> TypeHelper::registeredTypeName(const clang::QualType &qt) {
+	auto it = registeredNames.find(canonicalTypePtr(qt));
+	if (it == registeredNames.end()) return std::nullopt;
+	return it->second;
+}
+
+clang::QualType TypeHelper::recordType(const clang::CXXRecordDecl *record) {
+#if CLANG_VERSION_MAJOR >= 22
+	return record->getASTContext().getCanonicalTagType(record);
+#else
+	return record->getASTContext().getRecordType(record);
+#endif
+}
+
+std::string TypeHelper::recordName(const clang::CXXRecordDecl *record) {
+	if (auto name = registeredTypeName(recordType(record))) {
+		return *name;
+	}
+
+	return record->getQualifiedNameAsString();
+}
 
 static bool isIdentifierChar(char c) {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
@@ -116,6 +158,11 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &qt, clang::
 	target.isBuiltin = qt->isBuiltinType();
 	target.baseName = fullyQualifiedName(qt.getUnqualifiedType(), ctx);
 
+	// Instantiations to be wrapped are known by their configured name.
+	if (auto name = registeredTypeName(qt)) {
+		target.baseName = *name;
+	}
+
 	if (const auto *tmpl = llvm::dyn_cast<clang::TemplateSpecializationType>(ut.getTypePtr())) {
 		target.templ = handleTemplate(tmpl, ctx);
 		if (target.templ) {
@@ -134,15 +181,49 @@ static std::optional<Template> handleTemplate(const clang::TemplateSpecializatio
 	}
 
 	for (const clang::TemplateArgument &argument : tmpl->template_arguments()) {
-		// Don't allow non-type template arguments yet.
-		if (argument.getKind() != clang::TemplateArgument::Type)
+		if (argument.getKind() == clang::TemplateArgument::Type) {
+			t.arguments.push_back(TypeHelper::qualTypeToType(argument.getAsType(), ctx));
+		} else if (auto value = handleValueArgument(argument, ctx)) {
+			t.arguments.push_back(*value);
+		} else {
 			return std::nullopt;
-
-		Type type = TypeHelper::qualTypeToType(argument.getAsType(), ctx);
-		t.arguments.push_back(type);
+		}
 	}
 
 	return t;
+}
+
+// Describes the non-type template *argument* as type named after its value,
+// like `4` in `std::array<int, 4>`.  Only integral values are supported.
+static std::optional<Type> handleValueArgument(const clang::TemplateArgument &argument, clang::ASTContext &ctx) {
+	llvm::APSInt value;
+	clang::QualType qt;
+
+	if (argument.getKind() == clang::TemplateArgument::Integral) {
+		value = argument.getAsIntegral();
+		qt = argument.getIntegralType();
+	} else if (argument.getKind() == clang::TemplateArgument::Expression) {
+		const clang::Expr *expr = argument.getAsExpr();
+		clang::Expr::EvalResult result;
+
+		if (expr->isValueDependent() || !expr->EvaluateAsInt(result, ctx))
+			return std::nullopt;
+
+		value = result.Val.getInt();
+		qt = expr->getType();
+	} else {
+		return std::nullopt;
+	}
+
+	Type type;
+	if (qt->isBooleanType()) {
+		type.baseName = value.getBoolValue() ? "true" : "false";
+	} else {
+		type.baseName = llvm::toString(value, 10);
+	}
+
+	type.fullName = type.baseName;
+	return type;
 }
 
 Argument TypeHelper::processFunctionParameter(const clang::ParmVarDecl *decl) {

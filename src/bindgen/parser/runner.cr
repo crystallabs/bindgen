@@ -25,7 +25,7 @@ module Bindgen
 
       # Arguments for the tool binary
       def arguments(input_file)
-        classes = @classes.flat_map { |x| ["-c", "#{x}"] }
+        classes = @classes.flat_map { |x| ["-c", Process.quote(x)] }
         enums = @enums.flat_map { |x| ["-e", "#{x}"] }
         flags = @config.flags.map { |x| Util.template(x, replacement: nil) }
         defines = @config.defines.map { |x| "-D#{x}" }
@@ -67,8 +67,13 @@ module Bindgen
           end
 
           file.puts %{#include "#{File.expand_path "#{__DIR__}/../../../assets/parser_helper.hpp"}"}
-          @classes.each do |klass|
-            file.puts %[template class BindgenTypeInfo<#{klass}>;]
+          @classes.each_with_index do |klass, index|
+            file.puts %[template class BindgenTypeInfo<#{klass} >;]
+
+            # Class template instantiations are named through their index.
+            if Util.template_instantiation?(klass)
+              file.puts %[template struct BindgenInstantiation<#{index}, #{klass} >;]
+            end
           end
 
           file.flush

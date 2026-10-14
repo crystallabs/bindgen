@@ -31,9 +31,18 @@ module Bindgen
         @database.add_sparse_type cpp_name, crystal_name.destination, Parser::Type::Kind::Enum
       end
 
-      # Add classes too
+      # Add classes too.  Class template instantiations are spelled like the
+      # type database spells them, and get a valid identifier as binding type.
+      @config.classes = @config.classes.transform_keys do |cpp_name|
+        Util.template_instantiation?(cpp_name) ? @database.resolve_aliases(cpp_name).full_name : cpp_name
+      end
+
       @config.classes.each do |cpp_name, crystal_name|
         @database.add_sparse_type cpp_name, crystal_name, Parser::Type::Kind::Class
+
+        if Util.template_instantiation?(cpp_name)
+          @database.get_or_add(cpp_name).binding_type ||= Util.mangle_instantiation_name(cpp_name)
+        end
       end
 
       # Build pipelines

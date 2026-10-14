@@ -125,6 +125,33 @@ describe "clang tool functions feature" do
     )
   end
 
+  it "exports non-type template arguments" do
+    clang_tool(
+      <<-CPP,
+        template<typename T, int N> struct Arr { };
+        template<bool B> struct Flag { };
+        typedef Arr<int, 4> Quad;
+
+        Arr<int, -1 + 3> pair();
+        Flag<true> flag();
+        CPP
+      "-f 'pair|flag'",
+      functions: [
+        {
+          name:       "pair",
+          returnType: {
+            baseName: "Arr<int, -1 + 3>",
+            template: {baseName: "Arr", arguments: [{baseName: "int"}, {baseName: "2", fullName: "2"}]},
+          },
+        },
+        {
+          name:       "flag",
+          returnType: {template: {baseName: "Flag", arguments: [{baseName: "true"}]}},
+        },
+      ],
+    )
+  end
+
   it "exports what it can from sources with errors" do
     clang_tool(
       <<-CPP,

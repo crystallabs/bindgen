@@ -20,6 +20,11 @@ private:
 
 	void gatherTypeInfo(clang::ASTContext &ctx);
 
+	// Finds the class template instantiations to inspect, named through
+	// `BindgenInstantiation` instantiations, and registers their names.
+	// Returns their indices in the class list, and their definitions.
+	std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> gatherInstantiations(clang::ASTContext &ctx);
+
 	std::vector<std::unique_ptr<RecordMatchHandler>> m_classHandlers;
 	std::vector<std::unique_ptr<OperatorMatchHandler>> m_operatorHandlers;
 	std::vector<std::unique_ptr<EnumMatchHandler>> m_enumHandlers;

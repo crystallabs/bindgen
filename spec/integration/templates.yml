@@ -1,0 +1,12 @@
+<<: spec_base.yml
+
+classes:
+  Point: Point
+  BoxFactory: BoxFactory
+  Counter: Counter
+  "Box<int>": IntBox
+  "Box<Point>": PointBox
+  "Box<Box<int>>": NestedBox
+  "Array<int,3>": IntArray3
+  "Scaled<int>": ScaledInt
+  "Offset<-2, true>": Offset::MinusTwice

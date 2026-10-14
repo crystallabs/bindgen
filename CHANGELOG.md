@@ -89,6 +89,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   while C++ uses them, until `BindgenHelper.release` (#75).
 * Copy constructors (`.new(other)`), assignment operators (`#assign!`) and
   conversion operators (`#to_bool` for `operator bool()`) are wrapped.
+* Class template instantiations can be wrapped by listing them in `classes:`,
+  like `"Box<int>": IntBox` (#117).  Methods using them are wrapped instead of
+  skipped.  Integral non-type template arguments, like the `4` in
+  `std::array<int, 4>`, are supported in instantiations and type names.
 * The integration specs are parsed in the C++ standard they're built in.
 * The clang tool can be built out of tree (`cmake -S clang -B build/llvm-19`),
   keeping a build directory per LLVM version.

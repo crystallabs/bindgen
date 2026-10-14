@@ -19,6 +19,13 @@ AST_MATCHER(clang::FunctionDecl, isOverloadedOperator) {
 	return oo != clang::OO_None && oo != clang::OO_Comma && oo != clang::OO_ArrowStar;
 }
 
+// Matches a type registered as *name*, see `TypeHelper::registerTypeName`.
+// Checked when matching, so it sees the names registered by then.
+AST_MATCHER_P(clang::QualType, isRegisteredAs, std::string, name) {
+	auto registered = TypeHelper::registeredTypeName(Node);
+	return registered && *registered == name;
+}
+
 BindgenASTConsumer::BindgenASTConsumer(Document &doc)
 	: m_functionHandler(nullptr), m_document(doc)
 {
@@ -38,11 +45,14 @@ clang::ast_matchers::MatchFinder BindgenASTConsumer::makeBasicMatchFinder() {
 	MatchFinder finder {this->m_matchFinderOpts};
 
 	for (const std::string &className : ClassList) {
-		DeclarationMatcher classMatcher = cxxRecordDecl(isDefinition(), hasName(className)).bind("recordDecl");
-
 		auto handler = std::make_unique<RecordMatchHandler>(m_document, className);
 
-		finder.addMatcher(classMatcher, handler.get());
+		// Instantiations can't be matched by name, see `gatherInstantiations`.
+		if (!RecordMatchHandler::isInstantiation(className)) {
+			DeclarationMatcher classMatcher = cxxRecordDecl(isDefinition(), hasName(className)).bind("recordDecl");
+			finder.addMatcher(classMatcher, handler.get());
+		}
+
 		this->m_classHandlers.push_back(std::move(handler));
 	}
 
@@ -75,10 +85,14 @@ clang::ast_matchers::MatchFinder BindgenASTConsumer::makeDependentMatchFinder() 
 	MatchFinder finder {this->m_matchFinderOpts};
 
 	for (const std::string &className : ClassList) {
+		auto self = RecordMatchHandler::isInstantiation(className)
+			? hasType(references(qualType(isRegisteredAs(className))))
+			: hasType(references(cxxRecordDecl(hasName(className))));
+
 		DeclarationMatcher operatorMatcher = functionDecl(
 			isOverloadedOperator(),
 			unless(cxxMethodDecl()),
-			hasParameter(0, hasType(references(cxxRecordDecl(hasName(className)))))).bind("operatorDecl");
+			hasParameter(0, self)).bind("operatorDecl");
 
 		auto handler = std::make_unique<OperatorMatchHandler>(m_document, className);
 
@@ -90,7 +104,15 @@ clang::ast_matchers::MatchFinder BindgenASTConsumer::makeDependentMatchFinder() 
 }
 
 void BindgenASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
+	TypeHelper::clearTypeNames();
+	std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> instantiations = this->gatherInstantiations(ctx);
 	this->gatherTypeInfo(ctx);
+
+	// Before matching, as the operators are added to the classes.
+	for (const auto &instantiation : instantiations) {
+		this->m_classHandlers[instantiation.first]->runOnDefinition(instantiation.second);
+	}
+
 	for (auto &finder : this->m_matchFinders) {
 		finder.matchAST(ctx);
 	}
@@ -119,10 +141,33 @@ void BindgenASTConsumer::gatherTypeInfo(clang::ASTContext &ctx) {
 		if (auto spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(decl)) {
 			if (spec->getQualifiedNameAsString() == "BindgenTypeInfo") {
 				clang::QualType qt = spec->getTemplateArgs()[0].getAsType();
-				std::string fullName = TypeHelper::fullyQualifiedName(qt, ctx);
+				std::string fullName = TypeHelper::registeredTypeName(qt).value_or(
+					TypeHelper::fullyQualifiedName(qt, ctx));
 				TypeInfoResult &info = m_document.type_infos[fullName];
 				runTypeInfoResult(info, spec, ctx);
 			}
 		}
 	}
+}
+
+std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> BindgenASTConsumer::gatherInstantiations(clang::ASTContext &ctx) {
+	std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> result;
+
+	for (auto decl : ctx.getTranslationUnitDecl()->decls()) {
+		auto spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(decl);
+		if (!spec || spec->getQualifiedNameAsString() != "BindgenInstantiation") continue;
+
+		const clang::TemplateArgumentList &args = spec->getTemplateArgs();
+		uint64_t index = args[0].getAsIntegral().getZExtValue();
+		if (index >= ClassList.size()) continue;
+
+		// `BindgenInstantiation` made the record complete, unless it's invalid.
+		const clang::CXXRecordDecl *record = args[1].getAsType()->getAsCXXRecordDecl();
+		if (record && record->getDefinition() && !record->isInvalidDecl()) {
+			TypeHelper::registerTypeName(TypeHelper::recordType(record), ClassList[index]);
+			result.push_back(std::make_pair(index, record->getDefinition()));
+		}
+	}
+
+	return result;
 }

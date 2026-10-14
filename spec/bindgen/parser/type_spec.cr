@@ -322,6 +322,19 @@ describe Bindgen::Parser::Type do
       template.try(&.arguments[0]).should eq(parse("const Container<int> &"))
     end
 
+    it "recognizes non-type arguments in `Container<int,-4>`" do
+      type = parse("Container<int,-4>")
+      type.base_name.should eq("Container<int,-4>")
+      template = type.template
+      template.should_not be_nil
+      template.try(&.base_name).should eq("Container")
+      template.try(&.full_name).should eq("Container<int, -4>")
+      template.try(&.arguments.size).should eq(2)
+      template.try(&.arguments[0]).should eq(parse("int"))
+      template.try(&.arguments[1].full_name).should eq("-4")
+      template.try(&.mangled_name).should eq("int__4")
+    end
+
     it "supports pointer depth offset" do
       parse("int", 1).pointer.should eq(1)
       parse("int *", 1).pointer.should eq(2)

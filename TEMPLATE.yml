@@ -228,6 +228,11 @@ classes:
   # Maps from the name of the C++ class, to the Crystal class.
   CppClassName: CrystalClassName
   MayBeEqual: MayBeEqual # This is fine, too.
+  # Instantiations of class templates are wrapped like classes.  Type and
+  # integral arguments are supported, default arguments can be left out.
+  # Methods using a configured instantiation are wrapped, others are skipped.
+  "scoped_refptr<nu::MenuBar>": MenuBarRef
+  "std::array<int, 4>": IntArray4
 
 # Map of enums to copy.
 enums:

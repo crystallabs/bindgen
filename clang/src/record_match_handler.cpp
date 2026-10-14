@@ -10,19 +10,23 @@ RecordMatchHandler::RecordMatchHandler(Document &doc, const std::string &name)
 }
 
 void RecordMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResult &result) {
-	const clang::CXXRecordDecl *record0 = result.Nodes.getNodeAs<clang::CXXRecordDecl>("recordDecl");
-	if (record0) {
-		// The pattern of a class template has no layout, only its
-		// instantiations do.  It may also be another type of the same name in
-		// a different scope, so only remember it for `finish()`.
-		if (record0->isDependentType()) {
-			this->m_foundTemplate = true;
-			return;
-		}
+	const clang::CXXRecordDecl *record = result.Nodes.getNodeAs<clang::CXXRecordDecl>("recordDecl");
+	if (!record) return;
 
-		this->m_found = true;
-		m_classesToRun.push_back(std::make_pair(record0, this->m_className));
+	// The pattern of a class template has no layout, only its
+	// instantiations do.  It may also be another type of the same name in
+	// a different scope, so only remember it for `finish()`.
+	if (record->isDependentType()) {
+		this->m_foundTemplate = true;
+		return;
 	}
+
+	runOnDefinition(record);
+}
+
+void RecordMatchHandler::runOnDefinition(const clang::CXXRecordDecl *definition) {
+	this->m_found = true;
+	m_classesToRun.push_back(std::make_pair(definition, this->m_className));
 
 	bool anonymous = false;
 	while (!m_classesToRun.empty()) {
@@ -42,10 +46,20 @@ void RecordMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResult
 	}
 }
 
+bool RecordMatchHandler::isInstantiation(const std::string &className) {
+	return className.find('<') != std::string::npos;
+}
+
 void RecordMatchHandler::finish() {
-	if (this->m_foundTemplate && !this->m_found) {
+	if (this->m_found) return;
+
+	if (this->m_foundTemplate) {
 		this->m_document.errors.push_back(
-			"'" + this->m_className + "' is a class template, which can't be wrapped as class");
+			"'" + this->m_className + "' is a class template, which can't be wrapped as class."
+			"  Wrap an instantiation like '" + this->m_className + "<int>' instead");
+	} else if (isInstantiation(this->m_className)) {
+		this->m_document.errors.push_back(
+			"'" + this->m_className + "' doesn't name a complete class template instantiation");
 	}
 }
 
@@ -53,7 +67,7 @@ bool RecordMatchHandler::runOnMethod(Method &m, Class &klass, const clang::CXXMe
 	if (method->isDeleted())
 		return false;
 
-	m.className = method->getParent()->getQualifiedNameAsString();
+	m.className = TypeHelper::recordName(method->getParent());
 	m.isConst = method->isConst();
 	m.isVirtual = method->isVirtual();
 #if CLANG_VERSION_MAJOR >= 18
@@ -114,11 +128,7 @@ bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *r
 	klass.isStandardLayout = record->isStandardLayout();
 	klass.typeKind = record->getTagKind();
 
-#if CLANG_VERSION_MAJOR >= 22
-	clang::QualType recordType = record->getASTContext().getCanonicalTagType(record);
-#else
-	clang::QualType recordType = record->getASTContext().getRecordType(record);
-#endif
+	clang::QualType recordType = TypeHelper::recordType(record);
 	clang::TypeInfo typeInfo = record->getASTContext().getTypeInfo(recordType);
 	uint64_t bitSize = typeInfo.Width;
 	if (typeInfo.isAlignRequired()) bitSize += typeInfo.Align;
@@ -261,7 +271,7 @@ BaseClass RecordMatchHandler::handleBaseClass(const clang::CXXBaseSpecifier &bas
 	b.isVirtual = base.isVirtual();
 	b.inheritedConstructor = base.getInheritConstructors();
 	b.access = base.getAccessSpecifier();
-	b.name = base.getType()->getAsCXXRecordDecl()->getQualifiedNameAsString();
+	b.name = TypeHelper::recordName(base.getType()->getAsCXXRecordDecl());
 
 	return b;
 }

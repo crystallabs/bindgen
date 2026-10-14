@@ -57,4 +57,23 @@ describe "Util" do
       end
     end
   end
+
+  describe ".template_instantiation?" do
+    it "detects class template instantiations" do
+      Bindgen::Util.template_instantiation?("Foo<int>").should be_true
+      Bindgen::Util.template_instantiation?("Foo::Bar").should be_false
+    end
+  end
+
+  describe ".mangle_instantiation_name" do
+    it "returns a valid identifier" do
+      Bindgen::Util.mangle_instantiation_name("Foo<int>").should eq("Foo_int")
+      Bindgen::Util.mangle_instantiation_name("ns::Foo<Bar<int> *>").should eq("ns_Foo_Bar_int_X")
+    end
+
+    it "distinguishes negative values" do
+      Bindgen::Util.mangle_instantiation_name("Foo<int, -1>").should eq("Foo_int_Neg1")
+      Bindgen::Util.mangle_instantiation_name("Foo<int, 1>").should eq("Foo_int_1")
+    end
+  end
 end

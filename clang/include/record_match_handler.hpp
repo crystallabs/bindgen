@@ -7,9 +7,17 @@ public:
 
 	virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
+	// Exports the class *definition*, and its anonymous members.
+	void runOnDefinition(const clang::CXXRecordDecl *definition);
+
 	// To be called once all matches were handled.  Reports an error if the
-	// class turned out to be a class template only.
+	// class turned out to be a class template only, or if the instantiation
+	// couldn't be found.
 	void finish();
+
+	// Is *className* a class template instantiation, like `Foo<int>`?  These
+	// are not found by name, see `BindgenASTConsumer::gatherInstantiations`.
+	static bool isInstantiation(const std::string &className);
 
 private:
 	bool runOnMethod(Method &m, Class &klass, const clang::CXXMethodDecl *method, bool isSignal);

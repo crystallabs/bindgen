@@ -145,6 +145,51 @@ describe "clang tool classes feature" do
     )
   end
 
+  it "exports class template instantiations" do
+    clang_tool(
+      <<-CPP,
+        #include "#{PARSER_HELPER}"
+        struct Point { int x; };
+        template<typename T, int N> struct Arr {
+          T data[N];
+          T at(int i) const;
+          static Arr make(T value);
+        };
+        struct Derived : Arr<Point, 2> { };
+
+        template struct BindgenInstantiation<0, Arr<Point,2> >;
+        CPP
+      "-c 'Arr<Point,2>' -c Derived",
+      classes: {
+        "Arr<Point,2>": {
+          name:    "Arr<Point,2>",
+          fields:  [{name: "data", baseName: "Point", extents: [2]}],
+          methods: [
+            {name: "at", className: "Arr<Point,2>", returnType: {baseName: "Point"}},
+            {name: "make", className: "Arr<Point,2>", returnType: {baseName: "Arr<Point,2>", fullName: "Arr<Point, 2>"}},
+          ],
+        },
+        Derived: {bases: [{name: "Arr<Point,2>"}]},
+      },
+    )
+  end
+
+  it "rejects class template instantiations which weren't named" do
+    file = File.tempfile("bindgen-clang-test")
+    file.puts("template<typename T> class Templated { T *ptr; };")
+    file.flush
+
+    tool = ENV["BINDGEN_BIN"]? || Bindgen::Parser::Runner::BINARY_PATH
+    error = IO::Memory.new
+    status = Process.run(tool, [file.path, "-c", "Templated<int>", "--", "-x", "c++"], error: error)
+
+    status.normal_exit?.should be_true
+    status.success?.should be_false
+    error.to_s.should contain("'Templated<int>' doesn't name a complete class template instantiation")
+  ensure
+    file.try(&.delete)
+  end
+
   it "rejects class templates" do
     file = File.tempfile("bindgen-clang-test")
     file.puts("template<typename T> class Templated { T *ptr; };")

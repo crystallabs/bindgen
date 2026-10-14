@@ -69,6 +69,17 @@ module Bindgen
       full_type_name.gsub("*", "X").gsub("&", "R").gsub(/\W/, "_")
     end
 
+    # Is *cpp_name* a class template instantiation, like `Foo<int>`?
+    def self.template_instantiation?(cpp_name : String) : Bool
+      cpp_name.includes?('<')
+    end
+
+    # Mangles the class template instantiation *cpp_name* into a valid
+    # identifier, e.g. `Foo<int, -1>` into `Foo_int_Neg1`.
+    def self.mangle_instantiation_name(cpp_name : String) : String
+      mangle_type_name(cpp_name.gsub('-', "Neg")).squeeze('_').strip('_')
+    end
+
     # Mangles a list of type-names into a combined string.
     def self.mangle_type_names(full_type_names : String)
       full_type_names.map { |x| mangle_type_name x }.join("_")
