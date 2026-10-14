@@ -56,7 +56,8 @@ module Bindgen
         macros.each do |define, match|
           next if define.function?
           name = Util.pattern_rewrite(config.name, match).underscore.upcase
-          value_type = forced_type || define.type.not_nil!
+          # Without a type the macro couldn't be evaluated: Nothing to copy.
+          next unless value_type = forced_type || define.type
           value = type.convert(define.evaluated, value_type)
 
           next if value.nil?

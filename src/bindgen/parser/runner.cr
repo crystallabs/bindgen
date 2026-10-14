@@ -58,9 +58,9 @@ module Bindgen
 
       # Generates a dummy C++ header file, which `#include`s all given files
       private def generate_source_file(&)
-        result = nil
+        file = File.tempfile("bindgen")
 
-        File.tempfile("bindgen") do |file|
+        begin
           @config.files.each do |path|
             path = Util.template(path, replacement: nil)
             file.puts %{#include #{path.inspect}}
@@ -72,10 +72,10 @@ module Bindgen
           end
 
           file.flush
-          result = yield file.path
+          yield file.path
+        ensure
+          file.close
         end
-
-        result.not_nil!
       end
 
       # Returns the `-I` paths with template expansion to the project root.

@@ -48,9 +48,9 @@ module Bindgen
         elsif env_var && env.responds_to?(:[]?) # Support `{ENV}` expansion
           if alternative == '%'                 # Support `{DOESNT_EXIST|%}`
             alternative = replacement
-          elsif alternative.try(&.includes?('%'))
+          elsif alternative && alternative.includes?('%')
             # Support `{DOESNT_EXIST|Foo % Bar}`
-            alternative = template(alternative.not_nil!, replacement, env: false)
+            alternative = template(alternative, replacement, env: false)
           end
 
           primary = env[env_var]?

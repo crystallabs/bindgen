@@ -9,7 +9,7 @@ module Bindgen
       def self.common(strings : Enumerable(String)) : Int32
         return 0 if strings.size < 2
 
-        max_prefix_len = strings.min_of(&.size).not_nil!
+        max_prefix_len = strings.min_of(&.size)
         first_uncommon = (1..max_prefix_len).find(max_prefix_len) do |len|
           prefix = strings.first.to_slice[0, len]
           is_common = strings.all? { |str| str.to_slice[0, len] == prefix }

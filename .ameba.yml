@@ -20,35 +20,6 @@ Excluded:
 Style/PercentLiteralDelimiters:
   DefaultDelimiters: ~
 
-Lint/NotNil:
-  Excluded:
-  - spec/bindgen/config_reader/loader_spec.cr
-  - spec/bindgen/find_path/kind_spec.cr
-  - spec/bindgen/parser/type_spec.cr
-  - spec/integration/instance_properties_spec.cr
-  - spec/integration/spec_helper.cr
-  - src/bindgen/call_builder/cpp_method.cr
-  - src/bindgen/call_builder/crystal_container_of.cr
-  - src/bindgen/cpp/pass.cr
-  - src/bindgen/crystal/pass.cr
-  - src/bindgen/generator/cpp.cr
-  - src/bindgen/parser/runner.cr
-  - src/bindgen/processor/block_overloads.cr
-  - src/bindgen/processor/cpp_wrapper.cr
-  - src/bindgen/processor/crystal_binding.cr
-  - src/bindgen/processor/instantiate_containers.cr
-  - src/bindgen/processor/macros.cr
-  - src/bindgen/processor/operators.cr
-  - src/bindgen/processor/sanity_check.cr
-  - src/bindgen/processor/virtual_override.cr
-  - src/bindgen/template/proc_from_wrapper.cr
-  - src/bindgen/util.cr
-  - src/bindgen/util/prefix.cr
-
-Lint/NotNilAfterNoBang:
-  Excluded:
-  - src/bindgen/processor/operators.cr
-
 Metrics/CyclomaticComplexity:
   Excluded:
   - src/bindgen/cpp/pass.cr

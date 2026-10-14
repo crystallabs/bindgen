@@ -371,7 +371,7 @@ describe "C++ instance properties" do
           props.bool_ptr.should eq(Pointer(Bool).null)
 
           props.point_ptr = point
-          props.point_ptr.not_nil!.to_unsafe.should eq(point.to_unsafe)
+          props.point_ptr.should_not(be_nil).to_unsafe.should eq(point.to_unsafe)
           props.point_ptr = nil
           props.point_ptr.should be_nil
         end

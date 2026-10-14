@@ -6,7 +6,7 @@ private def with_dependency(content, &)
   File.write(full_path, content)
   yield name, full_path
 ensure
-  File.delete full_path.not_nil!
+  File.delete(full_path) if full_path
 end
 
 describe Bindgen::ConfigReader::Loader do

@@ -11,7 +11,7 @@ module Bindgen
       end
 
       def template(code) : String
-        args = @proc_type.template.not_nil!.arguments
+        args = @proc_type.template_arguments
         func_args = args[1..-1].map_with_index do |type, i|
           Parser::Argument.new("arg#{i}", type)
         end

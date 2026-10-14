@@ -26,7 +26,7 @@ end
 # indention depth is pretty large already, so every 2-spaces count visually.
 private def inject_describe_block(code, name)
   if match = /^ +(?:it|context|describe)[ (]/m.match(code)
-    pos = match.begin(0).not_nil!
+    pos = match.begin(0)
     range = pos...pos
     code.sub(range, %<describe "Online test of #{name}" do >) + "\nend"
   else

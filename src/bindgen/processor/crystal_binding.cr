@@ -131,7 +131,7 @@ module Bindgen
           return if rules.graph_node.is_a?(Graph::Enum)
         end
 
-        alias_node = check_sub_nodes(expr.type_name, @binding.not_nil!.parent.not_nil!)
+        alias_node = check_sub_nodes(expr.type_name, binding_parent)
         if alias_node
           @aliases[expr.type_name] = alias_node
           return
@@ -143,6 +143,12 @@ module Bindgen
           name: expr.type_name,
           parent: nil,
         )
+      end
+
+      # Returns the parent of `lib Binding`, in which aliases are searched.
+      private def binding_parent : Graph::Container
+        binding = @binding || raise "BUG: #binding_parent called before #process"
+        binding.parent || raise "BUG: lib Binding has no parent"
       end
 
       # Method to recursivly search for existing aliases

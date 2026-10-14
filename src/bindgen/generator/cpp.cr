@@ -65,13 +65,13 @@ module Bindgen
         puts "#{prototype} {"
         indented do
           if structure.tag?(Graph::Struct::INHERIT_CONSTRUCTORS_TAG)
-            base = structure.base_class.not_nil!
+            base = base_class_of(structure)
             ctor = Graph::Path.from(base).last_part
             puts "using #{base}::#{ctor};" # C++11
           end
 
           if structure.tag?(Graph::Struct::COPY_BASE_CONSTRUCTOR_TAG)
-            base = structure.base_class.not_nil!
+            base = base_class_of(structure)
             puts "#{structure.name}(const #{base} &other) : #{base}(other) { }"
           end
 
@@ -93,6 +93,12 @@ module Bindgen
       private def type_prototype(kind, name, base) : String
         suffix = " : public #{base}" if base
         "#{kind} #{name}#{suffix}"
+      end
+
+      # Returns the base class of *structure*, which is tagged to use its
+      # constructors and thus must have one.
+      private def base_class_of(structure) : String
+        structure.base_class || raise "BUG: Struct #{structure.name} has no base class"
       end
     end
   end

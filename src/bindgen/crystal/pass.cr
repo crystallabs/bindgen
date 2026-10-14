@@ -118,7 +118,7 @@ module Bindgen
       # Builds the type-name of a Crystal `Proc` for Crystal wrappers, from the
       # function *type*.
       private def proc_to_wrapper(type)
-        args = type.template.not_nil!.arguments
+        args = type.template_arguments
 
         # The order used to store is result type first, arguments second,
         # mirroring C function prototypes.  Crystal Procs are formatted in the
@@ -166,7 +166,7 @@ module Bindgen
           # Taken as `Slice` of the elements of the referenced array.
           typer = Typename.new(@db)
           array = type.pointee_array
-          element = array_pointer_result(array.decayed.not_nil!, typer.qualified(*typer.wrapper(type)))
+          element = array_pointer_result(array.array_element, typer.qualified(*typer.wrapper(type)))
 
           return Call::Result.new(
             type: array.remove_all_extents,
@@ -259,7 +259,7 @@ module Bindgen
           if type.c_array? && !no_slice
             is_ref = false
             ptr = 0
-            inner_result = from_binding(type.decayed.not_nil!, no_slice: true)
+            inner_result = from_binding(type.array_element, no_slice: true)
             template = Template::Basic.new("BindgenHelper::SliceConverter(#{typer.full(inner_result)}).unwrap(%)", simple: true)
             type_name = "Binding::CrystalSlice"
           end
@@ -307,7 +307,7 @@ module Bindgen
             if type.c_array? && !no_slice
               is_ref = false
               ptr = 0
-              inner_result = from_wrapper(type.decayed.not_nil!, no_slice: true)
+              inner_result = from_wrapper(type.array_element, no_slice: true)
               type_name = "Slice(#{typer.full(inner_result)})"
             end
 

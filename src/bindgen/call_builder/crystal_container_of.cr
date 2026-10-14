@@ -48,7 +48,7 @@ module Bindgen
             container.instantiations.each do |inst|
               type_name = cpp_typer.template_class(container.class, inst)
               templ_type = Parser::Type.parse(type_name)
-              templ_args = templ_type.template.not_nil!.arguments
+              templ_args = templ_type.template_arguments
 
               arg_list = templ_args.join(", ") do |t|
                 @db.try_or(t, typer.full(pass.to_wrapper(t), expects_type: false), &.container_type)

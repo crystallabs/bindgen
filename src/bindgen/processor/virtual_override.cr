@@ -13,7 +13,7 @@ module Bindgen
 
       # Returns `lib Binding`
       private def binding
-        @binding.not_nil!
+        @binding || raise "BUG: #binding called before #process"
       end
 
       # Looks up a class by its name.  Used to identify base classes.

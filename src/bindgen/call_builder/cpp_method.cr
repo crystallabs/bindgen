@@ -15,7 +15,7 @@ module Bindgen
 
         body = case
                when in_superclass
-                 SuperclassBody.new(class_name, target.not_nil!)
+                 SuperclassBody.new(class_name, target || raise ArgumentError.new("Superclass method needs a target"))
                when target
                  VirtualBody.new(class_name, target, virtual_target)
                else

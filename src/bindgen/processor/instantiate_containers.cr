@@ -107,7 +107,7 @@ module Bindgen
         builder = Graph::Builder.new(@db)
 
         templ_type = Parser::Type.parse(cpp_container_name(container, instance))
-        templ_args = templ_type.template.not_nil!.arguments
+        templ_args = templ_type.template_arguments
         klass = build_sequential_class(container, templ_type)
 
         add_cpp_typedef(root, templ_type, klass.name)
@@ -126,7 +126,7 @@ module Bindgen
         builder = Graph::Builder.new(@db)
 
         templ_type = Parser::Type.parse(cpp_container_name(container, instance))
-        templ_args = templ_type.template.not_nil!.arguments
+        templ_args = templ_type.template_arguments
         klass = build_associative_class(container, templ_type)
         entries = build_entries_class(klass, templ_type)
         entries_type = Parser::Type.parse("BindgenMapEntries<#{templ_type.full_name}>")
@@ -195,7 +195,7 @@ module Bindgen
       # type.
       private def set_container_type_rules(container, klass : Parser::Class, templ_type)
         rules = @db.get_or_add(templ_type.full_name)
-        type_args = templ_type.template.not_nil!.arguments
+        type_args = templ_type.template_arguments
 
         rules.pass_by = TypeDatabase::PassBy::Pointer
         rules.wrapper_pass_by = TypeDatabase::PassBy::Value
@@ -254,7 +254,7 @@ module Bindgen
       # Builds a full `Parser::Class` for the sequential *container* in the
       # specified *instantiation*.
       private def build_sequential_class(container, templ_type : Parser::Type) : Parser::Class
-        var_type = templ_type.template.not_nil!.arguments.first
+        var_type = templ_type.template_arguments.first
         klass = container_class(container, templ_type)
 
         klass.methods << default_constructor_method(klass)
@@ -270,7 +270,7 @@ module Bindgen
       # functions `bindgen_map_fetch` and `bindgen_map_store`, as `at()` throws
       # and `operator[]` requires a default constructible value type.
       private def build_associative_class(container, templ_type : Parser::Type) : Parser::Class
-        key_type, value_type = templ_type.template.not_nil!.arguments
+        key_type, value_type = templ_type.template_arguments
         klass = container_class(container, templ_type)
         self_type = Parser::Type.parse("#{templ_type.full_name} &")
         key_arg = Parser::Argument.new("key", key_type)
@@ -335,7 +335,7 @@ module Bindgen
       # Builds the class of the `BindgenMapEntries` of the associative
       # container *klass*, whose instantiated type is *templ_type*.
       private def build_entries_class(klass, templ_type : Parser::Type) : Parser::Class
-        key_type, value_type = templ_type.template.not_nil!.arguments
+        key_type, value_type = templ_type.template_arguments
         entries = Parser::Class.new(name: "#{klass.name}_Entries")
         map_type = Parser::Type.parse("const #{templ_type.full_name} &")
         index_arg = Parser::Argument.new("index", Parser::Type.builtin_type(CPP_INTEGER_TYPE))

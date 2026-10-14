@@ -47,7 +47,7 @@ module Bindgen
       # Returns the type name of *proc_type*.
       private def crystal_proc_name(proc_type : Parser::Type) : String
         typer = Typename.new
-        inner_args = proc_type.template.not_nil!.arguments
+        inner_args = proc_type.template_arguments
 
         # Arguments go C++ -> Crystal, but the result goes Crystal -> C++!
         proc_types = inner_args[1..-1].map { |t| proc_pass(t, to_crystal(t)) }

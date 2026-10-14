@@ -30,8 +30,8 @@ module Bindgen
         parent = old_node.parent.as(Graph::Container)
         nodes = parent.nodes
 
-        old_pos = nodes.index(&.same?(old_node)).not_nil!
-        new_pos = nodes.index(&.same?(new_node)).not_nil!
+        old_pos = nodes.index!(&.same?(old_node))
+        new_pos = nodes.index!(&.same?(new_node))
         nodes[old_pos] = new_node
         nodes.delete_at(new_pos)
       end

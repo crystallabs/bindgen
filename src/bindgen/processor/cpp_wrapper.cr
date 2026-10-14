@@ -32,7 +32,7 @@ module Bindgen
 
         if method.tag?(Graph::Method::SUPERCLASS_BIND_TAG)
           namer = Cpp::MethodName.new(@db)
-          original_method = method.origin.origin.not_nil!
+          original_method = method.origin.origin || raise "BUG: Superclass method #{method.name} has no origin"
           method_name = namer.generate(original_method, "_self_", exact_member: true)
         end
 

@@ -56,7 +56,7 @@ module Bindgen
           next if overloads.size == 1
           overloads.each do |_method, call|
             proc_type = call.arguments.last.as(Call::ProcArgument).type
-            proc_args = proc_type.template.not_nil!.arguments.skip(1) # ignore return type
+            proc_args = proc_type.template_arguments.skip(1) # ignore return type
             arg_count = proc_args.size
 
             proc_args.reverse_each.with_index do |proc_arg, i|

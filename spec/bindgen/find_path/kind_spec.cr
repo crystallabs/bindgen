@@ -1,7 +1,7 @@
 require "../../spec_helper"
 
 describe Bindgen::FindPath::Kind do
-  this_binary = Process.executable_path.not_nil!
+  this_binary = Process.executable_path.should_not be_nil
 
   describe "Directory#exists?" do
     context "on a file" do

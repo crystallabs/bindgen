@@ -97,9 +97,12 @@ module Bindgen
       def visit_library(library)
         old = @platform
         @platform = Graph::Platform::CrystalBinding
-        super
-      ensure
-        @platform = old.not_nil!
+
+        begin
+          super
+        ensure
+          @platform = old
+        end
       end
 
       # Check enumeration constants
@@ -205,7 +208,7 @@ module Bindgen
         call = method.calls[@platform]?
         return if call.nil?
 
-        namespace = method.parent.not_nil!
+        namespace = method.parent || raise "BUG: Method #{method.diagnostics_path} has no parent"
 
         call.arguments.each_with_index do |arg, idx|
           unless type_reachable?(arg, namespace)

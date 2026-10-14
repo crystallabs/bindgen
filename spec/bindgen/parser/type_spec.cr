@@ -329,7 +329,7 @@ describe Bindgen::Parser::Type do
       # don't add offset to template argument types
       type = parse("Container<int>", 1)
       type.pointer.should eq(1)
-      type.template.not_nil!.arguments[0].pointer.should eq(0)
+      type.template_arguments[0].pointer.should eq(0)
     end
   end
 

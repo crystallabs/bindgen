@@ -84,6 +84,16 @@ module Bindgen
       # Template information, if this type is a template type.
       getter template : Template?
 
+      # Returns the template arguments of this type.  Only valid for template
+      # types, like container instantiations or `CrystalProc`s.
+      def template_arguments : Array(Type)
+        if template = @template
+          template.arguments
+        else
+          raise "#{@full_name} is not a template type"
+        end
+      end
+
       # `Void` type
       VOID = new(
         const: false,
@@ -224,6 +234,12 @@ module Bindgen
           template: @template,
           nilable: @nilable,
         )
+      end
+
+      # Returns the element type of this C array, e.g. `int [3]` for
+      # `int [4][3]`.  Only valid if `#c_array?`.
+      def array_element : Type
+        decayed || raise "#{@full_name} is not a C array"
       end
 
       # If the type is a pointer and not a reference, returns a copy of this
