@@ -37,7 +37,11 @@ parse_cli_args
 # those they depend on.  Which of these exist depends on the LLVM version.
 CLANG_LIBS = %w[
   clangTooling clangToolingCore clangToolingInclusions clangFormat
-  clangFrontend clangDriver clangOptions clangParse clangSerialization
+  clangFrontend clangDriver clangDependencyScanning
+  clangScalableStaticAnalysisAnalyses
+  clangScalableStaticAnalysisSourceTransformation
+  clangScalableStaticAnalysisCore clangUnifiedSymbolResolution clangOptions
+  clangParse clangSerialization
   clangSema clangAPINotes clangAnalysis clangAnalysisLifetimeSafety
   clangASTMatchers clangEdit clangRewrite clangAST clangLex clangBasic
   clangSupport
