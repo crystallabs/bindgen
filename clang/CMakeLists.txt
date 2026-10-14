@@ -38,6 +38,14 @@ foreach (lib ${system_libs})
   target_link_libraries(parser ${lib})
 endforeach ()
 
+# Newer Clang drivers ask libxcselect for the SDK, which llvm-config omits
+if (APPLE)
+  find_library(xcselect_library xcselect)
+  if (xcselect_library)
+    target_link_libraries(parser ${xcselect_library})
+  endif ()
+endif ()
+
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   message(STATUS "LLVM Libs: ${llvm_libs}")
 endif ()
