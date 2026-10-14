@@ -25,6 +25,12 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * A `functions:` key matching both the qualified and the bare name of a
   function in a namespace now uses the qualified name, also for its capture
   groups.
+* Wrapper classes of `copy_structure` types get property methods for the
+  fields.  Set `instance_variables: false` to turn them off.
+* Copying a structure with members a `lib struct` can't hold (`std::string`,
+  containers, classes by value, unknown types) is an error.  It used to emit
+  invalid or layout-incompatible Crystal.
+* `bindgen_helper.hpp` disables clang's `-Wreturn-type-c-linkage`.
 
 ### Added
 
@@ -75,3 +81,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   Function classes accept qualified names in `constructors:` and
   `destructor:`.
 * `TEMPLATE.yml` no longer documents the non-existent `kind: Value`.
+* A `std::string` returned by value pointed into a destroyed temporary, and
+  the function was called twice.  The same double call happened for virtual
+  methods returning a string which are overridden in Crystal.
+* The destructor of a class or container returned by value is run.
+* Wrapper classes of `copy_structure` types compile and work (#21).
