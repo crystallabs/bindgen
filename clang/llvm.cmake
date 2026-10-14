@@ -1,7 +1,19 @@
 ######################
 # LLVM Setup
 ######################
-# Search for LLVM
+# Search for LLVM.  Homebrew doesn't link its LLVM into the default prefix.
+if(APPLE AND NOT LLVM_DIR)
+  execute_process(
+    COMMAND brew --prefix llvm
+    OUTPUT_VARIABLE brew_llvm_prefix
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+  if(brew_llvm_prefix)
+    list(APPEND CMAKE_PREFIX_PATH ${brew_llvm_prefix})
+  endif()
+endif()
+
 find_package(LLVM REQUIRED CONFIG)
 
 message(STATUS "Found LLVM: ${LLVM_PACKAGE_VERSION}")

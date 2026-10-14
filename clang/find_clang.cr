@@ -181,7 +181,8 @@ write_if_changed(cmake_variables, String.build do |b|
   b.puts generated_header("#")
   b.puts
   b.puts cmake_set("clang_libs", get_lib_args(clang_libs))
-  b.puts cmake_set("llvm_libs", get_lib_args(llvm_libs) + system_libs)
+  b.puts cmake_set("llvm_libs", get_lib_args(llvm_libs))
+  b.puts cmake_set("system_libs", system_libs)
 end)
 
 # Generate spec_base.yml
@@ -311,8 +312,9 @@ end
 def find_system_include_dirs
   dirs = [llvm_includedir]
 
-  # Only clang knows where the C++ standard library is.  Its driver passes
-  # these directories to the compiler proper as `-internal-isystem`.
+  # Only clang knows where the C++ standard library and the C headers are.  Its
+  # driver passes these directories to the compiler proper as
+  # `-internal-isystem` and `-internal-externc-isystem`, in search order.
   output = log_and_run("#{clang} #{clang_flags} -### -fsyntax-only #{__DIR__}/src/bindgen.cpp 2>&1")
   unless cc1 = output.lines.reverse.find(&.includes?(%("-cc1")))
     STDERR.puts %(Unexpected output from "#{clang}": Found no compiler invocation.)
@@ -321,14 +323,12 @@ def find_system_include_dirs
 
   flags = cc1.gsub(/^\s*"|"\s*$/, "").split(/"\s+"/)
   flags.each_cons_pair do |flag, value|
-    dirs << value if flag == "-internal-isystem"
+    dirs << value if flag.in?("-internal-isystem", "-internal-externc-isystem")
   end
 
-  # Check Darwin include dir
+  # Homebrew's include directories (Apple Silicon and Intel)
   {% if flag? :darwin %}
-    if Dir.exists? "/usr/local/include/"
-      dirs << "/usr/local/include"
-    end
+    dirs << "/opt/homebrew/include" << "/usr/local/include"
   {% end %}
 
   # Clang's own headers, in case they weren't among the above.
