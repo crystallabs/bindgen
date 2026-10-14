@@ -99,8 +99,7 @@ describe "clang tool macros feature" do
           isFunction: false,
           value:      "9223372036854775808",
           type:       {fullName: "unsigned long long"},
-          # HACK: must be 9223372036854775808u64, but JSON.parse can return only Int64
-          evaluated: -9223372036854775808i64,
+          evaluated:  9223372036854775808_u64,
         },
         { # It detects "unsigned long long" above, but just "long" here.
           name:       "EVALUATE_LARGE_INT64",

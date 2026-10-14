@@ -198,9 +198,6 @@ bool TypeHelper::valueFromApValue(LiteralData &value, const clang::APValue &apVa
 			value = v.getExtValue();
 		else {
 			value = v.getZExtValue();
-			// FIXME: Perhaps we need to convert it to string because JSON does not support uint64?
-			// Then translate it on the other end?
-			// value = std::to_string(v.getZExtValue());
 		}
 	} else if (qt->isFloatingType()) {
 		const llvm::APFloat &f = apValue.getFloat();
