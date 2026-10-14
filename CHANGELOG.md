@@ -127,3 +127,5 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `QScopedPointer<QObjectData>`, are ignored.  They produced an invalid alias.
 * Methods of a second base overloaded only in constness were wrapped twice,
   an ambiguous call.
+* Conversion operators to types without rules, like a pointer to a member,
+  are ignored.

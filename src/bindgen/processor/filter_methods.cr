@@ -7,6 +7,7 @@ module Bindgen
     # 2. By adding the name to `type.CLASS.ignore_methods`
     # 3. Methods using anonymous types are always ignored
     # 4. Methods using unknown template instantiations are always ignored
+    # 5. Conversion operators to types without rules
     class FilterMethods < Base
       include Graph::Visitor::MayDelete
 
@@ -34,6 +35,10 @@ module Bindgen
         # Rule 4: Unknown template instantiations
         remove ||= unknown_template?(m.return_type)
         remove ||= m.arguments.any? { |arg| unknown_template?(arg) }
+
+        # Rule 5: Conversion operators to types without rules, as their name
+        # can be anything, like a pointer to a member
+        remove ||= m.conversion_operator? && @db[m.return_type]?.nil?
 
         # Remove if ignored
         remove_method(method) if remove

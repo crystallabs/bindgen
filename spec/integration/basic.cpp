@@ -45,6 +45,10 @@ struct Copyable {
 
   operator int() const { return value; }
   operator bool() const { return value != 0; }
+
+  // A pointer to a member can't be named in Crystal, this is ignored.
+  typedef int Copyable::*MemberPointer;
+  operator MemberPointer() const { return &Copyable::value; }
 };
 
 struct Ops {
