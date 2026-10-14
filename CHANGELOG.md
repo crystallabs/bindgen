@@ -99,3 +99,4 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   kind `Class`.
 * A function matched by several `functions:` keys was bound once per key.  The
   first key now wins.
+* The sanity check printed only the number of errors, not the errors.

@@ -69,11 +69,9 @@ module Bindgen
 
         return if @errors.empty?
 
-        # at = "at".colorize.mode(:bold)
-        # @errors.each do |error|
-        #   STDERR.puts "#{error.message} #{at} #{error.node.diagnostics_path}"
-        # end
-        # STDERR.puts "Found #{@errors.size} errors.  Aborting.".colorize.mode(:bold)
+        @errors.each do |error|
+          Log.error { "#{error.message} at #{error.node.diagnostics_path}" }
+        end
 
         Log.error { "Found #{@errors.size} errors.  Aborting." }
 
