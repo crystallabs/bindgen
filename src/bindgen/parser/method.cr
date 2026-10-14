@@ -68,6 +68,10 @@ module Bindgen
       @[JSON::Field(key: "isPure")]
       getter? pure : Bool
 
+      # Is this a `final` virtual function, which can't be overridden?
+      @[JSON::Field(key: "isFinal")]
+      getter? final : Bool
+
       # Does this function use the C ABI?
       @[JSON::Field(key: "isExternC")]
       getter? extern_c : Bool
@@ -113,7 +117,7 @@ module Bindgen
       def initialize(
         @name, @class_name, @return_type, @arguments, @first_default_argument = nil,
         @access = AccessSpecifier::Public, @type = Type::MemberMethod,
-        @const = false, @virtual = false, @pure = false, @extern_c = false,
+        @const = false, @virtual = false, @pure = false, @final = false, @extern_c = false,
         @builtin = false, @origin = nil, @crystal_name = nil, @binding_name = nil,
       )
       end
@@ -148,7 +152,7 @@ module Bindgen
 
       def_equals_and_hash @type, @name, @class_name, @access, @arguments,
         @first_default_argument, @return_type, @const, @virtual, @pure,
-        @extern_c, @builtin
+        @final, @extern_c, @builtin
 
       # Does this function take a variable amount of arguments?
       def variadic? : Bool
@@ -209,6 +213,7 @@ module Bindgen
             const: @const,
             virtual: @virtual,
             pure: @pure,
+            final: @final,
             builtin: @builtin,
             origin: self,
           )
@@ -474,6 +479,7 @@ module Bindgen
           const: @const,
           virtual: @virtual,
           pure: @pure,
+          final: @final,
           extern_c: @extern_c,
           class_name: @class_name,
           arguments: [] of Argument,
@@ -680,6 +686,7 @@ module Bindgen
           const: @const,
           virtual: @virtual,
           pure: @pure && other.pure?,
+          final: @final,
           builtin: @builtin,
         )
       end
@@ -712,6 +719,7 @@ module Bindgen
           const: @const,
           virtual: @virtual,
           pure: @pure,
+          final: @final,
         )
       end
 
@@ -734,6 +742,7 @@ module Bindgen
           const: @const,
           virtual: @virtual,
           pure: @pure,
+          final: @final,
         )
       end
     end

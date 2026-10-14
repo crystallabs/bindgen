@@ -79,6 +79,20 @@ describe "clang tool classes feature" do
     )
   end
 
+  it "exports if a class is final" do
+    clang_tool(
+      %[
+        struct Open { virtual int f(); };
+        struct Closed final { virtual int f(); };
+      ],
+      "-c Open -c Closed",
+      classes: {
+        Open:   {isFinal: false},
+        Closed: {isFinal: true},
+      },
+    )
+  end
+
   it "rejects class templates" do
     file = File.tempfile("bindgen-clang-test")
     file.puts("template<typename T> class Templated { T *ptr; };")

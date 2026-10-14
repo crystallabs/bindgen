@@ -75,8 +75,9 @@ module Bindgen
 
       # If *klass* shall be sub-classed, or not.
       private def subclass?(klass) : Bool
-        # Indestructible types are never sub-classed.
+        # Indestructible and final types are never sub-classed.
         return false unless klass.destructible?
+        return false if klass.final?
         # Types defining at least one virtual method are sub-classed.
         return true if klass.has_virtual_methods?
 
@@ -175,7 +176,7 @@ module Bindgen
 
         klass.nodes.each do |node|
           next unless node.is_a?(Graph::Method)
-          next unless node.origin.virtual?
+          next unless overridable?(node)
 
           # Virtual methods could be split due to default values.  We only want
           # to forward the original method.
@@ -217,6 +218,11 @@ module Bindgen
           superclass_method.calls[Graph::Platform::Crystal] =
             build_superclass_forwarder(node.origin, method_clone, klass.origin, superclass.origin)
         end
+      end
+
+      # Checks if *method* is virtual, and not `final`, so it can be overridden.
+      private def overridable?(method : Graph::Method) : Bool
+        method.origin.virtual? && !method.origin.final?
       end
 
       # Checks if *method* was overriden by *klass* privately.  In this case, we
@@ -284,7 +290,7 @@ module Bindgen
 
         klass.nodes.each do |node|
           if method = node.as?(Graph::Method)
-            if method.origin.virtual?
+            if overridable?(method)
               hsh[method.mangled_name] = yield(method)
             end
           end
@@ -430,7 +436,7 @@ module Bindgen
 
           @klass.nodes.each do |node|
             next unless node.is_a?(Graph::Method)
-            list << node if node.origin.virtual?
+            list << node if node.origin.virtual? && !node.origin.final?
           end
 
           list

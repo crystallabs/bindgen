@@ -55,6 +55,26 @@ struct Implicit : public Base {
   }
 };
 
+struct FinalClass final : public Base {
+  int calc(int a, int b) override {
+    return a - b;
+  }
+};
+
+struct FinalMethod : public Base {
+  int calc(int a, int b) final {
+    return a - b;
+  }
+
+  int callVirtual(int a, int b) {
+    return this->calc(a, b);
+  }
+
+  int callRandomNumber() {
+    return this->randomNumber();
+  }
+};
+
 struct Skip {
   virtual int ignoreThis() const {
     return 7;

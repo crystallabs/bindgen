@@ -235,6 +235,9 @@ The arguments and result values are proxied back and forth from C++ like normal
 wrappers do.  The rules of argument handling is the same.  Such overrides will
 look and behave the same to C++ as any other virtual C++ method.
 
+A virtual method marked `final` can't be overridden, and no method of a class
+marked `final` can be overridden.
+
 **Note**: Calling `super` in the body of a Crystal method that overrides a
 concrete C++ virtual method is not supported.  **The process will crash due to
 a stack overflow!**

@@ -60,6 +60,7 @@ bool RecordMatchHandler::runOnMethod(Method &m, Class &klass, const clang::CXXMe
 #else
 	m.isPure = method->isPure();
 #endif
+	m.isFinal = method->hasAttr<clang::FinalAttr>();
 	m.isExternC = method->isExternC();
 	m.access = method->getAccess();
 	m.isBuiltin = !method->isUserProvided();
@@ -106,6 +107,7 @@ bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *r
 	klass.hasCopyConstructor = record->hasCopyConstructorWithConstParam();
 	klass.hasUserDeclaredConstructor = record->hasUserDeclaredConstructor();
 	klass.isAbstract = record->isAbstract();
+	klass.isFinal = record->isEffectivelyFinal();
 	klass.typeKind = record->getTagKind();
 
 #if CLANG_VERSION_MAJOR >= 22

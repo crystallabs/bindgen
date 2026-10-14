@@ -108,3 +108,5 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * A copied structure passed by value to or returned from a Crystal override of
   a virtual method was garbled, and returning one without a wrapper class
   didn't compile.
+* A `final` class or virtual method was sub-classed or overridden in C++,
+  which failed to compile.

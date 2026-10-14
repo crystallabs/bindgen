@@ -45,6 +45,17 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      class FinalMethodThing < Test::FinalMethod
+        # can't override the `final` Test::FinalMethod#calc
+        def calc(a, b)
+          a * b
+        end
+
+        def random_number
+          5
+        end
+      end
+
       # Must be reopened because this type is private
       class Test::Subclass::Superclass
         def has_random_number?
@@ -120,6 +131,21 @@ describe "C++ virtual overriding from Crystal feature" do
 
         it "can opt out generation of methods in superclass wrappers" do
           SubOverrideThing.new.has_random_number?.should be_false
+        end
+      end
+
+      context "final" do
+        it "doesn't sub-class a final class" do
+          {{ Test::FinalClass.has_constant?("Superclass") }}.should be_false
+          Test::FinalClass.new.calc(10, 4).should eq(6)
+        end
+
+        it "doesn't override a final method" do
+          FinalMethodThing.new.call_virtual(10, 4).should eq(6)
+        end
+
+        it "overrides other virtual methods" do
+          FinalMethodThing.new.call_random_number.should eq(5)
         end
       end
 

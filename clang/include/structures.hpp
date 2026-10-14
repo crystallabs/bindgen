@@ -112,6 +112,7 @@ struct Method {
 	bool isConst = false; // Is this method const qualified?
 	bool isVirtual = false; // Is this method virtual?
 	bool isPure = false; // Pure virtual?
+	bool isFinal = false; // Virtual, but can't be overridden?
 	bool isExternC = false; // Does the function use C ABI?
 	std::string className; // Name of the class.
 	std::vector<Argument> arguments; // Arguments
@@ -154,6 +155,7 @@ struct Class {
 	bool hasUserDeclaredConstructor; // Any constructor written in the class, even if defaulted or deleted?
 	bool isDestructible = true; // Does this class have a public or protected destructor?
 	bool isAbstract; // Does the class have pure virtual methods?
+	bool isFinal; // Is this class final, so it can't be derived from?
 	bool isAnonymous; // Is this class anonymous?
 	int byteSize; // Size of an instance in memory.
 	std::string name; // Fully::qualified::class::name (anonymous classes also receive one for identification)
@@ -193,7 +195,7 @@ struct TypeInfoResult {
 
 // Version of the output format.  Increase it together with
 // `Bindgen::Parser::Document::FORMAT_VERSION` whenever the output changes.
-static const int BG_FORMAT_VERSION = 2;
+static const int BG_FORMAT_VERSION = 3;
 
 struct Document {
 	JsonMap<std::string, Enum> enums;

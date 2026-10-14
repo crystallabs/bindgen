@@ -33,6 +33,10 @@ module Bindgen
       @[JSON::Field(key: "isAbstract")]
       getter? abstract : Bool
 
+      # Is this class `final`, so it can't be derived from?
+      @[JSON::Field(key: "isFinal")]
+      getter? final : Bool
+
       # Is this class anonymous?
       @[JSON::Field(key: "isAnonymous")]
       getter? anonymous : Bool
@@ -61,7 +65,7 @@ module Bindgen
         @name, @byte_size = 0, @has_default_constructor = false,
         @has_copy_constructor = false, @has_user_declared_constructor = false,
         @type_kind = TypeKind::Class,
-        @abstract = false, @anonymous = false, @destructible = true,
+        @abstract = false, @final = false, @anonymous = false, @destructible = true,
         @bases = [] of BaseClass, @fields = [] of Field,
         @methods = [] of Method, @access = AccessSpecifier::Public,
       )

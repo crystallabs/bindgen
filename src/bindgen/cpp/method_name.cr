@@ -18,8 +18,8 @@ module Bindgen
       # constructor will be called without `new`, effectively returning a value.
       # Otherwise, a normal `new` is used to return a pointer.  An aggregate
       # constructor allocates the class itself, so that the caller can
-      # brace-initialize it.  So do the constructors of a C++ union, which
-      # can't be wrapped as it can't be inherited from.
+      # brace-initialize it.  So do the constructors of a C++ union or `final`
+      # class, which can't be wrapped as it can't be inherited from.
       #
       # If *exact_member* is true and *method* is a member method, the qualified
       # method is called, bypassing dynamic lookup.
@@ -32,7 +32,7 @@ module Bindgen
         when .any_constructor?
           if type_copied?(method.class_name)
             "bg_deref<#{method.class_name}>"
-          elsif type.aggregate_constructor? || cpp_union?(method.class_name)
+          elsif type.aggregate_constructor? || uninheritable?(method.class_name)
             @db.cookbook.plain_constructor_name(method.name, method.class_name)
           else # Support shadow sub-classing.
             name = class_name_for_new(method.class_name)
@@ -60,10 +60,11 @@ module Bindgen
         end
       end
 
-      # Finds *class_name* in the graph and checks if it's a C++ union.
-      private def cpp_union?(class_name) : Bool
+      # Finds *class_name* in the graph and checks if it's a C++ union or a
+      # `final` class.
+      private def uninheritable?(class_name) : Bool
         @db.try_or(class_name, false) do |rules|
-          rules.graph_node.as?(Graph::Class).try(&.origin.cpp_union?)
+          rules.graph_node.as?(Graph::Class).try { |k| k.origin.cpp_union? || k.origin.final? }
         end
       end
 

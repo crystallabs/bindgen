@@ -124,6 +124,7 @@ JsonStream &operator<<(JsonStream &s, const Method &value) {
 		<< std::make_pair("isConst", value.isConst) << c
 		<< std::make_pair("isVirtual", value.isVirtual) << c
 		<< std::make_pair("isPure", value.isPure) << c
+		<< std::make_pair("isFinal", value.isFinal) << c
 		<< std::make_pair("isExternC", value.isExternC) << c
 		<< std::make_pair("className", value.className) << c;
 
@@ -207,6 +208,7 @@ JsonStream &operator<<(JsonStream &s, const Class &value) {
 		<< std::make_pair("byteSize", value.byteSize) << c
 		<< std::make_pair("typeKind", value.typeKind) << c
 		<< std::make_pair("isAbstract", value.isAbstract) << c
+		<< std::make_pair("isFinal", value.isFinal) << c
 		<< std::make_pair("isAnonymous", value.isAnonymous) << c
 		<< std::make_pair("isDestructible", value.isDestructible) << c
 		<< std::make_pair("hasDefaultConstructor", value.hasDefaultConstructor) << c
