@@ -55,6 +55,7 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Static builds link only the Clang and LLVM libraries the tool needs.
 * `BINDGEN_CLANG_FLAGS` passes extra flags to `clang++` when looking for the
   C++ standard library, e.g. `-stdlib=libc++`.
+* The integration specs are parsed in the C++ standard they're built in.
 * The clang tool can be built out of tree (`cmake -S clang -B build/llvm-19`),
   keeping a build directory per LLVM version.
 * Logging uses Crystal's `Log` directly, the `spoved` dependency is gone.

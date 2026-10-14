@@ -213,6 +213,8 @@ spec_base_content = {
     includes: [
       "%",
     ].concat(system_include_dirs),
+    # Parse in the C++ standard the specs are built in.
+    flags: ["-x", "c++", llvm_cxx_flags.split.find(&.starts_with?("-std=")) || "-std=c++17"],
   },
 }.to_yaml
 write_if_changed(spec_base, "#{generated_header("#")}\n#{spec_base_content}")
