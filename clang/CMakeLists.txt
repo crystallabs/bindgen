@@ -8,6 +8,9 @@ include(crystal.cmake)
 ######################
 
 # Setup sources
+# The build directory's generated.hpp goes first, as an in-tree build may have
+# left another in include/.
+include_directories(${PROJECT_BINARY_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 

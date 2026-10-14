@@ -21,6 +21,15 @@ This tool uses `cmake`. Just run `cmake .` to build the usual `Makefile`. From
 there you can run `make -j` to build. If you need to rebuild the `Makefile`
 later, you might want to delete `CMakeCache.txt` first, to remove cmake's cache.
 
+Out-of-tree builds keep one build directory per LLVM version.  Wherever it is
+built, the tool is written to `clang/parser`, and configuring writes the spec
+configuration, so the build configured last is used:
+
+```
+cmake -S clang -B build/llvm-19 -DLLVM_DIR=/usr/lib/llvm-19/lib/cmake/llvm
+cmake --build build/llvm-19
+```
+
 The static LLVM and Clang libraries are linked if they're installed, the shared
 ones (`libclang-cpp` and `libLLVM`) otherwise.  Set the environment variable
 `BINDGEN_DYNAMIC` to `1` or `0` to force shared or static linking:

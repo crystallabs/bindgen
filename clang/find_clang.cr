@@ -27,11 +27,14 @@ OPTIONS[:quiet] = false
 OPTIONS[:debug] = false
 OPTIONS[:system_include_dirs] = [] of String
 OPTIONS[:system_libs] = [] of String
-OPTIONS[:generated_hpp] = File.expand_path "#{__DIR__}/include/generated.hpp"
-OPTIONS[:variables] = File.expand_path "#{__DIR__}/variables.yml"
-OPTIONS[:cmake_variables] = File.expand_path "#{__DIR__}/variables.cmake"
+OPTIONS[:output_dir] = __DIR__
 OPTIONS[:spec_base] = File.expand_path "#{__DIR__}/../spec/integration/spec_base.yml"
 parse_cli_args
+
+# Files of the build, kept apart for each build directory.
+OPTIONS[:generated_hpp] = File.expand_path "#{output_dir}/include/generated.hpp"
+OPTIONS[:variables] = File.expand_path "#{output_dir}/variables.yml"
+OPTIONS[:cmake_variables] = File.expand_path "#{output_dir}/variables.cmake"
 
 # The static Clang libraries the tool is linked against: The ones it uses, and
 # those they depend on.  Which of these exist depends on the LLVM version.
@@ -225,6 +228,7 @@ def parse_cli_args
 
     parser.on("--llvm-config PATH", "Path to llvm-config binary (default: find llvm-config[-*] in PATH)") { |path| OPTIONS[:llvm_config] = path }
     parser.on("--clang PATH", "Path to clang binary (default: clang++ in llvm bindir)") { |path| OPTIONS[:clang] = path }
+    parser.on("--output-dir DIR", "Where to write generated.hpp, variables.yml and variables.cmake (default: clang/)") { |dir| OPTIONS[:output_dir] = dir }
     parser.on("--print-clang-libs", "Print detected clang libs and exit") { OPTIONS[:print_clang_libs] = true }
     parser.on("--print-llvm-libs", "Print detected llvm libs and exit") { OPTIONS[:print_llvm_libs] = true }
     parser.on("--quiet", "Suppress diagnostic/debug STDERR output") { OPTIONS[:quiet] = true }
@@ -383,6 +387,7 @@ end
 # constantly rebuild everything.
 def write_if_changed(path, content)
   if !File.exists?(path) || File.read(path) != content
+    Dir.mkdir_p(File.dirname(path))
     File.write(path, content)
     return true
   end
@@ -461,6 +466,10 @@ end
 
 def variables
   OPTIONS[:variables].as String
+end
+
+def output_dir
+  OPTIONS[:output_dir].as String
 end
 
 def cmake_variables
