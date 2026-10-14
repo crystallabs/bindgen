@@ -23,5 +23,5 @@ targets:
 
 # Required as bindgen will be used as a tool on its own.
 scripts:
-  postinstall: shards
+  postinstall: shards install --without-development
 license: GPLv3
