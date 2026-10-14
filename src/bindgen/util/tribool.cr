@@ -60,15 +60,15 @@ module Bindgen
         @value.nil?
       end
 
-      # Compares the value to *bool*.  If this tribool is unset, this will never
-      # be `true`.  See also `#unset?`, `#true?` and `#false?`
-      def ==(bool : Bool)
-        @value == bool
+      # Compares the value to the `Bool` *other*.  If this tribool is unset, this
+      # will never be `true`.  See also `#unset?`, `#true?` and `#false?`
+      def ==(other : Bool)
+        @value == other
       end
 
-      # Compares this to the other `Tribool`.
-      def ==(tri : Tribool)
-        @value == tri.@value
+      # Compares this to the *other* `Tribool`.
+      def ==(other : Tribool)
+        @value == other.@value
       end
     end
   end

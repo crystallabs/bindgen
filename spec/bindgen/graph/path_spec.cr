@@ -229,7 +229,7 @@ describe Bindgen::Graph::Path do
     specific = root.platform_specific(Bindgen::Graph::Platform::Crystal)
     mod_b = Bindgen::Graph::Namespace.new("B", specific)
     mod_c = Bindgen::Graph::Namespace.new("C", mod_b)
-    mod_d = Bindgen::Graph::Namespace.new("D", mod_c)
+    Bindgen::Graph::Namespace.new("D", mod_c)
 
     context "given a global path" do
       it "returns self without checks" do
@@ -365,8 +365,8 @@ describe Bindgen::Graph::Path do
   left = Bindgen::Graph::Namespace.new("Left", specific_root)
   right = Bindgen::Graph::Namespace.new("Right", root)
   a = Bindgen::Graph::Namespace.new("A", left)
-  b = Bindgen::Graph::Namespace.new("B", left)
-  c = Bindgen::Graph::Namespace.new("C", right)
+  Bindgen::Graph::Namespace.new("B", left)
+  Bindgen::Graph::Namespace.new("C", right)
   specific_right = right.platform_specific(Bindgen::Graph::Platform::Cpp)
   d = Bindgen::Graph::Namespace.new("D", specific_right)
 

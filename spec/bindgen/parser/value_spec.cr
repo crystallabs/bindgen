@@ -30,8 +30,8 @@ describe Bindgen::Parser::ValueConverter do
     end
 
     it "reads a Bool" do
-      parse_and_read("true").should eq(true)
-      parse_and_read("false").should eq(false)
+      parse_and_read("true").should be_true
+      parse_and_read("false").should be_false
     end
 
     it "reads a String" do

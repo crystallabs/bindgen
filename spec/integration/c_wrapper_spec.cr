@@ -38,9 +38,9 @@ describe "C-specific functionality" do
           Test::Value::LARGE_INT64.should be_a(Int64)
           Test::Value::LARGE_INT64.should eq(9223372036854775807)
           Test::Value::TRUE.should be_a(Bool)
-          Test::Value::TRUE.should eq(true)
+          Test::Value::TRUE.should be_true
           Test::Value::FALSE.should be_a(Bool)
-          Test::Value::FALSE.should eq(false)
+          Test::Value::FALSE.should be_false
           Test::Value::FLOAT.should be_a(Float64)
           Test::Value::FLOAT.should eq(3.5)
         end

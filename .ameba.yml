@@ -20,11 +20,6 @@ Excluded:
 Style/PercentLiteralDelimiters:
   DefaultDelimiters: ~
 
-Lint/DebugCalls:
-  Excluded:
-  - clang/find_clang.cr
-  - spec/clang/spec_helper.cr
-
 Lint/NotNil:
   Excluded:
   - spec/bindgen/config_reader/loader_spec.cr
@@ -54,18 +49,6 @@ Lint/NotNilAfterNoBang:
   Excluded:
   - src/bindgen/processor/operators.cr
 
-Lint/SpecEqWithBoolOrNilLiteral:
-  Excluded:
-  - spec/bindgen/find_path/version_checker_spec.cr
-  - spec/bindgen/parser/value_spec.cr
-  - spec/bindgen/util/tribool_spec.cr
-  - spec/integration/c_wrapper_spec.cr
-  - spec/integration/instance_properties_spec.cr
-
-Lint/UselessAssign:
-  Excluded:
-  - spec/bindgen/graph/path_spec.cr
-
 Metrics/CyclomaticComplexity:
   Excluded:
   - src/bindgen/cpp/pass.cr
@@ -74,11 +57,6 @@ Metrics/CyclomaticComplexity:
   - src/bindgen/find_path/generic_version.cr
   - src/bindgen/parser/method.cr
   - src/bindgen/processor/instance_properties.cr
-
-Naming/BinaryOperatorParameterName:
-  Excluded:
-  - src/bindgen/template/none.cr
-  - src/bindgen/util/tribool.cr
 
 Naming/BlockParameterName:
   Excluded:

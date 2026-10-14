@@ -63,10 +63,10 @@ def clang_tool(cpp_code, arguments, **checks)
     check_partial_value(object, value, path.to_s)
   end
 rescue error : ClangValidationError
-  pp error.document
+  pp error.document # ameba:disable Lint/DebugCalls
   raise error
 rescue error
-  pp doc if doc
+  pp doc if doc # ameba:disable Lint/DebugCalls
   raise error
 ensure
   file.try(&.delete) unless ENV["VERBOSE"]?

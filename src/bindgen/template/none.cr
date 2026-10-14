@@ -10,7 +10,7 @@ module Bindgen
         code
       end
 
-      def ==(_other : self)
+      def ==(other : self)
         true
       end
     end

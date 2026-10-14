@@ -21,7 +21,7 @@ describe Bindgen::FindPath::VersionChecker do
         YAML
       )
 
-      subject.best_candidate.should eq(nil)
+      subject.best_candidate.should be_nil
       subject.candidates.empty?.should be_true
     end
 
@@ -31,7 +31,7 @@ describe Bindgen::FindPath::VersionChecker do
         YAML
       )
 
-      subject.best_candidate.should eq(nil)
+      subject.best_candidate.should be_nil
       subject.candidates.empty?.should be_true
     end
 
@@ -41,7 +41,7 @@ describe Bindgen::FindPath::VersionChecker do
         YAML
       )
 
-      subject.best_candidate.should eq(nil)
+      subject.best_candidate.should be_nil
       subject.candidates.empty?.should be_true
     end
   end

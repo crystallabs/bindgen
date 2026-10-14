@@ -131,7 +131,7 @@ end
 # See if only partial info was requested:
 
 if OPTIONS[:debug]
-  pp OPTIONS
+  pp OPTIONS # ameba:disable Lint/DebugCalls
   exit
 end
 

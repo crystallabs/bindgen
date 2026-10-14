@@ -146,7 +146,7 @@ describe "C++ instance properties" do
           Test::Point::DIMENSIONS.should be_a(Int32)
           Test::Props::C_F32.should eq(1.2_f32)
           Test::Props::C_F32.should be_a(Float32)
-          Test::Props::C_B.should eq(true)
+          Test::Props::C_B.should be_true
           Test::Props::C_B.should be_a(Bool)
         end
       end
@@ -373,7 +373,7 @@ describe "C++ instance properties" do
           props.point_ptr = point
           props.point_ptr.not_nil!.to_unsafe.should eq(point.to_unsafe)
           props.point_ptr = nil
-          props.point_ptr.should eq(nil)
+          props.point_ptr.should be_nil
         end
       end
     end
