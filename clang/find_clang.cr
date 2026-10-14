@@ -2,8 +2,8 @@
 
 # This is a helper script. It requires `llvm-config` to point to the
 # LLVM version which is to be used.
-# It calls llvm-config and clang binaries to retrieve their settings and
-# parse them for further use.
+# It asks llvm-config for LLVM's directories and flags, and clang for its
+# resource directory and for the include paths of the C++ standard library.
 
 # As part of the run, it generates some files, among them `variables.cmake`
 # with the LLVM and Clang libraries to link to, which CMake includes.
@@ -25,10 +25,7 @@ OPTIONS[:print_llvm_libs] = false
 OPTIONS[:print_clang_libs] = false
 OPTIONS[:quiet] = false
 OPTIONS[:debug] = false
-OPTIONS[:cppflags] = [] of String
-OPTIONS[:ldflags] = [] of String
 OPTIONS[:system_include_dirs] = [] of String
-OPTIONS[:system_lib_dirs] = [] of String
 OPTIONS[:system_libs] = [] of String
 OPTIONS[:generated_hpp] = File.expand_path "#{__DIR__}/include/generated.hpp"
 OPTIONS[:variables] = File.expand_path "#{__DIR__}/variables.yml"
@@ -61,6 +58,7 @@ OPTIONS[:llvm_ld_flags] = output_of(OPTIONS[:llvm_config], "--ldflags")
 
 OPTIONS[:llvm_bindir] = output_of(OPTIONS[:llvm_config], "--bindir")
 OPTIONS[:llvm_libdir] = output_of(OPTIONS[:llvm_config], "--libdir")
+OPTIONS[:llvm_includedir] = output_of(OPTIONS[:llvm_config], "--includedir")
 
 # Determine which clang++ we are using
 unless OPTIONS[:clang] ||= find_clang_binary([llvm_bindir], min_version: "14.0.0")
@@ -69,24 +67,20 @@ unless OPTIONS[:clang] ||= find_clang_binary([llvm_bindir], min_version: "14.0.0
 end
 log "Using clang binary in #{OPTIONS[:clang].inspect}. Querying it."
 
-# Ask clang the paths it uses. This output will then be parsed in detail.
-output = log_and_run("#{clang} -### #{__DIR__}/src/bindgen.cpp 2>&1").lines
-if output.size < 2 # Sanity check
-  STDERR.puts %(Unexpected output from "#{clang}": Expected at least two lines.)
-  exit 1
-end
-parse_clang_output output
+# Ask clang for the paths only it knows.
+OPTIONS[:resource_dir] = output_of(clang, "-print-resource-dir")
+OPTIONS[:system_include_dirs] = find_system_include_dirs
 
 # Now extract clang and llvm-specific libs.  Static libraries are preferred if
 # both kinds are available, but the two kinds are never mixed.
-static_clang_libs = find_static_libraries(system_lib_dirs, "clang")
-static_llvm_libs = find_static_libraries(system_lib_dirs, "LLVM")
+static_clang_libs = find_static_libraries(llvm_libdir, "clang")
+static_llvm_libs = find_static_libraries(llvm_libdir, "LLVM")
 dynamic = static_clang_libs.empty? || static_llvm_libs.empty? if dynamic.nil?
 log "Linking LLVM and Clang #{dynamic ? "dynamically" : "statically"}. (Adjust with env BINDGEN_DYNAMIC=0/1 if needed)"
 
 if dynamic
-  OPTIONS[:clang_libs] = find_shared_libraries(system_lib_dirs, "clang", "clang-cpp")
-  OPTIONS[:llvm_libs] = find_shared_libraries(system_lib_dirs, "LLVM", "LLVM")
+  OPTIONS[:clang_libs] = find_shared_libraries(llvm_libdir, "clang", "clang-cpp")
+  OPTIONS[:llvm_libs] = find_shared_libraries(llvm_libdir, "LLVM", "LLVM")
 else
   OPTIONS[:clang_libs] = static_clang_libs
   OPTIONS[:llvm_libs] = static_llvm_libs
@@ -96,7 +90,7 @@ end
 
 # Fall back to what llvm-config says if no LLVM library was found.
 if llvm_libs.empty?
-  log "Cannot find LLVM libs in #{system_lib_dirs.join ':'}, asking llvm-config."
+  log "Cannot find LLVM libs in #{llvm_libdir}, asking llvm-config."
   link_mode = dynamic ? "--link-shared" : "--link-static"
   OPTIONS[:llvm_libs] = output_of(llvm_config, link_mode, "--libs", "all").split.map(&.lchop("-l"))
 end
@@ -301,67 +295,57 @@ def log_and_run(cmdline : String)
   `#{cmdline}`
 end
 
-# Shell-split. Helper function used in parsing clang output.
-def shell_split(line : String)
-  list = [] of String
-  skip_next = false
-  in_string = false
-  offset = 0
+# Finds the include directories of LLVM, of the C++ standard library and of
+# clang itself.
+def find_system_include_dirs
+  dirs = [llvm_includedir]
 
-  # Parse string
-  line.each_char_with_index do |char, idx|
-    if skip_next
-      skip_next = false
-      next
-    end
-
-    case char
-    when '\\' # Escape character
-      skip_next = true
-    when ' ' # Split character
-      unless in_string
-        list << line[offset...idx]
-        offset = idx + 1
-      end
-    when '"' # String marker
-      in_string = !in_string
-    else
-    end
+  # Only clang knows where the C++ standard library is.  Its driver passes
+  # these directories to the compiler proper as `-internal-isystem`.
+  output = log_and_run("#{clang} -### -fsyntax-only #{__DIR__}/src/bindgen.cpp 2>&1")
+  unless cc1 = output.lines.reverse.find(&.includes?(%("-cc1")))
+    STDERR.puts %(Unexpected output from "#{clang}": Found no compiler invocation.)
+    exit 1
   end
 
-  list.reject(&.empty?).map do |x|
-    # Remove surrounding double-quotes
-    if x.starts_with?('"') && x.ends_with?('"')
-      x[1..-2]
-    else
-      x
-    end
+  flags = cc1.gsub(/^\s*"|"\s*$/, "").split(/"\s+"/)
+  flags.each_cons_pair do |flag, value|
+    dirs << value if flag == "-internal-isystem"
   end
+
+  # Check Darwin include dir
+  {% if flag? :darwin %}
+    if Dir.exists? "/usr/local/include/"
+      dirs << "/usr/local/include"
+    end
+  {% end %}
+
+  # Clang's own headers, in case they weren't among the above.
+  dirs << File.join(resource_dir, "include")
+
+  dirs
+    .map { |path| File.expand_path(path.rchop('/')) }
+    .uniq
+    .select { |path| File.directory? path }
 end
 
-# Finds all static LLVM or clang libraries.  We don't need all of them, but
-# the linker only picks what's used.
-def find_static_libraries(paths, prefix)
-  paths
-    .flat_map { |path| Dir["#{path}/lib#{prefix}*.a"] }
+# Finds all static LLVM or clang libraries in *dir*.  We don't need all of
+# them, but the linker only picks what's used.
+def find_static_libraries(dir, prefix)
+  Dir["#{dir}/lib#{prefix}*.a"]
     .map { |path| File.basename(path)[/^lib(.+)\.a$/, 1] }
     .reject(&.starts_with?("clang_rt")) # Compiler runtime, not part of clang.
-    .uniq
 end
 
-# Finds the shared LLVM or clang libraries.  If the all-in-one library
-# *preferred* exists, only that one is used.
-def find_shared_libraries(paths, prefix, preferred)
+# Finds the shared LLVM or clang libraries in *dir*.  If the all-in-one
+# library *preferred* exists, only that one is used.
+def find_shared_libraries(dir, prefix, preferred)
   suffix = {% if flag?(:darwin) %} "dylib" {% else %} "so" {% end %}
 
-  if paths.any? { |path| File.exists?("#{path}/lib#{preferred}.#{suffix}") }
-    return [preferred]
-  end
+  return [preferred] if File.exists?("#{dir}/lib#{preferred}.#{suffix}")
 
-  paths
-    .flat_map { |path| Dir["#{path}/lib#{prefix}*.#{suffix}"] }
+  Dir["#{dir}/lib#{prefix}*.#{suffix}"]
     .map { |path| File.basename(path)[/^lib(.+)\.#{suffix}$/, 1] }
-    .uniq
 end
 
 # Gets the list of -l... link arguments.
@@ -408,83 +392,6 @@ def output_of(*args)
   `#{args.map { |r| "\"#{r}\"" }.join ' '}`.chomp
 end
 
-# Parses output from clang++ -### ....
-def parse_clang_output(output)
-  # Untangle the output
-  raw_cppflags = output[-2].gsub(/^\s+"|\s+"$/, "")
-  raw_ldflags = output[-1].gsub(/^\s+"|\s+"$/, "")
-
-  OPTIONS[:cppflags] = raw_cppflags.split(/"\s+"/)
-    .concat(shell_split(ENV.fetch("CPPFLAGS", "")))
-    .uniq
-  OPTIONS[:ldflags] = raw_ldflags.split(/"\s+"/)
-    .concat(shell_split(ENV.fetch("LDFLAGS", "")))
-    .uniq
-
-  # Interpret the argument lists
-  flags = cppflags + ldflags
-  index = 0
-  internal_isystem = false
-  while index < flags.size
-    flag = flags[index]
-    if internal_isystem
-      if flag[0] == '-'
-        internal_isystem = false
-      else
-        system_include_dirs << flag
-        index += 1
-        next
-      end
-    end
-
-    case flags[index]
-    when "-internal-isystem"
-      internal_isystem = true
-    when "-resource-dir" # Find paths on Ubuntu
-      resource_dir = flags[index + 1]
-      system_include_dirs << File.expand_path("#{resource_dir}/../../../include")
-      index += 1
-    when "-lto_library"
-      to_library = flags[index + 1]
-      system_lib_dirs << to_library.split("/lib/")[0] + "/lib/"
-      index += 1
-    when /^-L/
-      l = flags[index][2..-1]
-      l += "/" if l !~ /\/$/
-      system_lib_dirs << l
-    else
-    end
-
-    index += 1
-  end
-
-  # Check Darwin include dir
-  {% if flag? :darwin %}
-    if Dir.exists? "/usr/local/include/"
-      system_include_dirs << "/usr/local/include"
-    end
-  {% end %}
-
-  # Need to add the clang includes if we can find them. This is just
-  # in case and we don't fear duplicates as they will be sorted out
-  # later.
-  # The resource directory is named after the major version since LLVM 16.
-  {llvm_version, llvm_version.split('.').first}.each do |version|
-    system_include_dirs << File.join(llvm_libdir, "clang", version, "include")
-  end
-
-  # Clang doesn't necessarily search its own library directory.
-  system_lib_dirs.unshift llvm_libdir
-
-  # Clean libs
-  system_lib_dirs.uniq!
-  system_lib_dirs.map! { |path| File.expand_path(path.gsub(/\/$/, "")) }
-  system_lib_dirs.select! { |path| File.directory? path }
-  system_include_dirs.uniq!
-  system_include_dirs.map! { |path| File.expand_path(path.gsub(/\/$/, "")) }
-  system_include_dirs.select! { |path| File.directory? path }
-end
-
 # Convenience functions for accessing OPTIONS
 def llvm_bindir
   OPTIONS[:llvm_bindir].as String
@@ -506,20 +413,16 @@ def llvm_version
   OPTIONS[:llvm_version].as String
 end
 
-def cppflags
-  OPTIONS[:cppflags].as Array(String)
+def llvm_includedir
+  OPTIONS[:llvm_includedir].as String
 end
 
-def ldflags
-  OPTIONS[:ldflags].as Array(String)
+def resource_dir
+  OPTIONS[:resource_dir].as String
 end
 
 def system_include_dirs
   OPTIONS[:system_include_dirs].as Array(String)
-end
-
-def system_lib_dirs
-  OPTIONS[:system_lib_dirs].as Array(String)
 end
 
 def system_libs
