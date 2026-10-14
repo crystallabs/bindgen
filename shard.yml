@@ -11,6 +11,12 @@ dependencies:
   toka:
     github: Papierkorb/toka
     commit: b2044c8410bd82a905db75f1ab23e895760544c7
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+    version: ~> 1.7.0
+
 targets:
   bindgen:
     main: src/bindgen.cr

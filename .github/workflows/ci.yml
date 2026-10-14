@@ -7,6 +7,24 @@ on:
     - cron: "0 6 * * 1"
 
 jobs:
+  ameba:
+    name: Ameba
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: crystal-lang/install-crystal@v1
+
+      - name: Install shards
+        run: shards install
+
+      - name: Build Ameba
+        run: crystal build -o bin/ameba lib/ameba/bin/ameba.cr
+
+      # Rules and the baseline of known findings are in .ameba.yml
+      - name: Run Ameba
+        run: bin/ameba
+
   spec:
     name: LLVM ${{ matrix.llvm }} (${{ matrix.link }})
     runs-on: ubuntu-24.04

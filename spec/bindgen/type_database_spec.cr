@@ -128,9 +128,9 @@ describe Bindgen::TypeDatabase do
 
     it "creates and returns new rules" do
       db2 = new_database
-      db["NewRules"]?.should be_nil
-      new_rules = db.get_or_add("NewRules")
-      db["NewRules"]?.should be(new_rules)
+      db2["NewRules"]?.should be_nil
+      new_rules = db2.get_or_add("NewRules")
+      db2["NewRules"]?.should be(new_rules)
     end
   end
 end
