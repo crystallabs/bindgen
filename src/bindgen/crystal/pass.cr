@@ -78,9 +78,17 @@ module Bindgen
 
           if rules = @db[type]?
             template = type_template(rules.converter, rules.from_crystal, "wrap")
-            template = Template.from_string("%.to_unsafe", simple: true) if template.no_op? && to_unsafe && !rules.builtin? && !type.builtin?
-
             is_ref, ptr = reconfigure_pass_type(rules.pass_by, is_ref, ptr)
+
+            if template.no_op? && !rules.builtin? && !type.builtin?
+              if !is_ref && ptr == 0 && structure_hosted?(rules)
+                # The wrapper class hosts the structure, its `#to_unsafe`
+                # returns a pointer to it.  Pass a copy by value.
+                template = Template.from_string("%.to_unsafe.value", simple: true)
+              elsif to_unsafe
+                template = Template.from_string("%.to_unsafe", simple: true)
+              end
+            end
           end
 
           if type.kind.function?
@@ -179,7 +187,7 @@ module Bindgen
       def from_binding(type : Parser::Type, qualified = false, is_constructor = false, no_slice = false) : Call::Result
         Log.trace &.emit "from binding", type: type.base_name, qualified: qualified, is_constructor: is_constructor
 
-        from(type, no_slice: no_slice) do |is_ref, ptr, _nilable|
+        from(type, is_constructor: is_constructor, no_slice: no_slice) do |is_ref, ptr, _nilable|
           typer = Typename.new(@db)
 
           if qualified

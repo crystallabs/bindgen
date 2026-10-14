@@ -46,6 +46,17 @@ module Bindgen
       end
     end
 
+    # Does the Crystal wrapper class of the type described by *rules* host a
+    # copy of the structure, instead of a pointer to it?  Its `#to_unsafe`
+    # returns a pointer to the hosted structure then.
+    #
+    # This is not the case for a `kind: Struct` type, whose wrapper is a
+    # Crystal `struct` returning the structure itself.
+    def structure_hosted?(rules : TypeDatabase::TypeConfig) : Bool
+      rules.copy_structure? && rules.generate_wrapper? && rules.kind.class? &&
+        rules.graph_node.is_a?(Graph::Class)
+    end
+
     # Helper for `#to_X`, configuring the type according to user-specified
     # rules.
     def reconfigure_pass_type(pass_by, is_ref, ptr)

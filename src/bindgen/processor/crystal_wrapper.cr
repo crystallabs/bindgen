@@ -5,6 +5,8 @@ module Bindgen
     #
     # **Important**: This should be one of the last processors in the pipeline!
     class CrystalWrapper < Base
+      include TypeHelper
+
       PLATFORM = Graph::Platform::Crystal
 
       def visit_platform_specific(specific)
@@ -66,7 +68,6 @@ module Bindgen
       private def add_unwrap_initialize(klass)
         Log.trace { "add_unwrap_initialize #{klass.diagnostics_path}" }
 
-        unwrap_init = CallBuilder::CrystalUnwrapInitialize.new(@db)
         origin = klass.origin
 
         if parent = klass.wrapped_class
@@ -74,7 +75,18 @@ module Bindgen
           origin = parent.origin
         end
 
-        unwrap_arg = Parser::Argument.new("unwrap", origin.as_type)
+        # A hosted structure is copied, from a structure or a pointer to it.
+        if @db.try_or(origin.name, false) { |rules| structure_hosted?(rules) }
+          add_unwrap_initialize(klass, origin.as_type(pointer: 0), dereference: false)
+          add_unwrap_initialize(klass, origin.as_type, dereference: true)
+        else
+          add_unwrap_initialize(klass, origin.as_type, dereference: false)
+        end
+      end
+
+      private def add_unwrap_initialize(klass, type : Parser::Type, dereference : Bool)
+        unwrap_init = CallBuilder::CrystalUnwrapInitialize.new(@db)
+        unwrap_arg = Parser::Argument.new("unwrap", type)
 
         method = Parser::Method.build(
           type: Parser::Method::Type::Constructor,
@@ -89,7 +101,7 @@ module Bindgen
         host = klass.platform_specific(PLATFORM)
         graph = Graph::Method.new(origin: method, name: method.name, parent: host)
         graph.set_tag(Graph::Method::UNWRAP_INITIALIZE_TAG)
-        graph.calls[PLATFORM] = unwrap_init.build(method)
+        graph.calls[PLATFORM] = unwrap_init.build(method, dereference)
       end
 
       def visit_method(method)

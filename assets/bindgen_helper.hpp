@@ -65,6 +65,13 @@ static __attribute__((noreturn)) void bindgen_fatal_panic(const char *message) {
 #include <type_traits>
 #include <utility>
 
+// The wrapper functions return copied structures by value, which Crystal knows
+// as `lib struct` of the same layout.  Clang warns if such a type isn't a POD,
+// which already is the case if it has a constructor.
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
+#endif
+
 // Break C++'s encapsulation to allow easy wrapping of protected methods.
 #define protected public
 

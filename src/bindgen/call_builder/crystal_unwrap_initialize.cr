@@ -5,7 +5,9 @@ module Bindgen
       def initialize(@db : TypeDatabase)
       end
 
-      def build(method : Parser::Method)
+      # If *dereference* is set, the argument is a pointer to the value to
+      # store, which is copied.
+      def build(method : Parser::Method, dereference = false)
         pass = Crystal::Pass.new(@db)
         arg = method.arguments.first
 
@@ -16,7 +18,7 @@ module Bindgen
           name: arg.name,
           arguments: [] of Call::Argument,
           result: pass.from_binding(arg, qualified: true),
-          body: Body.new,
+          body: Body.new(dereference),
         )
 
         Call.new(
@@ -29,8 +31,11 @@ module Bindgen
       end
 
       class Body < Call::Body
+        def initialize(@dereference = false)
+        end
+
         def to_code(call : Call, platform : Graph::Platform) : String
-          call.name
+          @dereference ? "#{call.name}.value" : call.name
         end
       end
     end

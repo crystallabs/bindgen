@@ -3,6 +3,8 @@ module Bindgen
     # Processor to add getter and setter methods for static and instance
     # variables.
     class InstanceProperties < Base
+      include TypeHelper
+
       # Mapping from member name patterns to configurations.
       private alias VarConfig = TypeDatabase::InstanceVariableConfig::Collection
 
@@ -12,8 +14,10 @@ module Bindgen
 
       def visit_class(klass : Graph::Class)
         # Skip `Impl` classes.  Also skip classes whose structures are copied
-        # into `Binding`, as all fields are directly accessible anyway.
-        return if klass.wrapped_class || @db[klass.name]?.try(&.copy_structure?)
+        # into `Binding`, as all fields are directly accessible anyway, unless
+        # they're hidden inside a wrapper class.
+        return if klass.wrapped_class
+        return if @db.try_or(klass.origin.name, false) { |rules| rules.copy_structure? && !structure_hosted?(rules) }
 
         var_config = @db.try_or(klass.name, VarConfig.new, &.instance_variables)
 

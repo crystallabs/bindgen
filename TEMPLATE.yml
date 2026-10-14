@@ -465,7 +465,8 @@ types:
     sub_class: true | false
 
     # Copy the read structure fields over to Crystal.  Useful for simple C-style
-    # structures.  `struct` will end up in `Binding::BindingName`.
+    # structures.  `struct` will end up in `Binding::BindingName`.  If the type
+    # has a wrapper class, it hosts the structure instead of a pointer to it.
     # Defaults to `false`.
     copy_structure: true | false
 
@@ -477,7 +478,8 @@ types:
     #   members, and the corresponding value controls the behaviour of the
     #   matched members.
     # Defaults to `true`.  `copy_structure: true` will suppress the generation
-    # of property methods regardless of this setting.
+    # of property methods regardless of this setting, unless the type has a
+    # wrapper class.
     instance_variables:
       "^m_i(.*)$":
         # Do not generate the getter(s) and setter(s) for the matched members.

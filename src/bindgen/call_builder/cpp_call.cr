@@ -33,7 +33,7 @@ module Bindgen
           origin: method,
           name: name,
           arguments: pass.arguments_to_cpp(method.arguments),
-          result: pass.to_crystal(method.return_type),
+          result: pass.to_crystal(method.return_type, is_constructor: method.any_constructor?),
           body: body,
         )
       end

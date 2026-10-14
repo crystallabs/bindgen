@@ -291,8 +291,23 @@ end
 * **Run before**: No specific dependency
 
 Copies structures of those types, that have `copy_structure: true` set in the
-configuration.  A wrapper class of a `copy_structure` type will host the
-structure directly (instead of a pointer) to it.
+configuration, into `lib Binding`.  Such a type is passed by value.  It has to
+be layout-compatible to a C structure: Its members may only be built-in types,
+enumerations, other copied structures and pointers.
+
+A wrapper class of a `copy_structure` type will host the structure directly
+(instead of a pointer) to it:
+
+* `#to_unsafe` returns a pointer to the hosted structure.
+* A structure received from C++ by value, reference or pointer is *copied* into
+  a new wrapper instance.  Changing it doesn't change the original.
+* Property methods are generated for the members, see `InstanceProperties`.
+
+Set `generate_wrapper: false` and `generate_binding: false` to only get the
+`lib struct`.
+
+Limitations: A copied structure can't be passed to or returned from a virtual
+method by value.  Its C++ type should be trivially copyable.
 
 ## `CppWrapper`
 

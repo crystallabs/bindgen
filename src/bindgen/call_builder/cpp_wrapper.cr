@@ -23,7 +23,7 @@ module Bindgen
           origin: method,
           name: method.mangled_name,
           arguments: arguments,
-          result: pass.to_crystal(method.return_type),
+          result: pass.to_crystal(method.return_type, is_constructor: method.any_constructor?),
           body: Body.new(target),
         )
       end

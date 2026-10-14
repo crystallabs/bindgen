@@ -98,7 +98,8 @@ module Bindgen
       property? sub_class = true
 
       # If the structure (as in, its non-static fields) shall be tried to
-      # replicated in Crystal.  Implies `instance_variables: false`.
+      # replicated in Crystal.  Implies `instance_variables: false`, unless a
+      # wrapper class hosts the structure (see `TypeHelper#structure_hosted?`).
       # This doesn't support inheritance!
       property? copy_structure = false
 

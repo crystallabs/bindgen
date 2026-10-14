@@ -1,0 +1,17 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.
+
+classes:
+  Pod: Pod
+  Vec: Vec
+  Segment: Segment
+  VecUser: VecUser
+
+functions:
+  "pod_(.*)": { destination: "Funcs", name: "\\1" }
+
+types:
+  Pod: { copy_structure: true }
+  Vec: { copy_structure: true }
+  Segment: { copy_structure: true }
