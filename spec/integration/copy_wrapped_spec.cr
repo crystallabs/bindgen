@@ -3,6 +3,20 @@ require "./spec_helper"
 describe "wrapper classes of copied structures" do
   it "works" do
     build_and_run("copy_wrapped") do
+      class MyTransformer < Test::Transformer
+        def triple(t, n)
+          Test::Triple.new(a: t.a * n, b: t.b * n, c: t.c * n)
+        end
+
+        def duo(n, d)
+          Test::Binding::Duo.new(x: d.x + n, y: d.y - n)
+        end
+
+        def wide(w, n)
+          Test::Wide.new(a: w.c + n, b: w.b + n, c: w.a + n)
+        end
+      end
+
       context "aggregate" do
         it "hosts the structure" do
           subject = Test::Pod.new(a: 1, b: 2)
@@ -156,6 +170,28 @@ describe "wrapper classes of copied structures" do
           subject.pod = Test::Pod.new(a: 9, b: 10)
           subject.pod.a.should eq(9)
           subject.pod.b.should eq(10)
+        end
+      end
+
+      context "virtual methods" do
+        it "are called with and return the structure by value" do
+          subject = Test::Transformer.new
+          triple = subject.call_triple(Test::Triple.new(a: 1, b: 2, c: 3), 10)
+          {triple.a, triple.b, triple.c}.should eq({11, 12, 13})
+          duo = subject.call_duo(2, Test::Binding::Duo.new(x: 1.5, y: -3.0))
+          {duo.x, duo.y}.should eq({3.0, -6.0})
+          wide = subject.call_wide(Test::Wide.new(a: 1i64 << 40, b: 2, c: 3), 1)
+          {wide.a, wide.b, wide.c}.should eq({(1i64 << 40) - 1, 1, 2})
+        end
+
+        it "can be overridden" do
+          subject = MyTransformer.new
+          triple = subject.call_triple(Test::Triple.new(a: 1, b: 2, c: 3), 10)
+          {triple.a, triple.b, triple.c}.should eq({10, 20, 30})
+          duo = subject.call_duo(2, Test::Binding::Duo.new(x: 1.5, y: -3.0))
+          {duo.x, duo.y}.should eq({3.5, -5.0})
+          wide = subject.call_wide(Test::Wide.new(a: 1i64 << 40, b: 2, c: 3), 1)
+          {wide.a, wide.b, wide.c}.should eq({4, 3, (1i64 << 40) + 1})
         end
       end
     end

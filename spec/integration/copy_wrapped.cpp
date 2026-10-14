@@ -54,3 +54,30 @@ public:
 Pod pod_swapped(Pod pod) {
   return Pod{pod.b, pod.a};
 }
+
+// Copied structures of different ABI classes, passed by value to and from
+// virtual methods.
+struct Triple {
+  int a, b, c;
+};
+
+struct Duo {
+  double x, y;
+};
+
+struct Wide {
+  long long a, b, c;
+};
+
+class Transformer {
+public:
+  virtual ~Transformer() { }
+
+  virtual Triple triple(Triple t, int n) { return Triple{t.a + n, t.b + n, t.c + n}; }
+  virtual Duo duo(int n, Duo d) { return Duo{d.x * n, d.y * n}; }
+  virtual Wide wide(Wide w, int n) { return Wide{w.a - n, w.b - n, w.c - n}; }
+
+  Triple callTriple(Triple t, int n) { return triple(t, n); }
+  Duo callDuo(int n, Duo d) { return duo(n, d); }
+  Wide callWide(Wide w, int n) { return wide(w, n); }
+};

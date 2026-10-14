@@ -105,3 +105,6 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * A method returning, or a data member of, a pointer to a by-value type like
   `std::string *` generated C++ that didn't compile.  It is now ignored, like
   arguments of such types already were.
+* A copied structure passed by value to or returned from a Crystal override of
+  a virtual method was garbled, and returning one without a wrapper class
+  didn't compile.

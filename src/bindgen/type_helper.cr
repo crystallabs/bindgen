@@ -46,6 +46,16 @@ module Bindgen
       end
     end
 
+    # Is *type* a copied structure passed by value?  A `CrystalProc` passes it
+    # by pointer instead, as a Crystal `Proc` doesn't follow the C ABI.
+    def proc_by_pointer?(type : Parser::Type) : Bool
+      return false if type.pointer > 0 || type.c_array?
+
+      @db.try_or(type, false) do |rules|
+        rules.copy_structure? && (rules.pass_by.original? || rules.pass_by.value?)
+      end
+    end
+
     # Does the Crystal wrapper class of the type described by *rules* host a
     # copy of the structure, instead of a pointer to it?  Its `#to_unsafe`
     # returns a pointer to the hosted structure then.

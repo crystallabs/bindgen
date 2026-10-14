@@ -12,8 +12,22 @@ module Bindgen
       def build(method : Parser::Method, *, proc_name : String = "_proc_", lambda = false) : Call
         pass = Cpp::Pass.new(@db)
 
-        arguments = pass.arguments_from_cpp(method.arguments)
+        # Copied structures are passed by pointer, see
+        # `TypeHelper#proc_by_pointer?`.
+        address = Template.from_string("&%", simple: true)
+        arguments = method.arguments.map_with_index do |arg, idx|
+          result = pass.passthrough_to_crystal(arg)
+          if pass.proc_by_pointer?(arg)
+            result = with_conversion(result, result.conversion.followed_by(address))
+          end
+          result.to_argument(Cpp::Argument.name(arg, idx))
+        end
+
         result = pass.to_cpp(method.return_type)
+        if pass.proc_by_pointer?(method.return_type)
+          deref = Template.from_string("*%", simple: true)
+          result = with_conversion(result, deref.followed_by(result.conversion))
+        end
 
         Call.new(
           origin: method,
@@ -21,6 +35,16 @@ module Bindgen
           result: result,
           arguments: arguments,
           body: lambda ? LambdaBody.new : InvokeBody.new,
+        )
+      end
+
+      private def with_conversion(result, conversion)
+        Call::Result.new(
+          type: result.type,
+          type_name: result.type_name,
+          reference: result.reference,
+          pointer: result.pointer,
+          conversion: conversion,
         )
       end
 

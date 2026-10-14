@@ -19,12 +19,14 @@ module Bindgen
           caller = pass.from_binding(arg, qualified: true)
           callee = pass.from_wrapper(arg)
           result = combine_result(caller, callee)
+          result = pointer_argument(result) if pass.proc_by_pointer?(arg)
           result.to_argument(argument.name(arg, idx))
         end
 
         callee = pass.to_wrapper(method.return_type)
         caller = pass.to_binding(method.return_type, to_unsafe: true, qualified: true)
         result = combine_result(caller, callee)
+        result = pointer_result(result) if pass.proc_by_pointer?(method.return_type)
 
         Call.new(
           origin: method,
@@ -45,6 +47,29 @@ module Bindgen
           pointer: outer.pointer,
           reference: outer.reference,
           conversion: combined_conversion,
+        )
+      end
+
+      # Receives a copied structure by pointer, see
+      # `TypeHelper#proc_by_pointer?`.
+      private def pointer_argument(result)
+        value = Template.from_string("%.value", simple: true)
+        by_pointer(result, value.followed_by(result.conversion))
+      end
+
+      # Returns a copied structure by pointer to a copy allocated by the GC.
+      private def pointer_result(result)
+        copy = Template.from_string("Pointer(#{result.type_name}).malloc(1, %)", simple: true)
+        by_pointer(result, result.conversion.followed_by(copy))
+      end
+
+      private def by_pointer(result, conversion)
+        Call::Result.new(
+          type: result.type,
+          type_name: result.type_name,
+          pointer: 1,
+          reference: false,
+          conversion: conversion,
         )
       end
 

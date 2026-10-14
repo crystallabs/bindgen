@@ -308,8 +308,7 @@ A wrapper class of a `copy_structure` type will host the structure directly
 Set `generate_wrapper: false` and `generate_binding: false` to only get the
 `lib struct`.
 
-Limitations: A copied structure can't be passed to or returned from a virtual
-method by value.  Its C++ type should be trivially copyable.
+Limitations: The C++ type should be trivially copyable.
 
 ## `CppWrapper`
 

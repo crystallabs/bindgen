@@ -85,7 +85,9 @@ module Bindgen
                 # The wrapper class hosts the structure, its `#to_unsafe`
                 # returns a pointer to it.  Pass a copy by value.
                 template = Template.from_string("%.to_unsafe.value", simple: true)
-              elsif to_unsafe
+              elsif to_unsafe && (rules.generate_wrapper? || !rules.copy_structure?)
+                # Not for a copied structure without a wrapper, as it's the
+                # `lib struct` itself.
                 template = Template.from_string("%.to_unsafe", simple: true)
               end
             end

@@ -7,6 +7,14 @@ classes:
   Vec: Vec
   Segment: Segment
   VecUser: VecUser
+  Triple: Triple
+  Duo: Duo
+  Wide: Wide
+  Transformer: Transformer
+  Triple: Triple
+  Duo: Duo
+  Wide: Wide
+  Transformer: Transformer
 
 functions:
   "pod_(.*)": { destination: "Funcs", name: "\\1" }
@@ -15,3 +23,9 @@ types:
   Pod: { copy_structure: true }
   Vec: { copy_structure: true }
   Segment: { copy_structure: true }
+  Triple: { copy_structure: true }
+  Duo: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  Wide: { copy_structure: true }
+  Triple: { copy_structure: true }
+  Duo: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  Wide: { copy_structure: true }

@@ -50,11 +50,25 @@ module Bindgen
         inner_args = proc_type.template.not_nil!.arguments
 
         # Arguments go C++ -> Crystal, but the result goes Crystal -> C++!
-        proc_types = inner_args[1..-1].map { |t| to_crystal(t).as(Call::Result) }
-        proc_types.unshift to_cpp(inner_args.first)
+        proc_types = inner_args[1..-1].map { |t| proc_pass(t, to_crystal(t)) }
+        proc_types.unshift proc_pass(inner_args.first, to_cpp(inner_args.first))
 
         proc_args = typer.full(proc_types)
         typer.template_class(Parser::Type::CRYSTAL_PROC, proc_args)
+      end
+
+      # Passes *result* by pointer if *type* is passed by pointer to and from a
+      # `CrystalProc`, see `TypeHelper#proc_by_pointer?`.
+      private def proc_pass(type, result) : Call::Result
+        return result unless proc_by_pointer?(type)
+
+        Call::Result.new(
+          type: type,
+          type_name: result.type_name,
+          reference: false,
+          pointer: 1,
+          conversion: result.conversion,
+        )
       end
 
       # Computes a result for passing *type* from Crystal to C++.
