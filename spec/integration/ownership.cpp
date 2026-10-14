@@ -23,9 +23,12 @@ struct Outer {
   void storeOther(Inner &in) { other = &in; }
   int sum(Inner *in, int x) { return in->x + x; }
 
-  static inline Outer *last_ = nullptr;
+  static Outer *last_;
   static Outer *last() { return last_; }
 };
+
+// Defined out of line, as inline variables need C++17
+Outer *Outer::last_ = nullptr;
 
 // Selects the arguments to keep alive.
 struct Picky {
