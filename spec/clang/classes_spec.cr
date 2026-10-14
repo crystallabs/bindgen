@@ -23,6 +23,27 @@ describe "clang tool classes feature" do
     )
   end
 
+  it "exports if a constructor is declared" do
+    clang_tool(
+      %[
+        struct Plain { int x; };
+        struct Defaulted { Defaulted() = default; int x; };
+        struct Deleted { Deleted(int) = delete; int x; };
+        struct Provided { Provided() { } int x; };
+
+        // Declares the implicit constructors of `Plain`.
+        Plain copy(Plain plain = Plain()) { return plain; }
+      ],
+      "-c Plain -c Defaulted -c Deleted -c Provided",
+      classes: {
+        Plain:     {hasUserDeclaredConstructor: false},
+        Defaulted: {hasUserDeclaredConstructor: true},
+        Deleted:   {hasUserDeclaredConstructor: true},
+        Provided:  {hasUserDeclaredConstructor: true},
+      },
+    )
+  end
+
   it "rejects class templates" do
     file = File.tempfile("bindgen-clang-test")
     file.puts("template<typename T> class Templated { T *ptr; };")

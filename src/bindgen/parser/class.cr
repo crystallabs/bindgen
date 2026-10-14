@@ -23,6 +23,12 @@ module Bindgen
       @[JSON::Field(key: "hasCopyConstructor")]
       getter? has_copy_constructor : Bool
 
+      # Does the type declare any constructor itself?  This includes defaulted
+      # (`= default`) and deleted ones, which `#methods` can't tell: A defaulted
+      # constructor is `Method#builtin?`, and a deleted one isn't listed.
+      @[JSON::Field(key: "hasUserDeclaredConstructor")]
+      getter? has_user_declared_constructor : Bool
+
       # Is this class abstract?
       @[JSON::Field(key: "isAbstract")]
       getter? abstract : Bool
@@ -53,7 +59,8 @@ module Bindgen
 
       def initialize(
         @name, @byte_size = 0, @has_default_constructor = false,
-        @has_copy_constructor = false, @type_kind = TypeKind::Class,
+        @has_copy_constructor = false, @has_user_declared_constructor = false,
+        @type_kind = TypeKind::Class,
         @abstract = false, @anonymous = false, @destructible = true,
         @bases = [] of BaseClass, @fields = [] of Field,
         @methods = [] of Method, @access = AccessSpecifier::Public,

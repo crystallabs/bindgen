@@ -562,7 +562,9 @@ where each field of the class is initialized by a named argument:
   in-class default initializers.
 * The class is not polymorphic.
 * The class does not inherit from any other class.
-* The class has no user-provided constructors.
+* The class has no user-declared constructors.  This includes those declared as
+  `= default` or `= delete`: They're allowed in an aggregate up to C++17, but
+  not since C++20.
 * The class is not a C++ `union`.
 
 ```cpp

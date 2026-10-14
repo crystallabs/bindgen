@@ -9,6 +9,7 @@ classes:
   ImplicitConstructor: ImplicitConstructor
   Aggregate: Aggregate
   NonMovableAggregate: NonMovableAggregate
+  DefaultedConstructor: DefaultedConstructor
   PrivateConstructor: PrivateConstructor
   DeletedConstructor: DeletedConstructor
   TypeConversion: TypeConversion

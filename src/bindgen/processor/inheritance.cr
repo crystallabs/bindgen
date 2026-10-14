@@ -198,6 +198,7 @@ module Bindgen
           type_kind: klass.type_kind,
           has_default_constructor: klass.has_default_constructor?,
           has_copy_constructor: klass.has_copy_constructor?,
+          has_user_declared_constructor: klass.has_user_declared_constructor?,
           abstract: false,
           destructible: klass.destructible?,
           name: "#{klass.name}Impl",

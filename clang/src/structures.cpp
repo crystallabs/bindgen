@@ -211,6 +211,7 @@ JsonStream &operator<<(JsonStream &s, const Class &value) {
 		<< std::make_pair("isDestructible", value.isDestructible) << c
 		<< std::make_pair("hasDefaultConstructor", value.hasDefaultConstructor) << c
 		<< std::make_pair("hasCopyConstructor", value.hasCopyConstructor) << c
+		<< std::make_pair("hasUserDeclaredConstructor", value.hasUserDeclaredConstructor) << c
 		<< std::make_pair("bases", value.bases) << c
 		<< std::make_pair("fields", value.fields) << c
 		<< std::make_pair("methods", value.methods)

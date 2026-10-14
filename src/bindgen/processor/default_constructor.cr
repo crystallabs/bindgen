@@ -69,8 +69,13 @@ module Bindgen
       # 4. None of the fields use anonymous types.
       # 5. The class is not polymorphic.
       # 6. The class has no bases.
-      # 7. The class has no user-provided constructors.
+      # 7. The class has no user-declared constructors.
       # 8. The class is not a C++ union.
+      #
+      # These are the rules of an aggregate common to C++11 through C++20, so
+      # that the constructor compiles no matter which standard the wrapper is
+      # built with.  Rule 7 is the one of C++20: Up to C++17, a constructor
+      # declared as `= default` or `= delete` is allowed.
       private def needs_aggregate_constructor?(klass : Parser::Class)
         fields = klass.fields.reject(&.static?)
 
@@ -84,8 +89,9 @@ module Bindgen
         allowed &&= !klass.has_virtual_methods? # 5.
         allowed &&= klass.bases.empty?          # 6.
 
+        allowed &&= !klass.has_user_declared_constructor? # 7.
         allowed &&= klass.methods.none? do |method|
-          !method.builtin? && method.any_constructor? # 7.
+          !method.builtin? && method.any_constructor? # 7., for generated classes
         end
         allowed &&= !klass.cpp_union? # 8.
 

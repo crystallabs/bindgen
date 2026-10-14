@@ -96,6 +96,7 @@ bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *r
 	klass.hasDefaultConstructor = record->hasDefaultConstructor() &&
 		!(typeInfoResult && !typeInfoResult->isDefaultConstructible);
 	klass.hasCopyConstructor = record->hasCopyConstructorWithConstParam();
+	klass.hasUserDeclaredConstructor = record->hasUserDeclaredConstructor();
 	klass.isAbstract = record->isAbstract();
 	klass.typeKind = record->getTagKind();
 

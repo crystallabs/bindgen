@@ -151,6 +151,7 @@ struct Class {
 	clang::TagTypeKind typeKind; // Class, struct, or union?
 	bool hasDefaultConstructor;
 	bool hasCopyConstructor;
+	bool hasUserDeclaredConstructor; // Any constructor written in the class, even if defaulted or deleted?
 	bool isDestructible = true; // Does this class have a public or protected destructor?
 	bool isAbstract; // Does the class have pure virtual methods?
 	bool isAnonymous; // Is this class anonymous?
@@ -192,7 +193,7 @@ struct TypeInfoResult {
 
 // Version of the output format.  Increase it together with
 // `Bindgen::Parser::Document::FORMAT_VERSION` whenever the output changes.
-static const int BG_FORMAT_VERSION = 1;
+static const int BG_FORMAT_VERSION = 2;
 
 struct Document {
 	JsonMap<std::string, Enum> enums;

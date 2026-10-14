@@ -160,6 +160,16 @@ describe "a basic C++ wrapper" do
           subject.z.should be_true
         end
 
+        it "adds no aggregate constructor if a constructor is declared" do
+          {{
+            Test::DefaultedConstructor.methods.any? do |m|
+              m.name == "initialize" && m.splat_index == 0
+            end
+          }}.should be_false
+
+          Test::DefaultedConstructor.new.should be_a(Test::DefaultedConstructor)
+        end
+
         it "initializes aggregate types which can't be moved" do
           subject = Test::NonMovableAggregate.new(x: 4, counter: 5)
           subject.x.should eq(4)

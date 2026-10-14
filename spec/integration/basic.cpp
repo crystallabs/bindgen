@@ -156,6 +156,14 @@ struct Aggregate {
   const bool z;
 };
 
+// Not an aggregate since C++20, as it declares a constructor.
+struct DefaultedConstructor {
+  DefaultedConstructor() = default;
+
+  int x;
+  double y;
+};
+
 // `std::atomic` can't be copied or moved, and so can't this aggregate.
 struct NonMovableAggregate {
   int x;

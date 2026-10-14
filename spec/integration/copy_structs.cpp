@@ -184,6 +184,7 @@ struct ConfigRename {
   const int m_iVar, m_iAnotherVar, x;
 };
 
+// The defaulted constructor makes this no aggregate in C++20.
 struct ConfigNilable {
   ConfigNilable() = default;
 
