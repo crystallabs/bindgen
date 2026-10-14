@@ -33,6 +33,11 @@ describe "single and multiple inheritance feature" do
         String.new(Test::Subclass.new.name).should eq("Hello")
       end
 
+      it "can call methods of second base" do
+        Test::Subclass.new.normal_method_in_abstract_thing.should eq(1)
+        Test::Subclass.new.virtual_in_abstract_thing.should eq(2)
+      end
+
       it "adds shadow-impl class for abstract classes" do
         {{ Test::AbstractThingImpl.superclass == Test::AbstractThing }}.should be_true
 

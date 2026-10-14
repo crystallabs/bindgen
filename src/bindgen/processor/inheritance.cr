@@ -35,7 +35,7 @@ module Bindgen
             add_conversion_methods(klass, wrapped[1..-1])
           end
 
-          copy_virtual_methods(klass, wrapped)
+          copy_base_methods(klass, wrapped)
 
           # Unify the argument types for all virtual methods
           unify_virtual_methods(klass)
@@ -47,9 +47,11 @@ module Bindgen
 
       # Copies all virtual methods, that are not already in *klass*, from
       # *wrapped*.  This makes `Processor::VirtualOverride`s job much easier,
-      # and allows us to generate a proper abstract `Impl` class.
-      private def copy_virtual_methods(klass : Graph::Class, wrapped)
-        additional_methods = base_virtual_methods(klass.origin, wrapped)
+      # and allows us to generate a proper abstract `Impl` class.  Also copies
+      # the non-virtual methods of all but the first base, as these are not
+      # inherited in Crystal.
+      private def copy_base_methods(klass : Graph::Class, wrapped)
+        additional_methods = base_methods(klass.origin, wrapped)
 
         additional_methods.each do |method|
           if !klass.abstract? && method.pure?
@@ -65,18 +67,24 @@ module Bindgen
       end
 
       # Finds all virtual methods in the *wrapped* bases of *klass*, which are
-      # not implemented in *klass*.
-      private def base_virtual_methods(klass, wrapped) : Array(Parser::Method)
+      # not implemented in *klass*, and all non-virtual methods of the other
+      # bases not hidden by *klass*.  Methods of the other bases are moved into
+      # *klass*, so their wrappers get the `this` pointer adjusted by C++.
+      private def base_methods(klass, wrapped) : Array(Parser::Method)
         known_virtuals = klass.wrappable_methods.select(&.virtual?)
 
-        wrapped.flat_map do |base|
-          base.origin.wrappable_methods.select do |method|
-            next unless method.virtual?
-            next if known_virtuals.any? { |known| known.equals_virtually?(method) }
-
-            true
+        wrapped.each_with_index.flat_map do |base, index|
+          methods = base.origin.wrappable_methods.select do |method|
+            if method.virtual?
+              known_virtuals.none? { |known| known.equals_virtually?(method) }
+            else
+              index > 0 && method.member_method? &&
+                klass.methods.none? { |m| m.name == method.name }
+            end
           end
-        end
+
+          index > 0 ? methods.map { |m| move_method(m, klass.name) } : methods
+        end.to_a
       end
 
       # Adds all conversion methods from *klass* to *bases*.
@@ -179,6 +187,23 @@ module Bindgen
           virtual: method.virtual?,
           pure: false,
           class_name: method.class_name, # Keep original class!
+          arguments: method.arguments,
+          first_default_argument: method.first_default_argument,
+          return_type: method.return_type,
+        )
+      end
+
+      # Returns a copy of *method* as member of the class *class_name*.
+      private def move_method(method, class_name)
+        Parser::Method.new(
+          type: method.type,
+          name: method.name,
+          access: method.access,
+          const: method.const?,
+          virtual: method.virtual?,
+          pure: method.pure?,
+          final: method.final?,
+          class_name: class_name,
           arguments: method.arguments,
           first_default_argument: method.first_default_argument,
           return_type: method.return_type,

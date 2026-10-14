@@ -16,10 +16,20 @@ struct Base {
 };
 
 struct AbstractThing {
+  int value = 1;
+
   virtual const char *name() const = 0;
 
+  virtual int virtualInAbstractThing() {
+    return 2;
+  }
+
   int normalMethodInAbstractThing() {
-    return 1;
+    return this->value;
+  }
+
+  int callVirtualInAbstractThing() {
+    return this->virtualInAbstractThing();
   }
 
   AbstractThing *itself() {

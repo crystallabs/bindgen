@@ -117,3 +117,5 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   didn't compile.
 * A `final` class or virtual method was sub-classed or overridden in C++,
   which failed to compile.
+* Inherited virtual methods of a second base class were called with an
+  unadjusted `this` pointer.  Its non-virtual methods are wrapped too.

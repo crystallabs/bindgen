@@ -21,6 +21,13 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      # Test overriding a method of the second base
+      class SecondBaseThing < Test::Subclass
+        def virtual_in_abstract_thing
+          5
+        end
+      end
+
       class ImplicitThing < Test::Implicit
         # overrides Test::Base#calc (absent in Test::Implicit)
         def calc(a, b)
@@ -93,9 +100,15 @@ describe "C++ virtual overriding from Crystal feature" do
           ImplicitThing.new.call_virtual(7, 6).should eq(42)
         end
 
-        # TODO: This fails!
-        pending "can call method of second base" do
-          # Thing.new.normal_method_in_abstract_thing.should eq(1)
+        it "can call methods of second base" do
+          Thing.new.normal_method_in_abstract_thing.should eq(1)
+          Thing.new.virtual_in_abstract_thing.should eq(2)
+          String.new(Thing.new.itself.name).should eq("Thing")
+        end
+
+        it "allows calling Crystal overrides of second base from C++" do
+          SecondBaseThing.new.call_virtual_in_abstract_thing.should eq(5)
+          SecondBaseThing.new.as_abstract_thing.call_virtual_in_abstract_thing.should eq(5)
         end
 
         it "auto wraps into an instance" do
