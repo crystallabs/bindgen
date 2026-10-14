@@ -11,7 +11,7 @@ jobs:
     name: Ameba
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # install-crystal installs packages without refreshing the package
       # index, which fails when the runner image's index has gone stale.
@@ -53,7 +53,7 @@ jobs:
       BINDGEN_DYNAMIC: ${{ matrix.link == 'shared' && '1' || '' }}
       BINDGEN_CLANG_FLAGS: ${{ matrix.stdlib == 'libc++' && '-stdlib=libc++' || '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # install-crystal installs packages without refreshing the package
       # index, which fails when the runner image's index has gone stale.
@@ -95,10 +95,16 @@ jobs:
         run: crystal spec
 
   macos:
-    name: macOS (Homebrew LLVM)
+    name: macOS (Homebrew LLVM, ${{ matrix.link }})
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        link: [static, shared]
+    env:
+      BINDGEN_DYNAMIC: ${{ matrix.link == 'shared' && '1' || '0' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: crystal-lang/install-crystal@v1
 
@@ -129,7 +135,7 @@ jobs:
           pacman -Syu --noconfirm --needed \
             crystal shards clang llvm cmake make gcc gc pcre2 libyaml git
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install shards
         run: shards install
