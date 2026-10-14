@@ -93,6 +93,24 @@ describe "clang tool classes feature" do
     )
   end
 
+  it "exports if a class is trivially copyable and standard-layout" do
+    clang_tool(
+      %[
+        struct Plain { int x; };
+        struct Copying { Copying(const Copying &) { } int x; };
+        struct Mixed { int x; private: int y; };
+        struct Derived : Plain { int y; };
+      ],
+      "-c Plain -c Copying -c Mixed -c Derived",
+      classes: {
+        Plain:   {isTriviallyCopyable: true, isStandardLayout: true},
+        Copying: {isTriviallyCopyable: false, isStandardLayout: true},
+        Mixed:   {isTriviallyCopyable: true, isStandardLayout: false},
+        Derived: {isTriviallyCopyable: true, isStandardLayout: false},
+      },
+    )
+  end
+
   it "rejects class templates" do
     file = File.tempfile("bindgen-clang-test")
     file.puts("template<typename T> class Templated { T *ptr; };")

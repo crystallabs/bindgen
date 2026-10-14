@@ -85,3 +85,27 @@ struct ReferenceMember {
 struct ArrayPointerMember {
   int (*rows)[4];
 };
+
+// Structures which can't be copied byte-wise.
+struct CopyConstructor {
+  int value;
+
+  CopyConstructor(const CopyConstructor &other) : value(other.value) { }
+};
+
+struct Destructor {
+  int value;
+
+  ~Destructor() { }
+};
+
+struct VirtualMethod {
+  int value;
+
+  virtual int get() const { return value; }
+};
+
+// The members of the base class aren't laid out like a C structure would be.
+struct Derived : Point {
+  int z;
+};

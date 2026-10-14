@@ -131,6 +131,20 @@ describe "copied structure validation" do
     errors.should contain(%(field "numbers"))
   end
 
+  it "rejects a class which isn't trivially copyable" do
+    %w[CopyConstructor Destructor VirtualMethod].each do |type|
+      code, errors = copy_structures(type)
+      code.should eq(1)
+      errors.should contain(%(Can't copy structure of class "#{type}": It isn't trivially copyable))
+    end
+  end
+
+  it "rejects a class which isn't standard-layout" do
+    code, errors = copy_structures("Derived")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "Derived": It isn't standard-layout))
+  end
+
   it "accepts a member whose class is copied too" do
     code, errors = copy_structures("WrappedMember", "Wrapped")
     errors.should eq("")

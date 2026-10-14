@@ -295,7 +295,8 @@ configuration, into `lib Binding`.  Such a type is passed by value.  It has to
 be layout-compatible to a C structure: Its members may only be built-in types,
 enumerations, other copied structures and pointers.  bindgen refuses to copy a
 structure with a member it can't represent, like a `std::string`, a container
-or a class which isn't copied itself.
+or a class which isn't copied itself, and one whose C++ type isn't trivially
+copyable and standard-layout.
 
 A wrapper class of a `copy_structure` type will host the structure directly
 (instead of a pointer) to it:
@@ -307,8 +308,6 @@ A wrapper class of a `copy_structure` type will host the structure directly
 
 Set `generate_wrapper: false` and `generate_binding: false` to only get the
 `lib struct`.
-
-Limitations: The C++ type should be trivially copyable.
 
 ## `CppWrapper`
 

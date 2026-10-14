@@ -37,6 +37,14 @@ module Bindgen
       @[JSON::Field(key: "isFinal")]
       getter? final : Bool
 
+      # Can an instance be copied byte-wise, like a C structure?
+      @[JSON::Field(key: "isTriviallyCopyable")]
+      getter? trivially_copyable : Bool
+
+      # Is the class laid out like a C structure?
+      @[JSON::Field(key: "isStandardLayout")]
+      getter? standard_layout : Bool
+
       # Is this class anonymous?
       @[JSON::Field(key: "isAnonymous")]
       getter? anonymous : Bool
@@ -65,7 +73,8 @@ module Bindgen
         @name, @byte_size = 0, @has_default_constructor = false,
         @has_copy_constructor = false, @has_user_declared_constructor = false,
         @type_kind = TypeKind::Class,
-        @abstract = false, @final = false, @anonymous = false, @destructible = true,
+        @abstract = false, @final = false, @trivially_copyable = true,
+        @standard_layout = true, @anonymous = false, @destructible = true,
         @bases = [] of BaseClass, @fields = [] of Field,
         @methods = [] of Method, @access = AccessSpecifier::Public,
       )

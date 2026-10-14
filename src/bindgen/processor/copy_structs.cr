@@ -48,20 +48,37 @@ module Bindgen
       private def copy_structure(klass, root)
         typename = Crystal::Typename.new(@db)
         name = typename.binding(klass.as_type).first
+        fields = fields_to_graph(klass)
+        check_class_layout!(klass)
 
         # Add the struct or union into the graph
         if klass.cpp_union?
           Graph::CppUnion.new(
             name: name,
-            fields: fields_to_graph(klass),
+            fields: fields,
             parent: root,
           )
         else
           Graph::Struct.new(
             name: name,
-            fields: fields_to_graph(klass),
+            fields: fields,
             parent: root,
           )
+        end
+      end
+
+      # Makes sure that *klass* itself can be passed by value like a C
+      # structure.  Raises if it can't.  Done after checking the fields, as a
+      # field which can't be copied makes the class not copyable too.
+      private def check_class_layout!(klass)
+        reason = if !klass.trivially_copyable?
+                   "It isn't trivially copyable"
+                 elsif !klass.standard_layout?
+                   "It isn't standard-layout"
+                 end
+
+        if reason
+          raise "Can't copy structure of class #{klass.name.inspect}: #{reason}"
         end
       end
 
