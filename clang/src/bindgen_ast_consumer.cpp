@@ -94,6 +94,8 @@ void BindgenASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
 	for (auto &finder : this->m_matchFinders) {
 		finder.matchAST(ctx);
 	}
+
+	this->m_document.translationUnits++;
 }
 
 static void runTypeInfoResult(TypeInfoResult &info, const clang::ClassTemplateSpecializationDecl *spec, clang::ASTContext &ctx) {

@@ -203,6 +203,7 @@ struct Document {
 
 	std::map<std::string, TypeInfoResult> type_infos; // not serialized
 	std::vector<std::string> errors; // not serialized, makes the tool fail
+	int translationUnits = 0; // not serialized, count of those parsed
 
 	TypeInfoResult *findTypeInfoResult(const std::string &klass) {
 		auto it = type_infos.find(klass);

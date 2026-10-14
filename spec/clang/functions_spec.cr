@@ -124,4 +124,19 @@ describe "clang tool functions feature" do
       ],
     )
   end
+
+  it "exports what it can from sources with errors" do
+    clang_tool(
+      %[
+        void before();
+        void broken(UnknownType value);
+        void after();
+      ],
+      "-f 'before|after'",
+      functions: [
+        {name: "before"},
+        {name: "after"},
+      ],
+    )
+  end
 end

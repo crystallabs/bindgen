@@ -49,7 +49,11 @@ int main(int argc, const char **argv) {
 	clang::tooling::ClangTool tool(op->getCompilations(), op->getSourcePathList());
 	ActionFactory<BindgenFrontendAction> factory(doc);
 
-	if (int result = tool.run(&factory)) {
+	// Clang reports an error for any diagnostic in the sources.  Those are
+	// still good to use as long as they could be parsed: The result then lacks
+	// what was erroneous, which the user may not even be interested in.
+	int result = tool.run(&factory);
+	if (result != 0 && doc.translationUnits == 0) {
 		return result;
 	}
 
