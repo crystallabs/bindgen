@@ -152,6 +152,20 @@ describe "a basic C++ wrapper" do
             end
           }}.should be_true
         end
+
+        it "initializes aggregate types" do
+          subject = Test::Aggregate.new(x: 4, y: 1.5, z: true)
+          subject.x.should eq(4)
+          subject.y.should eq(1.5)
+          subject.z.should be_true
+        end
+
+        it "initializes aggregate types which can't be moved" do
+          subject = Test::NonMovableAggregate.new(x: 4, counter: 5)
+          subject.x.should eq(4)
+          subject.counter.should eq(5)
+          subject.sum.should eq(9)
+        end
       end
 
       context "method filtering" do

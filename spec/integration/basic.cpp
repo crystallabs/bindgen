@@ -1,3 +1,4 @@
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -153,6 +154,20 @@ struct Aggregate {
   int x;
   double y;
   const bool z;
+};
+
+// `std::atomic` can't be copied or moved, and so can't this aggregate.
+struct NonMovableAggregate {
+  int x;
+#if __cplusplus >= 201703L
+  std::atomic<int> counter;
+#else // Can't be initialized from an `int` without a copy before C++17.
+  int counter;
+#endif
+
+  int sum() {
+    return x + counter;
+  }
 };
 
 class PrivateConstructor {

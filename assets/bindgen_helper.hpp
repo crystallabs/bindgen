@@ -122,16 +122,38 @@ template <typename T>
 struct CrystalGCCleanupWrapper: public T, public gc_cleanup
 {
   using T::T;
-
-  // Used for aggregate initialization, as `T`'s copy and move constructors
-  // aren't inherited.
-  CrystalGCCleanupWrapper(T &&value) : T(std::move(value)) { }
 };
 
 // Unions can't be inherited from, these are allocated as they are.
 template <typename T>
 using CrystalGCWrapper = typename std::conditional<
   std::is_union<T>::value, T, CrystalGCCleanupWrapper<T>>::type;
+
+template <typename T>
+struct BindgenGCFinalizer {
+  static void GC_CALLBACK run(void *object, void *) {
+    static_cast<T *>(object)->~T();
+  }
+
+  static GCCleanUpFunc get(std::true_type /* trivially destructible */) {
+    return nullptr;
+  }
+
+  static GCCleanUpFunc get(std::false_type) {
+    return &BindgenGCFinalizer<T>::run;
+  }
+};
+
+/* Finalizer for a `T` that is allocated as it is, instead of being wrapped in
+ * a `CrystalGCWrapper`: `new (UseGC, bindgen_gc_finalizer<T>()) T { ... }`.
+ * Aggregates are allocated like this, as only `T` itself can be initialized
+ * from a braced list without copying or moving it.  Returns a null pointer if
+ * `T` doesn't need a finalizer.
+ */
+template <typename T>
+GCCleanUpFunc bindgen_gc_finalizer() {
+  return BindgenGCFinalizer<T>::get(std::is_trivially_destructible<T>());
+}
 
 /// A simple wrapper around a non-pointer type that allows a single
 /// dereference operation.

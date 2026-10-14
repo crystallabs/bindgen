@@ -2,6 +2,8 @@ module Bindgen
   module CallBuilder
     # Builds a `Call` calling a C/C++ function.
     class CppCall
+      include TypeHelper
+
       def initialize(@db : TypeDatabase)
       end
 
@@ -17,7 +19,14 @@ module Bindgen
         else
           method_name = Cpp::MethodName.new(@db)
           name ||= method_name.generate(method, self_var)
-          body ||= braces ? BraceBody.new : Body.new
+          # A copied type is built by `bg_deref<T>`, see `Cpp::MethodName`.
+          body ||= if !braces
+                     Body.new
+                   elsif type_copied?(method.class_name)
+                     BraceBody.new(method.class_name)
+                   else
+                     BraceBody.new
+                   end
         end
 
         Call.new(
@@ -38,11 +47,24 @@ module Bindgen
         end
       end
 
-      # Body used for brace initialization.
+      # Body used for brace initialization.  The braces are put right behind
+      # the call name, which initializes the aggregate in place.
+      #
+      # If a *value_type* is given, the call name is a function instead, which
+      # is called with a brace-initialized *value_type*.  This copies or moves
+      # the value.
       class BraceBody < Call::Body
+        def initialize(@value_type : String? = nil)
+        end
+
         def to_code(call : Call, platform : Graph::Platform) : String
           pass_args = call.arguments.map(&.call).join(", ")
-          code = %[#{call.name}(#{call.origin.class_name} {#{pass_args}})]
+          code = if value_type = @value_type
+                   %[#{call.name}(#{value_type} {#{pass_args}})]
+                 else
+                   %[#{call.name} {#{pass_args}}]
+                 end
+
           call.result.apply_conversion(code)
         end
       end

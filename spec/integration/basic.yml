@@ -8,6 +8,7 @@ classes:
   FreeOps: FreeOps
   ImplicitConstructor: ImplicitConstructor
   Aggregate: Aggregate
+  NonMovableAggregate: NonMovableAggregate
   PrivateConstructor: PrivateConstructor
   DeletedConstructor: DeletedConstructor
   TypeConversion: TypeConversion
@@ -24,6 +25,11 @@ types:
     wrapper_pass_by: Value
     to_crystal: "String.new(%)"
     from_crystal: "%.to_unsafe"
+  "std::atomic<int>":
+    binding_type: Int32
+    crystal_type: Int32
+    cpp_type: int
+    builtin: true
   PlainStruct:
     generate_binding: false
     generate_wrapper: false

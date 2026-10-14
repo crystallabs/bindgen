@@ -16,7 +16,9 @@ module Bindgen
       #
       # If the *method* is any constructor, and the type is copied, the
       # constructor will be called without `new`, effectively returning a value.
-      # Otherwise, a normal `new` is used to return a pointer.
+      # Otherwise, a normal `new` is used to return a pointer.  An aggregate
+      # constructor allocates the class itself, so that the caller can
+      # brace-initialize it.
       #
       # If *exact_member* is true and *method* is a member method, the qualified
       # method is called, bypassing dynamic lookup.
@@ -29,6 +31,8 @@ module Bindgen
         when .any_constructor?
           if type_copied?(method.class_name)
             "bg_deref<#{method.class_name}>"
+          elsif type.aggregate_constructor?
+            @db.cookbook.plain_constructor_name(method.name, method.class_name)
           else # Support shadow sub-classing.
             name = class_name_for_new(method.class_name)
             @db.cookbook.constructor_name(method.name, name)

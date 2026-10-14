@@ -92,6 +92,13 @@ module Bindgen
 
       # How to call the constructor *method* of *class_name*.
       abstract def constructor_name(method_name : String, class_name : String) : String
+
+      # Same as `#constructor_name`, but guarantees that the constructed type is
+      # *class_name* itself, and not a helper type wrapping it.  This is
+      # required to brace-initialize an aggregate.
+      def plain_constructor_name(method_name : String, class_name : String) : String
+        constructor_name(method_name, class_name)
+      end
     end
 
     # Cookbook for the C++ language using Boehm-GC for memory management.
@@ -168,6 +175,10 @@ module Bindgen
     class BoehmGcCppCookbook < BareCppCookbook
       def constructor_name(method_name : String, class_name : String) : String?
         "new (UseGC) CrystalGCWrapper<#{class_name}>"
+      end
+
+      def plain_constructor_name(method_name : String, class_name : String) : String
+        "new (UseGC, bindgen_gc_finalizer<#{class_name}>()) #{class_name}"
       end
 
       def value_to_pointer(type : String) : String?
