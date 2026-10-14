@@ -29,11 +29,28 @@ module Bindgen
       )
       end
 
-      # Raises if the document was written by a clang tool of another version.
-      def check_format_version! : Nil
-        return if @format_version == FORMAT_VERSION
+      # Parses the output of the clang tool.  Raises if it was written in
+      # another format version: Its fields may not match, so this is checked
+      # before parsing the rest.
+      def self.parse(json : String) : self
+        check_format_version!(read_format_version(json))
+        from_json(json)
+      end
 
-        raise "The clang tool writes format version #{@format_version}, but " \
+      # Reads the format version.  The clang tool writes it first.
+      private def self.read_format_version(json) : Int32
+        pull = JSON::PullParser.new(json)
+        pull.read_begin_object
+        return 0 if pull.kind.end_object?
+
+        pull.read_object_key == "version" ? pull.read_int.to_i32 : 0
+      end
+
+      # Raises if *version* isn't the one this bindgen understands.
+      def self.check_format_version!(version) : Nil
+        return if version == FORMAT_VERSION
+
+        raise "The clang tool writes format version #{version}, but " \
               "version #{FORMAT_VERSION} is required.  Rebuild it: " \
               "Run `cmake . && make` in bindgen's clang/ directory."
       end
