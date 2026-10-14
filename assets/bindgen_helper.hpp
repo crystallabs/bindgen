@@ -94,7 +94,6 @@ static std::string bindgen_crystal_to_stdstring(CrystalString str) {
   return std::string(str.ptr, str.size);
 }
 
-/* Wrapper for a Crystal `Slice`.  Layout-compatible to `Slice`. */
 /* Wrapper for a Crystal `Slice`, see `Binding::CrystalSlice`.  `pointer` and
  * `size` lead, as in earlier versions which lacked `read_only`.
  */
