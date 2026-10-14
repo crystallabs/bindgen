@@ -33,7 +33,7 @@ module Bindgen
           if type_copied?(method.class_name)
             "bg_deref<#{method.class_name}>"
           elsif type.aggregate_constructor? || uninheritable?(method.class_name)
-            @db.cookbook.plain_constructor_name(method.name, method.class_name)
+            @db.cookbook.plain_constructor_name(method.name, cpp_class_name(method.class_name))
           else # Support shadow sub-classing.
             name = class_name_for_new(method.class_name)
             @db.cookbook.constructor_name(method.name, name)
@@ -70,9 +70,10 @@ module Bindgen
       end
 
       # Finds *class_name* in the graph and checks if it's shadow sub-classed in
-      # C++.  If so, returns the name of the shadow class.
+      # C++.  If so, returns the name of the shadow class, otherwise the name
+      # of the class in C++.
       private def class_name_for_new(class_name)
-        @db.try_or(class_name, class_name) do |rules|
+        @db.try_or(class_name, cpp_class_name(class_name)) do |rules|
           rules.graph_node.as?(Graph::Class).try(&.cpp_sub_class)
         end
       end

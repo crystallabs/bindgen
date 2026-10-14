@@ -2,12 +2,14 @@ module Bindgen
   module CallBuilder
     # Builds a `Call` implementing a common C/C++ wrapper function.
     class CppWrapper
+      include TypeHelper
+
       def initialize(@db : TypeDatabase)
       end
 
       def build(method : Parser::Method, target : Call, class_name : String? = nil, self_var = "_self_", needs_instance = nil)
         pass = Cpp::Pass.new(@db)
-        class_name ||= method.class_name
+        class_name ||= cpp_class_name(method.class_name)
 
         if needs_instance.nil?
           needs_instance = method.needs_instance?

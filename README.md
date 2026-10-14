@@ -436,6 +436,31 @@ classes through a `dynamic_cast`, returning `nil` if the object isn't a `T`:
 
 Generates getter and setter methods for static and instance members.
 
+The members of an unnamed member of anonymous type are accessed as members of
+the enclosing class.  A named member of anonymous type gets a wrapper class
+named after the type's position in the enclosing class, like
+`Wrapped::Unnamed0` for the first anonymous `struct` or `union` in `Wrapped`,
+with property methods of its own.  The getter returns a wrapper referring to
+the member inside the object instead of a copy.  This pointer into the object
+keeps an object allocated by bindgen alive.
+
+```c++
+struct Wrapped {
+  struct { int y; } z;
+};
+```
+
+```crystal
+w = Wrapped.new
+w.z.y = 5     # Changes `w`
+w.z = other.z # Copies the member
+```
+
+As C++ code can't name the anonymous type, it is declared as
+`typedef decltype(Wrapped::z) Wrapped_Unnamed0;`.  Static, `const` and pointer
+members of anonymous type are skipped, and so are members of anonymous type
+nested inside an unnamed member.
+
 ## `InstantiateContainers`
 
 * **Kind**: Refining

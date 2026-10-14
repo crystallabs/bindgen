@@ -60,7 +60,11 @@ struct Wrapped {
   };
   struct {
     int y;
-  } z;
+  } z, z2;
+  union {
+    int i;
+    float f;
+  } u;
 };
 
 

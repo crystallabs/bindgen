@@ -57,6 +57,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Static builds link only the Clang and LLVM libraries the tool needs.
 * `BINDGEN_CLANG_FLAGS` passes extra flags to `clang++` when looking for the
   C++ standard library, e.g. `-stdlib=libc++`.
+* Named members of anonymous `struct` and `union` types in wrapped classes get
+  property methods (#85).  The getter returns a wrapper class like
+  `Wrapped::Unnamed1`, which refers to the member inside the object.
 * Copy constructors (`.new(other)`), assignment operators (`#assign!`) and
   conversion operators (`#to_bool` for `operator bool()`) are wrapped.
 * The integration specs are parsed in the C++ standard they're built in.

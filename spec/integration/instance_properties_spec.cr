@@ -294,6 +294,47 @@ describe "C++ instance properties" do
           {% end %}
         end
 
+        it "supports members of anonymous types" do
+          w = Test::Wrapped.new
+          z = w.z
+          z.should be_a(Test::Wrapped::Unnamed1)
+          w.z2.should be_a(Test::Wrapped::Unnamed1)
+
+          # The wrapper refers to the member, not to a copy of it
+          z.y = 5
+          w.z.y.should eq(5)
+          w.z2 = z
+          w.z2.y.should eq(5)
+          w.z2.to_unsafe.should_not eq(z.to_unsafe)
+        end
+
+        it "supports nested members of anonymous types" do
+          a = Test::Anonymous.new
+          a.p2.x2 = 6
+          a.p2.p1.x3 = 7
+          a.p2.x2.should eq(6)
+          a.p2.p1.x3.should eq(7)
+        end
+
+        it "supports members of anonymous unions" do
+          u = Test::Wrapped.new.u
+          u.should be_a(Test::Wrapped::Unnamed2)
+          u.i = 123
+          u.f.should eq(123.unsafe_as(Float32))
+        end
+
+        it "keeps the parent of an anonymous member alive" do
+          z = Test::Wrapped.new.z
+          z.y = 8
+          GC.collect
+          Array.new(1000) { Test::Wrapped.new.z.y = 1 }
+          z.y.should eq(8)
+        end
+
+        it "ignores anonymous members nested inside unnamed members" do
+          {{ Test::Anonymous.has_method?("p0") }}.should be_false
+        end
+
         it "ignores public fields nested inside private members" do
           {{ Test::NestedPrivate.has_method?("x") }}.should be_false
           {{ Test::NestedPrivate.has_method?("x=") }}.should be_false

@@ -5,7 +5,8 @@ module Bindgen
     # Right now, methods can be ignored by any of:
     # 1. Ignoring a type the method uses as argument or result type
     # 2. By adding the name to `type.CLASS.ignore_methods`
-    # 3. Methods using anonymous types are always ignored
+    # 3. Methods using anonymous types are ignored, unless the type is named by
+    #    a `typedef` (See `InstanceProperties`)
     # 4. Methods using unknown template instantiations are always ignored
     # 5. Conversion operators to types without rules
     class FilterMethods < Base
@@ -54,7 +55,9 @@ module Bindgen
       # Checks if *type* is ignored.
       private def type_ignored?(type) : Bool
         # Log.notice { type.base_name } if type.is_a?(Parser::Type)
-        @db.try_or(type, false) { |config| config.ignore? || config.anonymous? }
+        @db.try_or(type, false) do |config|
+          config.ignore? || (config.anonymous? && config.cpp_type.nil?)
+        end
       end
 
       # Checks if *type* instantiates a template which is neither configured nor

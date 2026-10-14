@@ -46,6 +46,15 @@ module Bindgen
       end
     end
 
+    # Returns the name of the class *class_name* in C++ code.  An anonymous
+    # class can only be named through the `typedef` added by
+    # `Processor::InstanceProperties`.
+    def cpp_class_name(class_name : String) : String
+      @db.try_or(class_name, class_name) do |rules|
+        rules.cpp_type if rules.anonymous?
+      end
+    end
+
     # Is *type* a copied structure passed by value?  A `CrystalProc` passes it
     # by pointer instead, as a Crystal `Proc` doesn't follow the C ABI.
     def proc_by_pointer?(type : Parser::Type) : Bool

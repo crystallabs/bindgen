@@ -12,6 +12,7 @@ processors:
 classes:
   Point: Point
   Anonymous: Anonymous
+  Wrapped: Wrapped
   Props: Props
   PlainUnion: PlainUnion
   ManagedUnion: ManagedUnion
