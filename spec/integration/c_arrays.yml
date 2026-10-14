@@ -1,0 +1,10 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.
+
+classes:
+  Arrays: Arrays
+  Item: Item
+
+functions:
+  arraySum: Funcs

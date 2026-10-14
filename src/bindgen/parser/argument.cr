@@ -26,7 +26,7 @@ module Bindgen
         @name, @base_name, @full_name, @const, @reference, @move, @builtin,
         @void, @pointer, @template, @kind = Type::Kind::Class,
         @has_default = false, @value = nil, @nilable = false, @variadic = false,
-        @extents = Array(UInt64).new,
+        @extents = Array(UInt64).new, @array_pointer = 0,
       )
       end
 
@@ -41,6 +41,7 @@ module Bindgen
         @variadic = false
         @pointer = type.pointer
         @extents = type.extents
+        @array_pointer = type.array_pointer
         @kind = type.kind
         @template = type.template
         @nilable = type.nilable?
@@ -48,7 +49,7 @@ module Bindgen
 
       def_equals_and_hash @base_name, @full_name, @const, @reference, @move,
         @builtin, @void, @pointer, @has_default, @name, @value, @nilable,
-        @template, @extents
+        @template, @extents, @array_pointer
 
       # Does this argument have an exposed default value?
       def has_exposed_default?
@@ -78,6 +79,7 @@ module Bindgen
           void: @void,
           pointer: @pointer,
           extents: extents,
+          array_pointer: @array_pointer,
           template: @template,
           kind: @kind,
           has_default: false,
@@ -101,6 +103,7 @@ module Bindgen
           void: @void,
           pointer: @pointer,
           extents: extents,
+          array_pointer: @array_pointer,
           template: @template,
           kind: @kind,
           has_default: @has_default || other.has_default?,
@@ -133,7 +136,7 @@ module Bindgen
 
       # Checks if the type-part of this equals the type-part of *other*.
       def type_equals?(other : Type)
-        {% for i in %i[base_name full_name const reference move builtin void pointer extents template] %}
+        {% for i in %i[base_name full_name const reference move builtin void pointer extents array_pointer template] %}
           return false if @{{ i.id }} != other.@{{ i.id }}
         {% end %}
 

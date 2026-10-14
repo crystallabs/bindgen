@@ -40,6 +40,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * C arrays (#76):
   * Members of copied structures become `StaticArray`s.
   * Array members of built-in types get a getter returning a `Slice`.
+  * Methods taking or returning references to arrays of built-in types use
+    `Slice`s.  Passing one of the wrong size raises an `ArgumentError`.
 * Generic container modules (#102): `Container(T)` can be used as type
   restriction, `Container.of(T)` returns the wrapper class of an instantiation
   and `.from` builds one from any `Enumerable`.

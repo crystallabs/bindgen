@@ -64,10 +64,15 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &qt, clang::
 	}
 
 	if (const auto *arr = ctx.getAsArrayType(qt)) {
-		// An array reached through a pointer or reference, like `int (*)[4]`,
-		// can't be told apart from an array of pointers (`int *[4]`) by the
-		// extents.  Keep the array as base type instead, which isn't known.
-		if (target.pointer > static_cast<int>(target.extents.size())) {
+		// The pointers and references reached before the outermost array, like
+		// in `int (*)[4]`, apply to the whole array.  Those reached between two
+		// arrays, like in `int (*[2])[4]`, can't be described by the extents.
+		// Keep the inner array as base type then, which isn't known.
+		int extents = static_cast<int>(target.extents.size());
+
+		if (extents == 0) {
+			target.arrayPointer = target.pointer;
+		} else if (target.pointer > target.arrayPointer + extents) {
 			target.baseName = fullyQualifiedName(qt.getUnqualifiedType(), ctx);
 			return;
 		}
@@ -90,6 +95,11 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &qt, clang::
 				target.extents.push_back(0);
 				return qualTypeToType(target, iarr->getElementType(), ctx); // Recurse
 			}
+		}
+
+		// Unsupported arrays become the base type.
+		if (extents == 0) {
+			target.arrayPointer = 0;
 		}
 	}
 

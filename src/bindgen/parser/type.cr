@@ -61,6 +61,12 @@ module Bindgen
       # `[0, 5, 3]`.
       @extents = Array(UInt64).new
 
+      # Pointer and reference indirections applying to the whole C array
+      # instead of its elements, outermost first.  E.g. `int (*)[4]` has one,
+      # `int *[4]` none.  Included in `#pointer`.
+      @[JSON::Field(key: "arrayPointer")]
+      getter array_pointer = 0
+
       # Unqualified base name for easier mapping to Crystal.
       #
       # E.g., the base name of `const QWidget *&` is `QWidget`.
@@ -165,27 +171,37 @@ module Bindgen
       # removed from this type.  Each rule is tried in the following order.
       # The first winning rule returns a new type.
       #
-      # 1. If `#c_array?`, remove outermost extent (`int [4][3]` -> `int [3]`)
-      # 2. If `#const?`, remove const (`const int &` -> `int &`)
-      # 3. If `#reference?`, pointer-ize (`int &` -> `int *`)
-      # 4. If `#pointer > 0`, remove one (`int *` -> `int`)
-      # 5. Else, it's the base-type already.  Return `nil`.
+      # 1. If `#pointer_to_c_array?`, remove the outermost indirection
+      #    (`int (&)[4]` -> `int (*)[4]` -> `int [4]`)
+      # 2. If `#c_array?`, remove outermost extent (`int [4][3]` -> `int [3]`)
+      # 3. If `#const?`, remove const (`const int &` -> `int &`)
+      # 4. If `#reference?`, pointer-ize (`int &` -> `int *`)
+      # 5. If `#pointer > 0`, remove one (`int *` -> `int`)
+      # 6. Else, it's the base-type already.  Return `nil`.
       def decayed : Type?
         is_const = @const
         is_ref = @reference
         ptr = @pointer
         extents = @extents
+        array_ptr = @array_pointer
 
-        if extents.size > 0 # 1.
+        if array_ptr > 0 # 1.
+          if is_ref
+            is_ref = false
+          else
+            array_ptr -= 1
+            ptr -= 1
+          end
+        elsif extents.size > 0 # 2.
           extents = extents[1..]
           ptr -= 1
-        elsif is_const # 2.
+        elsif is_const # 3.
           is_const = false
-        elsif is_ref # 3.
+        elsif is_ref # 4.
           is_ref = false
-        elsif ptr > 0 # 4.
+        elsif ptr > 0 # 5.
           ptr -= 1
-        else # 5.
+        else # 6.
           return nil
         end
 
@@ -202,8 +218,9 @@ module Bindgen
           void: @void,
           pointer: ptr,
           extents: extents,
+          array_pointer: array_ptr,
           base_name: @base_name,
-          full_name: typer.full(@base_name, is_const, type_ptr, is_ref, extents),
+          full_name: typer.full(@base_name, is_const, type_ptr, is_ref, extents, array_ptr),
           template: @template,
           nilable: @nilable,
         )
@@ -222,6 +239,7 @@ module Bindgen
             void: @void,
             pointer: @pointer,
             extents: extents,
+            array_pointer: @array_pointer,
             base_name: @base_name,
             full_name: @full_name,
             template: @template,
@@ -298,8 +316,9 @@ module Bindgen
           void: @void,
           pointer: @pointer,
           extents: extents,
+          array_pointer: @array_pointer,
           base_name: template_full,
-          full_name: typer.full(template_full, @const, type_ptr, @reference, @extents),
+          full_name: typer.full(template_full, @const, type_ptr, @reference, @extents, @array_pointer),
           template: subst_template,
           nilable: @nilable,
         )
@@ -321,6 +340,8 @@ module Bindgen
         # `T [2]` with an array `int [4]` for `T` is `int [2][4]`.
         extents = @extents + type.extents
 
+        array_pointer = substituted_array_pointer(type, pointer)
+
         typer = Cpp::Typename.new
         type_ptr = pointer - extents.size - (reference ? 1 : 0)
 
@@ -333,26 +354,39 @@ module Bindgen
           void: type.void?,
           pointer: pointer,
           extents: extents,
+          array_pointer: array_pointer,
           base_name: type.base_name,
-          full_name: typer.full(type.base_name, const, type_ptr, reference, extents),
+          full_name: typer.full(type.base_name, const, type_ptr, reference, extents, array_pointer),
           template: type.template,
           nilable: type.nilable?,
         )
       end
 
+      # Helper for `#substitute_base`.  Returns the `#array_pointer` of the
+      # substitution with *type*, which has *pointer* indirections.
+      private def substituted_array_pointer(type, pointer)
+        # `T *` with an array `int [4]` for `T` is `int (*)[4]`.
+        if @extents.empty? && !type.extents.empty?
+          pointer - type.pointer + type.array_pointer
+        else
+          @array_pointer
+        end
+      end
+
       def_equals_and_hash @base_name, @full_name, @const, @reference, @move,
-        @builtin, @void, @pointer, @kind, @nilable, @template, @extents
+        @builtin, @void, @pointer, @kind, @nilable, @template, @extents,
+        @array_pointer
 
       def initialize(
         @base_name, @full_name, @const, @reference, @pointer, @move = false,
         @builtin = false, @void = false, @kind = Kind::Class, @template = nil,
-        @nilable = false, @extents = Array(UInt64).new,
+        @nilable = false, @extents = Array(UInt64).new, @array_pointer = 0,
       )
       end
 
       # Checks if this type equals the *other* type, except for nil-ability.
       def equals_except_nil?(other : Type)
-        {% for i in %i[base_name full_name const reference move builtin void pointer kind template extents] %}
+        {% for i in %i[base_name full_name const reference move builtin void pointer kind template extents array_pointer] %}
           return false if @{{ i.id }} != other.@{{ i.id }}
         {% end %}
 
@@ -371,18 +405,50 @@ module Bindgen
 
       # Is this type a C array?
       def c_array?
-        @extents.size > 0
+        @extents.size > 0 && @array_pointer == 0
       end
 
-      # Is this a pointer or reference to a C array, like `int (*)[4]`?  The
-      # clang tool reports the array as base type of those.
+      # Is this a pointer or reference to a C array, like `int (*)[4]`?  This
+      # includes types with a pointer between two extents, like
+      # `int (*[2])[4]`, which the clang tool reports with the inner array as
+      # base type.
       def pointer_to_c_array? : Bool
-        @extents.empty? && @base_name.ends_with?(']')
+        @array_pointer > 0 || @base_name.ends_with?(']')
+      end
+
+      # Is this an lvalue reference to a C array, like `int (&)[4]`?
+      def reference_to_c_array? : Bool
+        @array_pointer == 1 && @reference && !@move && !@base_name.ends_with?(']')
       end
 
       # Is this type a C array with known size?
       def c_complete_array?
         c_array? && @extents.none?(&.zero?)
+      end
+
+      # Returns the C array this type points or refers to, e.g. `int [4]` for
+      # `int (&)[4]`.  Only valid if `#pointer_to_c_array?`.
+      def pointee_array : Type
+        ptr = @pointer - @array_pointer
+        extents = @extents
+
+        typer = Cpp::Typename.new
+        type_ptr = ptr - extents.size
+
+        Type.new(
+          kind: @kind,
+          const: @const,
+          reference: false,
+          move: false,
+          builtin: @builtin,
+          void: @void,
+          pointer: ptr,
+          extents: extents,
+          base_name: @base_name,
+          full_name: typer.full(@base_name, @const, type_ptr, false, extents),
+          template: @template,
+          nilable: false,
+        )
       end
 
       # Returns a copy of this type with C array extents removed.

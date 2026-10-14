@@ -134,6 +134,33 @@ like this: `foo(unnamed_arg_0 : Int32, two : Int32, unnamed_arg_2 : Int32)`.
 If an argument has a name which is a reserved word in Crystal, it gets an
 underscore (`_`) appended: `void foo(int next) -> foo(next_ : Int32)`.
 
+#### §2.2.4 C arrays
+
+A reference to a complete C array of built-in types is taken as a `Slice` of
+the array's elements, which must have as many elements as the array.  If not,
+an `ArgumentError` is raised.  A `StaticArray` is passed using `#to_slice`.
+A returned reference to such an array becomes a `Slice` like an array member
+(see §2.4.6).  An array argument which decays to a pointer is a pointer.
+
+Methods using arrays of other types, or of unknown size, are not wrapped.
+Neither are virtual methods using arrays, unless they are `final`.
+
+```cpp
+struct Foo {
+  float trace(const float (&matrix)[3][3]);
+  int (&values())[4];
+  int first(const int list[4]); // Same as `const int *list`
+};
+```
+
+```crystal
+class Foo
+  def trace(matrix : Slice(StaticArray(Float32, 3))) : Float32 end
+  def values : Slice(Int32) end
+  def first(list : Int32*) : Int32 end
+end
+```
+
 ### §2.3 Inheritance and abstract classes
 
 Inheritance from wrapped C++ classes is replicated in Crystal.

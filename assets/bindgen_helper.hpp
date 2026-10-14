@@ -121,6 +121,12 @@ template<typename T, std::size_t N>
   return CrystalSlice{ arr, static_cast<int>(N), std::is_const<T>::value };
 }
 
+/* Names the type `T` where C++'s declarator syntax can't, like a parameter
+ * referring to an array: `bindgen_type<int [4]> &a` is `int (&a)[4]`.
+ */
+template<typename T>
+using bindgen_type = T;
+
 /* Wrapper for a Crystal `Proc`. */
 template<typename T, typename ... Args>
 struct CrystalProc {

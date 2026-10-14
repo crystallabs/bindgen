@@ -6,28 +6,28 @@ end
 
 describe Bindgen::Parser::Type do
   describe "#decayed" do
-    it "returns nil for base type" do # Rule 5
+    it "returns nil for base type" do # Rule 6
       parse("int").decayed.should be_nil
     end
 
-    it "decays pointer depth" do # Rule 4
+    it "decays pointer depth" do # Rule 5
       parse("int **").decayed.should eq(parse("int *"))
       parse("int *").decayed.should eq(parse("int"))
     end
 
-    it "decays reference" do # Rule 3
+    it "decays reference" do # Rule 4
       parse("int *&").decayed.should eq(parse("int **"))
       parse("int &").decayed.should eq(parse("int *"))
     end
 
-    it "decays const" do # Rule 2
+    it "decays const" do # Rule 3
       parse("const int *&").decayed.should eq(parse("int *&"))
       parse("const int &").decayed.should eq(parse("int &"))
       parse("const int *").decayed.should eq(parse("int *"))
       parse("const int").decayed.should eq(parse("int"))
     end
 
-    it "decays arrays" do # Rule 1
+    it "decays arrays" do # Rule 2
       parse("int [4]").decayed.should eq(parse("int"))
       parse("int *[4]").decayed.should eq(parse("int *"))
       parse("int [4][3]").decayed.should eq(parse("int [3]"))

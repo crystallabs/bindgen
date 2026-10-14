@@ -55,6 +55,8 @@ module Bindgen
       def to_binding(type : Parser::Type, to_unsafe = false, qualified = false) : Call::Result
         Log.trace &.emit "convert to binding", type: type.full_name, to_unsafe: to_unsafe, qualified: qualified
 
+        return array_pointer_to_binding(type, qualified) if type.pointer_to_c_array?
+
         to(type) do |is_ref, ptr, _nilable|
           typer = Typename.new(@db)
           type_name, in_lib = typer.binding(type)
@@ -128,8 +130,51 @@ module Bindgen
         "Proc(#{names})"
       end
 
+      # Passes the pointer or reference to a C array *type* as pointer to a
+      # `StaticArray`.  A reference is made from a `Slice` in the wrapper, see
+      # `#to_wrapper`.
+      private def array_pointer_to_binding(type, qualified) : Call::Result
+        typer = Typename.new(@db)
+        type_name, in_lib = typer.binding(type)
+        type_name = typer.qualified(type_name, in_lib) if qualified
+        template = Template::None.new
+
+        if type.reference_to_c_array?
+          array = typer.full(array_pointer_result(type.pointee_array, type_name), expects_type: false)
+          template = Template.from_string("BindgenHelper.slice_to_array(%, #{array})", simple: true)
+        end
+
+        array_pointer_result(type, type_name, template)
+      end
+
+      # Builds the result of a C array *type*, or a pointer or reference to
+      # one, whose element type is named *type_name*.
+      private def array_pointer_result(type, type_name, template = Template::None.new)
+        Call::Result.new(
+          type: type,
+          type_name: type_name,
+          reference: false,
+          pointer: type.pointer - type.extents.size,
+          conversion: template,
+        )
+      end
+
       # Computes a result for passing *type* to the wrapper.
       def to_wrapper(type : Parser::Type) : Call::Result
+        if type.reference_to_c_array?
+          # Taken as `Slice` of the elements of the referenced array.
+          typer = Typename.new(@db)
+          array = type.pointee_array
+          element = array_pointer_result(array.decayed.not_nil!, typer.qualified(*typer.wrapper(type)))
+
+          return Call::Result.new(
+            type: array.remove_all_extents,
+            type_name: "Slice(#{typer.full(element, expects_type: false)})",
+            reference: false,
+            pointer: 0,
+          )
+        end
+
         to(type) do |is_ref, ptr, nilable|
           typename = Typename.new(@db)
           type_name = typename.qualified(*typename.wrapper(type))
@@ -189,6 +234,9 @@ module Bindgen
       def from_binding(type : Parser::Type, qualified = false, is_constructor = false, no_slice = false) : Call::Result
         Log.trace &.emit "from binding", type: type.base_name, qualified: qualified, is_constructor: is_constructor
 
+        # The referenced array becomes a `Slice` like an array member.
+        type = type.pointee_array if type.reference_to_c_array?
+
         from(type, is_constructor: is_constructor, no_slice: no_slice) do |is_ref, ptr, _nilable|
           typer = Typename.new(@db)
 
@@ -224,6 +272,8 @@ module Bindgen
       # Computes a result for passing *type* from the wrapper to the user.
       def from_wrapper(type : Parser::Type, is_constructor = false, no_slice = false) : Call::Result
         Log.trace &.emit "from wrapper", type: type.base_name, is_constructor: is_constructor
+
+        type = type.pointee_array if type.reference_to_c_array?
 
         from(type, no_slice: no_slice) do |is_ref, ptr, nilable|
           typer = Typename.new(@db)

@@ -429,12 +429,17 @@ module Bindgen
         # Property methods of protected members are private in Crystal
         return true if private? && !(member_getter? || member_setter? || static_getter? || static_setter?)
 
-        # TODO: Support methods that take or return C arrays (which become
-        # `Slice` in Crystal).  The getters of array members do work.
+        # C arrays are passed by reference, the getters of array members return
+        # them though.
         return true if @return_type.c_array? && !member_getter? && !static_getter?
         return true if @arguments.any?(&.c_array?)
-        return true if @return_type.pointer_to_c_array?
-        return true if @arguments.any?(&.pointer_to_c_array?)
+
+        array_types = ([@return_type] + @arguments).select(&.pointer_to_c_array?)
+        return true unless array_types.all? { |type| supported_array_pointer?(type) }
+
+        # TODO: Overriding these from Crystal needs passing the arrays through
+        # `CrystalProc`s.
+        return true if !array_types.empty? && virtual? && !final?
 
         # Check that all arguments, which pass in explicit by-value, either take
         # the value directly, or a const-reference to it.
@@ -451,6 +456,14 @@ module Bindgen
         return true if passed_by_value?(db, @return_type) && by_pointer?(@return_type)
 
         false # This method is fine.
+      end
+
+      # Can the reference to a C array *type* be passed?  This needs a
+      # complete array of built-in elements, which is passed as `Slice`.
+      #
+      # TODO: Support arrays of wrapped types.
+      private def supported_array_pointer?(type) : Bool
+        type.reference_to_c_array? && type.builtin? && type.extents.none?(&.zero?)
       end
 
       # Is *type* configured to be passed by-value?

@@ -19,17 +19,21 @@ module Bindgen
         # Crystal's `Int32[2][3]` is equivalent to C's `int [3][2]`.
         extents = result.type.extents.reverse
 
+        # The pointers to the whole array, like in `Int32[4]*`, come last.
+        outer = {result.type.array_pointer, ptr}.min
+        ptr -= outer
+
         if expects_type
           stars = "*" * ptr if ptr > 0
           subscripts = extents.join { |v| "[#{v unless v.zero?}]" }
-          "#{result.type_name}#{stars}#{subscripts}#{nilable}"
+          "#{result.type_name}#{stars}#{subscripts}#{"*" * outer}#{nilable}"
         else
           prefix = "Pointer(" * ptr if ptr > 0
           suffix = ")" * ptr if ptr > 0
           name = extents.reduce("#{prefix}#{result.type_name}#{suffix}") do |inner, v|
             "StaticArray(#{inner}, #{v})"
           end
-          "#{name}#{nilable}"
+          "#{"Pointer(" * outer}#{name}#{")" * outer}#{nilable}"
         end
       end
 

@@ -115,6 +115,16 @@ module BindgenHelper
     )
   end
 
+  # Passes *slice* as reference to a C array of the *array* type.  Raises an
+  # `ArgumentError` unless the sizes match.
+  def self.slice_to_array(slice : Slice(T), array : StaticArray(T, N).class) : Pointer(StaticArray(T, N)) forall T, N
+    unless slice.size == N
+      raise ArgumentError.new("Expected a Slice of #{N} elements, got #{slice.size}")
+    end
+
+    slice.to_unsafe.as(Pointer(StaticArray(T, N)))
+  end
+
   # Unwraps a `Binding::CrystalSlice` to a Crystal `Slice(T)`.
   module SliceConverter(T)
     def self.unwrap(slice : Binding::CrystalSlice)

@@ -50,16 +50,20 @@ describe "clang tool classes feature" do
         struct Arrays {
           int *pointers[4];
           int (*array)[4];
+          int *(*pointerArray)[4];
           const int (&ref)[2][3];
+          int (*arrays[2])[4];
         };
       ],
       "-c Arrays",
       classes: {
         Arrays: {
           fields: [
-            {name: "pointers", baseName: "int", pointer: 2, extents: [4]},
-            {name: "array", baseName: "int[4]", pointer: 1, extents: [] of UInt64},
-            {name: "ref", baseName: "const int[2][3]", pointer: 1, isReference: true},
+            {name: "pointers", baseName: "int", pointer: 2, extents: [4], arrayPointer: 0},
+            {name: "array", baseName: "int", pointer: 2, extents: [4], arrayPointer: 1},
+            {name: "pointerArray", baseName: "int", pointer: 3, extents: [4], arrayPointer: 1},
+            {name: "ref", baseName: "int", isConst: true, pointer: 3, extents: [2, 3], arrayPointer: 1, isReference: true},
+            {name: "arrays", baseName: "int[4]", pointer: 2, extents: [2], arrayPointer: 0},
           ],
         },
       },

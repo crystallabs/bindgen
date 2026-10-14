@@ -25,6 +25,7 @@ struct Type {
 	bool isBuiltin = false; // If this is a C++ built-in type.
 	bool isVoid = false; // If the derefenced type is C++ `void`.
 	std::vector<uint64_t> extents; // C array extents, e.g. `int[][5][3]` => `{0, 5, 3}`
+	int arrayPointer = 0; // Indirections to the whole array, e.g. `int (*)[4]` => 1
 	std::string baseName; // Base type. E.g., `const Foo *&` => `Foo`
 	std::string fullName; // Full name, for C++. E.g. `const Foo *&`
 

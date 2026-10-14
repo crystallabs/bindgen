@@ -127,6 +127,9 @@ The following rules are automatically applied to all bindings:
 |  +- Mapping global functions                     | **YES** |
 |  +- Wrapping as Crystal class                    | **YES** |
 | Overloaded methods (Also default arguments)      | **YES** |
+| C arrays in methods                              |         |
+|  +- References to arrays, as `Slice`             | **YES** |
+|  +- Arrays of wrapped types                      |   TBD   |
 | Copying default argument values                  |         |
 |  +- Integer, float, boolean types                | **YES** |
 |  +- String                                       | **YES** |

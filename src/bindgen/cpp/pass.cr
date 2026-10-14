@@ -89,6 +89,9 @@ module Bindgen
       # 2. The type is passed by-pointer
       #   a. Pass by-pointer
       def to_cpp(type : Parser::Type) : Call::Result
+        # Passed on as is, see `Typename#full`.
+        return through(type) if type.pointer_to_c_array?
+
         is_copied = type_copied?(type)
         is_ref = type.reference?
         is_val = type.pointer < 1
@@ -148,6 +151,9 @@ module Bindgen
       # 4. In all other cases
       #   a. Pass by-reference or by-pointer as defined by *type*.
       def to_crystal(type : Parser::Type, is_constructor = false) : Call::Result
+        # The referenced array becomes a `Slice` like an array member.
+        type = type.pointee_array if type.reference_to_c_array?
+
         is_copied = type_copied?(type)
         is_ref = type.reference?
         ptr = type_pointer_depth(type)
