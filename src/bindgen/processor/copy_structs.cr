@@ -111,7 +111,9 @@ module Bindgen
         type_name = field.full_name
         binding_pointer = result.pointer + (result.reference ? 1 : 0)
 
-        reason = if @db.try_or(field, false) { |rules| converted_type?(field, rules) }
+        reason = if field.reference? || field.move?
+                   "it is a reference"
+                 elsif @db.try_or(field, false) { |rules| converted_type?(field, rules) }
                    "its type #{type_name} is converted when passed to Crystal"
                  elsif binding_pointer == type_pointer_depth(field)
                    nil # Same layout.

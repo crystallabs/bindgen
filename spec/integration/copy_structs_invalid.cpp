@@ -75,3 +75,8 @@ typedef bool flag_t;
 struct AliasMember {
   flag_t flag;
 };
+
+// A structure holding a reference can't be laid out in Crystal.
+struct ReferenceMember {
+  int &value;
+};

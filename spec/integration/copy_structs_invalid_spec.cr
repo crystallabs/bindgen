@@ -62,6 +62,12 @@ describe "copied structure validation" do
     output.should contain("flag : Bool\n")
   end
 
+  it "rejects a reference member" do
+    code, errors = copy_structures("ReferenceMember")
+    code.should eq(1)
+    errors.should contain(%(field "value" can't be part of a lib struct, it is a reference))
+  end
+
   it "rejects a std::string member" do
     code, errors = copy_structures("StringMember")
     code.should eq(1)
