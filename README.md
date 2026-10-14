@@ -140,7 +140,7 @@ The following rules are automatically applied to all bindings:
 | Integration with Crystals GC                     | **YES** |
 | C++ Template instantiation for containers types  |         |
 |  +- Sequential containers                        | **YES** |
-|  +- Associative containers                       |   TBD   |
+|  +- Associative containers                       | **YES** |
 | Virtual methods                                  | **YES** |
 | Override virtual methods from Crystal            | **YES** |
 | Abstract classes                                 | **YES** |
@@ -474,6 +474,37 @@ Adds the container instantiation classes and wrappers.
 Each container class also gets a generic module, e.g. `QList(T)`.  Use it as
 type restriction, or get the wrapper class of an instantiation through its `of`
 macro: `QList.of(Int32).new`.  See `SPEC.md` for details.
+
+Wrappers of sequential containers, like `std::vector`, are `Indexable`.
+Wrappers of associative containers, like `std::map`, `std::unordered_map`,
+`QMap` and `QHash`, offer a `Hash`-like interface: `#[]`, `#[]?`, `#[]=`,
+`#has_key?`, `#delete`, `#size`, `#keys`, `#values` and `#to_h`, and they are
+`Enumerable` over tuples of the key and the value.  `#each` iterates over a
+copy of the entries, so changing the container meanwhile is safe.  Any
+`Enumerable` of such tuples, like a `Hash`, is accepted where C++ expects the
+container.
+
+```crystal
+lengths = Std::Map.of(String, Int32).from({"one" => 3})
+lengths["three"] = 5
+lengths.each { |word, length| puts "#{word}: #{length}" }
+```
+
+Associative containers call the C++ methods `count(key)`, `erase(key)` and
+`size()`, and the helpers `bindgen_map_fetch`, `bindgen_map_store` and
+`BindgenMapEntries` from `bindgen_helper.hpp`.  For Qt, configure the method
+names:
+
+```yaml
+containers:
+  - class: std::map
+    type: Associative
+  - class: QMap
+    type: Associative
+    count_method: contains
+    erase_method: remove
+    insert_method: insert # Instead of `bindgen_map_store`, which needs `emplace`
+```
 
 ## `Macros`
 

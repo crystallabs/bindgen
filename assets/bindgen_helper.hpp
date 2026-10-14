@@ -64,6 +64,7 @@ static __attribute__((noreturn)) void bindgen_fatal_panic(const char *message) {
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 // The wrapper functions return copied structures by value, which Crystal knows
 // as `lib struct` of the same layout.  Clang warns if such a type isn't a POD,
@@ -204,6 +205,82 @@ struct bg_deref {
 
   // Allows passing the value straight on into a converter function.
   operator T() && { return std::move(data); }
+};
+
+/* Access to the key and value an iterator of an associative container points
+ * at.  Qt's iterators offer `key()` and `value()`, which are preferred, those
+ * of the standard library point at a `std::pair`.  Pass `0` as second
+ * argument.
+ */
+template <typename It>
+auto bindgen_iterator_key(const It &it, int) -> decltype(it.key()) {
+  return it.key();
+}
+
+template <typename It>
+auto bindgen_iterator_key(const It &it, long) -> decltype((it->first)) {
+  return it->first;
+}
+
+template <typename It>
+auto bindgen_iterator_value(const It &it, int) -> decltype(it.value()) {
+  return it.value();
+}
+
+template <typename It>
+auto bindgen_iterator_value(const It &it, long) -> decltype((it->second)) {
+  return it->second;
+}
+
+/* Returns the value of `key` in the associative container `map`.  The caller
+ * checks that the key exists, through the container's `count` method.  Unlike
+ * `map.at(key)` this never throws, and unlike `map[key]` it doesn't require
+ * the value type to be default constructible.
+ */
+template <typename M>
+const typename M::mapped_type &bindgen_map_fetch(const M &map, const typename M::key_type &key) {
+  auto it = map.find(key);
+  if (it == map.end()) bindgen_fatal_panic("Key not found in associative container");
+  return bindgen_iterator_value(it, 0);
+}
+
+/* Sets the value of `key` in the associative container `map`, replacing an
+ * existing value.  `map[key] = value` would require the value type to be
+ * default constructible, and `insert_or_assign` requires C++17.
+ */
+template <typename M>
+void bindgen_map_store(M &map, const typename M::key_type &key, const typename M::mapped_type &value) {
+  auto it = map.find(key);
+  if (it != map.end()) {
+    bindgen_iterator_value(it, 0) = value;
+  } else {
+    map.emplace(key, value);
+  }
+}
+
+/* Copy of all entries of an associative container `M`, taken at once.  The
+ * entries are then accessed by index from Crystal, as C++ iterators can't be
+ * passed to Crystal.  As it's a copy, changing the container while iterating
+ * over the entries is safe.
+ */
+template <typename M>
+struct BindgenMapEntries {
+  typedef typename M::key_type key_type;
+  typedef typename M::mapped_type mapped_type;
+
+  std::vector<std::pair<key_type, mapped_type>> entries;
+
+  BindgenMapEntries(const M &map) {
+    entries.reserve(map.size());
+
+    for (auto it = map.begin(); it != map.end(); ++it) {
+      entries.emplace_back(bindgen_iterator_key(it, 0), bindgen_iterator_value(it, 0));
+    }
+  }
+
+  int size() const { return static_cast<int>(entries.size()); }
+  const key_type &key(int index) const { return entries[index].first; }
+  const mapped_type &value(int index) const { return entries[index].second; }
 };
 
 #endif // __cplusplus

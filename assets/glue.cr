@@ -187,4 +187,137 @@ module BindgenHelper
       extend ClassMethods(T)
     end
   end
+
+  # Wrapper for an instantiated, associative container type.
+  #
+  # This offers a subset of the methods known from `Hash`, and is `Enumerable`
+  # over tuples of the key and the value, like `Hash`.
+  #
+  # Iteration works on a copy of all entries, which is taken by `#each`.  This
+  # makes it safe to change the container while iterating over it.
+  module AssociativeContainer(K, V)
+    include Enumerable({K, V})
+
+    # `#size`, `#unsafe_count`, `#unsafe_erase` and `#unsafe_store` (or
+    # `.unsafe_store`), and `.unsafe_fetch` will be implemented by the wrapper
+    # class.  The wrapper class also has an `Entries` class.
+
+    # Returns the value of *key*.  Raises `KeyError` if there's none.
+    def [](key : K) : V
+      raise KeyError.new("Missing key: #{key.inspect}") unless has_key?(key)
+      self.class.unsafe_fetch(self, key)
+    end
+
+    # Returns the value of *key*, or `nil` if there's none.
+    def []?(key : K) : V?
+      self.class.unsafe_fetch(self, key) if has_key?(key)
+    end
+
+    # Returns the value of *key*, or *default* if there's none.
+    def fetch(key : K, default)
+      has_key?(key) ? self.class.unsafe_fetch(self, key) : default
+    end
+
+    # Returns the value of *key*, or the value of the block if there's none.
+    def fetch(key : K, &)
+      has_key?(key) ? self.class.unsafe_fetch(self, key) : yield key
+    end
+
+    # Sets the *value* of *key*, replacing an existing value.
+    def []=(key : K, value : V) : V
+      {% if @type.has_method?(:unsafe_store) %}
+        unsafe_store(key, value)
+      {% else %}
+        self.class.unsafe_store(self, key, value)
+      {% end %}
+      value
+    end
+
+    # Returns if there's a value for *key*.
+    def has_key?(key : K) : Bool
+      unsafe_count(key) > 0
+    end
+
+    # Removes *key*, returning its value, or `nil` if there was none.
+    def delete(key : K) : V?
+      delete(key) { nil }
+    end
+
+    # Removes *key*, returning its value, or the value of the block if there
+    # was none.
+    def delete(key : K, &)
+      return yield key unless has_key?(key)
+
+      value = self.class.unsafe_fetch(self, key)
+      unsafe_erase(key)
+      value
+    end
+
+    def empty? : Bool
+      size == 0
+    end
+
+    # Yields each key and value.  The entries are copied beforehand.
+    def each(& : {K, V} ->) : Nil
+      entries = {{ "#{@type}::Entries".id }}.new(self)
+      entries.size.times do |i|
+        yield({entries.unsafe_key(i), entries.unsafe_value(i)})
+      end
+    end
+
+    # Yields each key.
+    def each_key(& : K ->) : Nil
+      each { |key, _| yield key }
+    end
+
+    # Yields each value.
+    def each_value(& : V ->) : Nil
+      each { |_, value| yield value }
+    end
+
+    # Returns all keys.
+    def keys : Array(K)
+      map { |key, _| key }
+    end
+
+    # Returns all values.
+    def values : Array(V)
+      map { |_, value| value }
+    end
+
+    # Sets the values of all *pairs*, which may be a `Hash`.
+    def concat(pairs : Enumerable({K, V})) : self
+      pairs.each { |key, value| self[key] = value }
+      self
+    end
+
+    # :ditto:
+    def merge!(pairs : Enumerable({K, V})) : self
+      concat(pairs)
+    end
+
+    def to_s(io)
+      to_h.to_s(io)
+    end
+
+    def inspect(io)
+      io << "<Wrapped "
+      to_h.inspect(io)
+      io << ">"
+    end
+
+    # Note: Crystal has no dependent types, so this module must refer to its own
+    # type parameters `K` and `V`.
+    private module ClassMethods(K, V)
+      # Wraps the *pairs*, which may be a `Hash`, into a container of this type,
+      # if it's not already one.
+      def from(pairs : Enumerable({K, V})) : self
+        BindgenHelper.wrap_container(self, pairs)
+      end
+    end
+
+    macro included
+      extend ClassMethods(K, V)
+    end
+  end
 end

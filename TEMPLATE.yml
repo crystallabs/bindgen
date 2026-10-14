@@ -346,11 +346,20 @@ containers:
     # access_method: C++ item access method.  Defaults to `at`.
     # size_method: C++ container size method.  Defaults to `size`.
     # push_method: C++ item append method.  Defaults to `push_back`.
+    # Associative containers (Keys mapping to values, like `std::map`):
+    # count_method: C++ method counting the entries of a key, or returning a
+    #   `bool` (Like Qt's `contains`).  Defaults to `count`.
+    # erase_method: C++ method removing a key.  Defaults to `erase`.
+    # insert_method: C++ method `insert(key, value)` replacing the value of an
+    #   existing key (Like Qt's `insert`).  If unset, `bindgen_map_store` from
+    #   `bindgen_helper.hpp` is used, which assigns or calls `emplace`.
     instantiations: # All wanted instantiations of this container
       # If using the `auto_container_instantiation` processor, this whole map
       # can be omitted.  It's still required to define the container classes.
       - [ "C++ type name" ]
       # - [ "..." ]
+      # Associative containers take the key and the value type:
+      # - [ "std::string", "int" ]
 
 # Configuration for the C++ parser.
 parser:

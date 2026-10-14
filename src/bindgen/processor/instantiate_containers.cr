@@ -67,7 +67,7 @@ module Bindgen
         when .sequential?
           add_sequential_containers(container, root)
         when .associative?
-          raise "Associative containers are not yet supported."
+          add_associative_containers(container, root)
         else
           raise "BUG: Missing case for #{container.type.inspect}"
         end
@@ -78,6 +78,14 @@ module Bindgen
         container.instantiations.each do |instance|
           check_sequential_instance! container, instance
           add_sequential_container(container, instance, root)
+        end
+      end
+
+      # Adds all instances of the associative *container* into *root*.
+      private def add_associative_containers(container, root)
+        container.instantiations.each do |instance|
+          check_associative_instance! container, instance
+          add_associative_container(container, instance, root)
         end
       end
 
@@ -103,12 +111,37 @@ module Bindgen
         klass = build_sequential_class(container, templ_type)
 
         add_cpp_typedef(root, templ_type, klass.name)
-        set_sequential_container_type_rules(container, klass, templ_type)
+        set_container_type_rules(container, klass, templ_type)
 
         graph = builder.build_class(klass, klass.name, root)
         graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
         graph.included_modules << container_module(SEQUENTIAL_MODULE, templ_args)
         graph.included_modules << container_module(container.class, templ_args)
+      end
+
+      # Instantiates a single associative *container* *instance* into *root*.
+      # The entries of the container are copied for iteration into a
+      # `BindgenMapEntries`, which is wrapped as the nested `Entries` class.
+      private def add_associative_container(container, instance, root)
+        builder = Graph::Builder.new(@db)
+
+        templ_type = Parser::Type.parse(cpp_container_name(container, instance))
+        templ_args = templ_type.template.not_nil!.arguments
+        klass = build_associative_class(container, templ_type)
+        entries = build_entries_class(klass, templ_type)
+        entries_type = Parser::Type.parse("BindgenMapEntries<#{templ_type.full_name}>")
+
+        add_cpp_typedef(root, templ_type, klass.name)
+        add_cpp_typedef(root, entries_type, entries.name)
+        set_container_type_rules(container, klass, templ_type)
+
+        graph = builder.build_class(klass, klass.name, root)
+        graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
+        graph.included_modules << container_module(ASSOCIATIVE_MODULE, templ_args)
+        graph.included_modules << container_module(container.class, templ_args)
+
+        entries_graph = builder.build_class(entries, "Entries", graph)
+        entries_graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
       end
 
       # Generates the C++ template name of a container class.
@@ -119,11 +152,14 @@ module Bindgen
 
       # Generates the Crystal module name of a container class.
       private def container_module(kind, types)
+        "#{Graph::Path.from(module_name(kind)).camelcase}(#{wrapper_type_list(types)})"
+      end
+
+      # Returns the comma-separated Crystal wrapper types of *types*.
+      private def wrapper_type_list(types)
         pass = Crystal::Pass.new(@db)
         typer = Crystal::Typename.new(@db)
-        args = types.map { |t| typer.full pass.to_wrapper(t) }.join(", ")
-
-        "#{Graph::Path.from(module_name(kind)).camelcase}(#{args})"
+        types.map { |t| typer.full pass.to_wrapper(t) }.join(", ")
       end
 
       # Removes implementation namespaces like `__1` in `std::__1::vector` from
@@ -154,17 +190,17 @@ module Bindgen
         )
       end
 
-      # Updates the rules of the sequential *container* *klass*, whose
-      # instantiated type is *templ_type*.  The rules are changed to convert
-      # from and to the binding type.
-      private def set_sequential_container_type_rules(container, klass : Parser::Class, templ_type)
+      # Updates the rules of the *container* *klass*, whose instantiated type is
+      # *templ_type*.  The rules are changed to convert from and to the binding
+      # type.
+      private def set_container_type_rules(container, klass : Parser::Class, templ_type)
         rules = @db.get_or_add(templ_type.full_name)
         type_args = templ_type.template.not_nil!.arguments
 
         rules.pass_by = TypeDatabase::PassBy::Pointer
         rules.wrapper_pass_by = TypeDatabase::PassBy::Value
         rules.binding_type = klass.name
-        rules.crystal_type ||= container_module("Enumerable", type_args)
+        rules.crystal_type ||= enumerable_type(container, type_args)
         rules.container_type ||= container_module(container.class, type_args)
         rules.cpp_type ||= klass.name
 
@@ -190,6 +226,24 @@ module Bindgen
         rules.binding_type = klass.name
       end
 
+      # Returns the `Enumerable` the wrapper of *container* instantiated with
+      # the *type_args* includes.  Associative containers enumerate tuples of
+      # the key and the value, like `Hash`.
+      private def enumerable_type(container, type_args)
+        if container.type.associative?
+          "Enumerable({#{wrapper_type_list(type_args)}})"
+        else
+          container_module("Enumerable", type_args)
+        end
+      end
+
+      # Checks if *instance* of *container* is valid.  If not, raises.
+      private def check_associative_instance!(container, instance)
+        if instance.size != 2
+          raise "Container #{container.class} was expected to have exactly two template arguments"
+        end
+      end
+
       # Checks if *instance* of *container* is valid.  If not, raises.
       private def check_sequential_instance!(container, instance)
         if instance.size != 1
@@ -209,6 +263,110 @@ module Bindgen
         klass.methods << size_method(container, klass.name)
 
         klass
+      end
+
+      # Builds a full `Parser::Class` for the associative *container* in the
+      # specified *instantiation*.  Lookups and assignments use the helper
+      # functions `bindgen_map_fetch` and `bindgen_map_store`, as `at()` throws
+      # and `operator[]` requires a default constructible value type.
+      private def build_associative_class(container, templ_type : Parser::Type) : Parser::Class
+        key_type, value_type = templ_type.template.not_nil!.arguments
+        klass = container_class(container, templ_type)
+        self_type = Parser::Type.parse("#{templ_type.full_name} &")
+        key_arg = Parser::Argument.new("key", key_type)
+        value_arg = Parser::Argument.new("value", value_type)
+
+        klass.methods << default_constructor_method(klass)
+        klass.methods << size_method(container, klass.name)
+
+        klass.methods << Parser::Method.build(
+          name: container.count_method,
+          class_name: klass.name,
+          arguments: [key_arg],
+          return_type: Parser::Type.builtin_type(CPP_INTEGER_TYPE),
+          crystal_name: "unsafe_count", # Used by `AssociativeContainer#has_key?`
+        )
+
+        klass.methods << Parser::Method.build(
+          name: container.erase_method,
+          class_name: klass.name,
+          arguments: [key_arg],
+          return_type: Parser::Type::VOID,
+          crystal_name: "unsafe_erase", # Used by `AssociativeContainer#delete`
+        )
+
+        klass.methods << map_helper_method(klass, "bindgen_map_fetch", "fetch",
+          [Parser::Argument.new("map", self_type), key_arg], value_type)
+
+        if insert_method = container.insert_method
+          klass.methods << Parser::Method.build(
+            name: insert_method,
+            class_name: klass.name,
+            arguments: [key_arg, value_arg],
+            return_type: Parser::Type::VOID,
+            crystal_name: "unsafe_store", # Used by `AssociativeContainer#[]=`
+          )
+        else
+          klass.methods << map_helper_method(klass, "bindgen_map_store", "store",
+            [Parser::Argument.new("map", self_type), key_arg, value_arg], Parser::Type::VOID)
+        end
+
+        klass
+      end
+
+      # Builds a static method of *klass* calling the global helper function
+      # *name* from `bindgen_helper.hpp`.  Its Crystal name is `unsafe_` and
+      # the *suffix*.
+      private def map_helper_method(klass, name, suffix, arguments, return_type)
+        method = Parser::Method.build(
+          type: Parser::Method::Type::StaticMethod,
+          name: name,
+          class_name: Cpp::MethodName::GLOBAL_SCOPE,
+          arguments: arguments,
+          return_type: return_type,
+          crystal_name: "unsafe_#{suffix}",
+        )
+
+        # Name the binding after the container, as the helper is global.
+        method.binding_name = "#{klass.name}_#{suffix}"
+        method
+      end
+
+      # Builds the class of the `BindgenMapEntries` of the associative
+      # container *klass*, whose instantiated type is *templ_type*.
+      private def build_entries_class(klass, templ_type : Parser::Type) : Parser::Class
+        key_type, value_type = templ_type.template.not_nil!.arguments
+        entries = Parser::Class.new(name: "#{klass.name}_Entries")
+        map_type = Parser::Type.parse("const #{templ_type.full_name} &")
+        index_arg = Parser::Argument.new("index", Parser::Type.builtin_type(CPP_INTEGER_TYPE))
+
+        entries.methods << Parser::Method.build(
+          type: Parser::Method::Type::Constructor,
+          class_name: entries.name,
+          name: "",
+          return_type: entries.as_type,
+          arguments: [Parser::Argument.new("map", map_type)],
+        )
+
+        entries.methods << size_method_named("size", entries.name)
+
+        entries.methods << Parser::Method.build(
+          name: "key",
+          class_name: entries.name,
+          arguments: [index_arg],
+          return_type: key_type,
+          crystal_name: "unsafe_key",
+        )
+
+        entries.methods << Parser::Method.build(
+          name: "value",
+          class_name: entries.name,
+          arguments: [index_arg],
+          return_type: value_type,
+          crystal_name: "unsafe_value",
+        )
+
+        entries
       end
 
       # Takes a `Configuration::Container` and returns a `Parser::Class` for a
@@ -260,8 +418,13 @@ module Bindgen
 
       # Builds the size method for the *klass_name* of a instantiated container.
       private def size_method(container : Configuration::Container, klass_name : String) : Parser::Method
+        size_method_named(container.size_method, klass_name)
+      end
+
+      # Builds the size method called *name* for the *klass_name*.
+      private def size_method_named(name : String, klass_name : String) : Parser::Method
         Parser::Method.build(
-          name: container.size_method,
+          name: name,
           class_name: klass_name,
           arguments: [] of Parser::Argument,
           return_type: Parser::Type.builtin_type(CPP_INTEGER_TYPE),

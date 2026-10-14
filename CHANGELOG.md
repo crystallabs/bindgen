@@ -45,6 +45,11 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   and `.from` builds one from any `Enumerable`.
 * `#to?(T.class)` casts between wrapper classes, down to polymorphic
   sub-classes through `dynamic_cast` (#87).
+* Associative containers (`type: Associative`), like `std::map`,
+  `std::unordered_map` and `QMap`: The wrappers include
+  `BindgenHelper::AssociativeContainer(K, V)`, which offers a `Hash`-like
+  interface, and are built from a `Hash`.  The C++ method names are configured
+  by `count_method`, `erase_method` and `insert_method`.
 * Shared linking uses `libclang-cpp` and `libLLVM` (#66).
 * `tool.sh` builds `bin/bindgen` once and reuses it.
 * The clang tool's output carries a format version, so an outdated

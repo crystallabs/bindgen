@@ -58,6 +58,103 @@ describe "container instantiation feature" do
           Test::Containers.new.transpose(mat).map(&.to_a).should eq([[1.2, 5.6], [3.4, 7.8]])
         end
       end
+
+      context "associative container" do
+        it "works with auto instantiated container (result)" do
+          names = Test::Containers.new.number_names
+          names.should be_a(Test::Std::Map(Int32, String))
+          names.size.should eq(3)
+          names[2].should eq("Two")
+          names[4]?.should be_nil
+          expect_raises(KeyError) { names[4] }
+          names.has_key?(1).should be_true
+          names.has_key?(4).should be_false
+          names.keys.should eq([1, 2, 3])
+          names.values.should eq(["One", "Two", "Three"])
+          names.to_h.should eq({1 => "One", 2 => "Two", 3 => "Three"})
+          names.to_a.should eq([{1, "One"}, {2, "Two"}, {3, "Three"}])
+          names.fetch(5, "Five").should eq("Five")
+        end
+
+        it "changes the container" do
+          names = Test::Containers.new.number_names
+          names[2] = "Zwei"
+          names[4] = "Vier"
+          names.to_h.should eq({1 => "One", 2 => "Zwei", 3 => "Three", 4 => "Vier"})
+
+          names.delete(1).should eq("One")
+          names.delete(1).should be_nil
+          names.delete(1) { "Gone" }.should eq("Gone")
+          names.keys.should eq([2, 3, 4])
+        end
+
+        it "allows changing the container while iterating" do
+          names = Test::Containers.new.number_names
+
+          seen = [] of Int32
+          names.each do |key, _|
+            seen << key
+            names.delete(key + 1)
+            names[key + 10] = "More"
+          end
+
+          # Iteration goes over the entries as they were when it started.
+          seen.should eq([1, 2, 3])
+          names.keys.should eq([1, 11, 12, 13])
+        end
+
+        it "works with auto instantiated container (argument)" do
+          lengths = Test::Containers.new.word_lengths(["a", "bcd", "ef"])
+          lengths.should be_a(Test::Std::UnorderedMap(String, Int32))
+          lengths.to_h.should eq({"a" => 1, "bcd" => 3, "ef" => 2})
+          Test::Containers.new.sum_values(lengths).should eq(6)
+
+          Test::Containers.new.sum_values({"x" => 4, "y" => 5}).should eq(9)
+          map = Test::Std::UnorderedMap.of(String, Int32).from({"z" => 7})
+          map["z"].should eq(7)
+          Test::Containers.new.sum_values(map).should eq(7)
+        end
+
+        it "works with aliased containers" do
+          book = Test::Containers.new.phonebook_entries
+          book.class.should eq(Test::Std::Map.of(String, Int32))
+          book.to_h.should eq({"Alice" => 123, "Bob" => 456})
+          book.to_s.should eq(%({"Alice" => 123, "Bob" => 456}))
+        end
+
+        it "works with nested containers" do
+          multiples = Test::Containers.new.multiples(2)
+          multiples[2].to_a.should eq([2, 4, 6])
+          multiples.map { |k, v| {k, v.to_a} }.should eq([{1, [1, 2, 3]}, {2, [2, 4, 6]}])
+
+          multiples[3] = [3, 6]
+          Test::Containers.new.sum_all(multiples).should eq(6 + 12 + 9)
+          Test::Containers.new.sum_all({5 => [5], 6 => [6, 6]}).should eq(17)
+        end
+
+        it "works with wrapped classes" do
+          points = Test::Points.new.named
+          points["unit"].y.should eq(1)
+          points.keys.should eq(["origin", "unit"])
+          points.values.map(&.x).should eq([0, 1])
+
+          points["far"] = Test::Point.new(5, 6)
+          points["unit"] = Test::Point.new(2, 2)
+          Test::Points.new.sum_x(points).should eq(7)
+          Test::Points.new.sum_x({"a" => Test::Point.new(3, 0)}).should eq(3)
+        end
+
+        it "works with configured method names" do
+          roots = Test::QtStyle.new.square_roots
+          roots.to_h.should eq({4 => 2.0, 9 => 3.0})
+          roots[9].should eq(3.0)
+          roots[16] = 4.0
+          roots[4] = -2.0
+          roots.delete(9).should eq(3.0)
+          roots.has_key?(9).should be_false
+          roots.to_h.should eq({4 => -2.0, 16 => 4.0})
+        end
+      end
     end
   end
 end

@@ -12,6 +12,9 @@ processors:
 
 classes:
   Containers: Containers
+  Point: Point
+  Points: Points
+  QtStyle: QtStyle
 
 containers:
   - class: std::vector
@@ -25,7 +28,23 @@ containers:
       - [ "unsigned int" ]
   - class: std::__1::vector
     type: Sequential
+  - class: std::map
+    type: Associative
+    instantiations:
+      - [ "std::string", "int" ]
+  - class: std::__1::map
+    type: Associative
+  - class: std::unordered_map
+    type: Associative
+  - class: std::__1::unordered_map
+    type: Associative
+  - class: QtStyleMap
+    type: Associative
+    count_method: contains
+    insert_method: insert
+    erase_method: remove
 
 types:
   rgb: { alias_for: "unsigned int" }
   bytearray: { alias_for: "std::vector<unsigned char>" }
+  phonebook: { alias_for: "std::map<std::string, int>" }

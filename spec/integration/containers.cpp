@@ -1,7 +1,10 @@
 #include <vector>
 #include <string>
+#include <map>
+#include <unordered_map>
 
 typedef std::vector<unsigned char> bytearray;
+typedef std::map<std::string, int> phonebook;
 typedef unsigned int rgb;
 
 class Containers {
@@ -69,5 +72,128 @@ public:
     }
 
     return trsp;
+  }
+
+  std::map<int, std::string> numberNames() {
+    return { { 1, "One" }, { 2, "Two" }, { 3, "Three" } };
+  }
+
+  std::unordered_map<std::string, int> wordLengths(const std::vector<std::string> &words) {
+    std::unordered_map<std::string, int> lengths;
+
+    for (const std::string &w : words) {
+      lengths[w] = static_cast<int>(w.size());
+    }
+
+    return lengths;
+  }
+
+  int sumValues(const std::unordered_map<std::string, int> &map) {
+    int sum = 0;
+
+    for (const auto &pair : map) {
+      sum += pair.second;
+    }
+
+    return sum;
+  }
+
+  phonebook phonebookEntries() {
+    return { { "Alice", 123 }, { "Bob", 456 } };
+  }
+
+  std::map<int, std::vector<int>> multiples(int count) {
+    std::map<int, std::vector<int>> result;
+
+    for (int i = 1; i <= count; ++i) {
+      result[i] = { i, i * 2, i * 3 };
+    }
+
+    return result;
+  }
+
+  int sumAll(const std::map<int, std::vector<int>> &map) {
+    int sum = 0;
+
+    for (const auto &pair : map) {
+      for (int v : pair.second) {
+        sum += v;
+      }
+    }
+
+    return sum;
+  }
+};
+
+class Point {
+public:
+  Point(int x, int y) : x(x), y(y) { }
+
+  int getX() const { return x; }
+  int getY() const { return y; }
+
+  int x;
+  int y;
+};
+
+// Point has no default constructor, so `std::map::operator[]` is unusable.
+class Points {
+public:
+  std::map<std::string, Point> named() {
+    return { { "origin", Point(0, 0) }, { "unit", Point(1, 1) } };
+  }
+
+  int sumX(const std::map<std::string, Point> &points) {
+    int sum = 0;
+
+    for (const auto &pair : points) {
+      sum += pair.second.x;
+    }
+
+    return sum;
+  }
+};
+
+// Mimics the API of Qt's `QMap`: Iterators have `key()` and `value()`,
+// `insert()` replaces existing values, and `remove()` erases.
+template <typename K, typename V>
+class QtStyleMap {
+  std::map<K, V> data;
+
+public:
+  typedef K key_type;
+  typedef V mapped_type;
+
+  class const_iterator {
+    typename std::map<K, V>::const_iterator it;
+
+  public:
+    const_iterator(typename std::map<K, V>::const_iterator it) : it(it) { }
+
+    const K &key() const { return it->first; }
+    const V &value() const { return it->second; }
+    const V &operator*() const { return it->second; }
+    const_iterator &operator++() { ++it; return *this; }
+    bool operator==(const const_iterator &other) const { return it == other.it; }
+    bool operator!=(const const_iterator &other) const { return it != other.it; }
+  };
+
+  const_iterator begin() const { return data.begin(); }
+  const_iterator end() const { return data.end(); }
+  const_iterator find(const K &key) const { return data.find(key); }
+
+  int size() const { return static_cast<int>(data.size()); }
+  bool contains(const K &key) const { return data.count(key) > 0; }
+  void insert(const K &key, const V &value) { data[key] = value; }
+  int remove(const K &key) { return static_cast<int>(data.erase(key)); }
+};
+
+class QtStyle {
+public:
+  QtStyleMap<int, double> squareRoots() {
+    QtStyleMap<int, double> map;
+    map.insert(4, 2.0);
+    map.insert(9, 3.0);
+    return map;
   }
 };

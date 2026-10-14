@@ -113,6 +113,19 @@ module Bindgen
 
       # Method telling the current count of elements.
       property size_method : String = "size"
+
+      # Method telling if an associative container has a key.  Returns the
+      # count of entries of the key, or a `bool`.
+      property count_method : String = "count"
+
+      # Method removing the entry of a key from an associative container.
+      property erase_method : String = "erase"
+
+      # Method adding an entry to an associative container, replacing the value
+      # of an existing key: `map.insert(key, value)`.  If unset, the
+      # `bindgen_map_store` helper is used instead, which assigns to the
+      # existing value or calls `map.emplace(key, value)`.
+      property insert_method : String?
     end
 
     # Configuration for enum mapping

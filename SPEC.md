@@ -612,8 +612,9 @@ end
 
 ### §2.6 Generic types
 
-Only sequential container types are instantiated on the Crystal side, as if each
-container implements the following interface:
+Sequential and associative container types are instantiated on the Crystal
+side.  Each sequential container behaves as if it implements the following
+interface:
 
 ```crystal
 module Container(T)
@@ -641,6 +642,40 @@ module Container(T)
 
   # General conversion method (§2.6.1)
   # abstract def self.from(values : Enumerable(T)) : Container(T)
+end
+```
+
+Each associative container, like `std::map`, behaves like a `Hash`, as if it
+implements the following interface (§2.6.2):
+
+```crystal
+module Map(K, V)
+  include Enumerable({K, V})
+
+  # All containers must be default-constructible
+  # abstract def initialize
+
+  abstract def [](key : K) : V # Raises `KeyError` if there's no such key
+  abstract def []?(key : K) : V?
+  abstract def []=(key : K, value : V) : V
+  abstract def has_key?(key : K) : Bool
+  abstract def delete(key : K) : V?
+  abstract def size : Int32
+  abstract def each(& : {K, V} ->)
+
+  abstract def keys : Array(K)
+  abstract def values : Array(V)
+
+  def concat(pairs : Enumerable({K, V}))
+    pairs.each { |k, v| self[k] = v }
+    self
+  end
+
+  # Wrapper selection macro
+  macro of(*type_args) end
+
+  # General conversion method (§2.6.1)
+  # abstract def self.from(pairs : Enumerable({K, V})) : Map(K, V)
 end
 ```
 
@@ -720,6 +755,31 @@ Foo.sum({1.2, 3.4}) # => 4.6
 
 # No copies are generated
 Foo.sum(Container.of(Float64).from [1.2, 3.4]) # => 4.6
+```
+
+Associative containers are converted from any `Enumerable` of key-value tuples,
+like a `Hash`: `Map.of(String, Int32).from({"a" => 1})`.
+
+### §2.6.2 Associative containers
+
+Lookups never let a C++ exception escape: `#[]` and `#[]?` first check the key
+through the container's `count` method, and then read the value through
+`find`.  Neither `at()`, which throws, nor `operator[]`, which requires a
+default constructible value type, is used.  `#[]=` replaces an existing value.
+
+C++ iterators can't be passed to Crystal, and pointing into a container which
+is changed during the iteration is undefined behaviour.  Thus `#each` copies all
+entries into a `BindgenMapEntries`, and yields the entries of that copy by
+index.  Iteration takes linear time, and changing the container during it is
+safe.  It yields the entries the container had when the iteration began.
+
+```crystal
+map = Map.of(Int32, String).from({1 => "One", 2 => "Two"})
+map.each do |key, value|
+  map.delete(key + 1)   # `{2, "Two"}` is still yielded
+  map[key * 10] = value # Not yielded
+end
+map.to_h # => {1 => "One", 10 => "One", 20 => "Two"}
 ```
 
 ## §3. Crystal bindings

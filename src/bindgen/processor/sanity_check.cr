@@ -37,10 +37,11 @@ module Bindgen
       # Regular expression describing a operator method name
       OPERATOR_METHOD_NAME_RX = /^([\+\-\*\/\%\&\|\^\>\<\~]|\<\<|\>\>|[\!\=\<\>]=|=[\<\>]|\[\])$/
 
-      # Regular expression for a Crystal `Enumerable` typename
+      # Regular expression for a Crystal `Enumerable` typename, which may be of
+      # tuples: `Enumerable({K, V})`
       # TODO: support other Crystal stdlib types (which might not correspond to
       # any C++ type at all)
-      ENUMERABLE_RX = /^Enumerable(?:\([A-Za-z0-9_():*]*\))?$/
+      ENUMERABLE_RX = /^Enumerable(?:\([A-Za-z0-9_():*{}, ]*\))?$/
 
       # A binding error
       struct Error
