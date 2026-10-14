@@ -125,3 +125,5 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   Crystal name, like `drop_action` and `dropAction()`, is no longer generated.
 * Methods and data members using an unknown template instantiation, like
   `QScopedPointer<QObjectData>`, are ignored.  They produced an invalid alias.
+* Methods of a second base overloaded only in constness were wrapped twice,
+  an ambiguous call.

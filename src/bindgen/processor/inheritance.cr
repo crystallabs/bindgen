@@ -111,7 +111,7 @@ module Bindgen
       private def base_methods(klass, wrapped) : Array(Parser::Method)
         known_virtuals = klass.wrappable_methods.select(&.virtual?)
 
-        wrapped.each_with_index.flat_map do |base, index|
+        list = wrapped.each_with_index.flat_map do |base, index|
           methods = base.origin.wrappable_methods.select do |method|
             if method.virtual?
               known_virtuals.none? { |known| known.equals_virtually?(method) }
@@ -123,6 +123,9 @@ module Bindgen
 
           index > 0 ? methods.map { |m| move_method(m, klass.name) } : methods
         end.to_a
+
+        # Like `Parser::Class#wrap_methods`, wrap const-overloads only once.
+        Util.uniq_by(list) { |a, b| a.equals_except_const?(b) || a.equals_virtually?(b) }
       end
 
       # Adds all conversion methods from *klass* to *bases*.

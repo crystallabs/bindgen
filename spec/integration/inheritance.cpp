@@ -28,6 +28,10 @@ struct AbstractThing {
     return this->value;
   }
 
+  // Overloads only differing in constness are wrapped once.
+  int constOverload() { return 3; }
+  int constOverload() const { return 4; }
+
   int callVirtualInAbstractThing() {
     return this->virtualInAbstractThing();
   }
