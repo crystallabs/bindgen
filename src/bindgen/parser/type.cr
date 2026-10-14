@@ -10,8 +10,15 @@ module Bindgen
       # type in C++, and a `struct` in Crystal.
       CRYSTAL_PROC = "CrystalProc"
 
-      # Type kinds.  Currently not used by the clang tool.
-      # TODO: use `Parser::TypeKind` instead
+      # How a type is passed around and wrapped in Crystal.  The clang tool
+      # doesn't report this: it's derived from the declaration, see
+      # `Class#as_type`, or configured by the user through `kind:` in a type's
+      # rules, see `TypeDatabase::TypeConfig#kind`.
+      #
+      # This is intentionally not the same as `Parser::TypeKind`, which is the
+      # C++ declaration kind of a record.  The two don't map onto each other:
+      # C++ unions and interfaces are `Class` here, built-in types like `int`
+      # are configured as `Struct`, and `Function` has no declaration at all.
       enum Kind
         Class
         Struct
