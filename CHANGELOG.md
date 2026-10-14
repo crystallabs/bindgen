@@ -6,7 +6,7 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Breaking changes
 
-* LLVM and Clang 14 or newer are required.  Tested with 14, 19, 22 and 23.
+* LLVM and Clang 14 or newer are required.  Tested with 14 to 23.
 * Crystal 1.8 or newer is required.
 * `assets/bindgen_helper.hpp` changed.  Projects which copied it into their
   `ext/` directory have to copy it again.

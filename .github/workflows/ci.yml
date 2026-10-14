@@ -37,14 +37,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        llvm: [14, 16, 18, 20, 22]
+        llvm: [14, 16, 18, 20, 22, 23]
         link: [auto]
         stdlib: [default]
         include:
-          - llvm: 22
+          - llvm: 23
             link: shared
             stdlib: default
-          - llvm: 22
+          - llvm: 23
             link: auto
             stdlib: libc++
     env:
@@ -90,6 +90,28 @@ jobs:
       - name: Build clang tool
         working-directory: clang
         run: cmake -DLLVM_DIR="/usr/lib/llvm-$LLVM/lib/cmake/llvm" . && make
+
+      - name: Run specs
+        run: crystal spec
+
+  macos:
+    name: macOS (Homebrew LLVM)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: crystal-lang/install-crystal@v1
+
+      - name: Install dependencies
+        run: brew install llvm pcre2 bdw-gc
+
+      - name: Install shards
+        run: shards install
+
+      # Without LLVM_DIR, as tool.sh runs it: Homebrew's LLVM must be found.
+      - name: Build clang tool
+        working-directory: clang
+        run: cmake . && make
 
       - name: Run specs
         run: crystal spec
