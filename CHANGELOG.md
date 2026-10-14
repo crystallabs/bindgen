@@ -91,6 +91,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   methods returning a string which are overridden in Crystal.
 * The destructor of a class or container returned by value is run.
 * Wrapper classes of `copy_structure` types compile and work (#21).
+* Property methods of protected members were dropped if `instance_properties`
+  ran before `filter_methods`, as in the default processor order.
 * A type listed in `enums:` or `classes:` and in `types:` without `kind:` got
   kind `Class`.
 * A function matched by several `functions:` keys was bound once per key.  The

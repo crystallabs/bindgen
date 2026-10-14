@@ -420,7 +420,8 @@ module Bindgen
       #
       # TODO: Can we move this into `Processor::FilterMethods`?
       def filtered?(db : TypeDatabase) : Bool
-        return true if private?
+        # Property methods of protected members are private in Crystal
+        return true if private? && !(member_getter? || member_setter? || static_getter? || static_setter?)
 
         # TODO: Support methods that take or return C arrays (which become
         # `Slice` in Crystal).  The getters of array members do work.

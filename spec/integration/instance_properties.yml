@@ -1,9 +1,9 @@
 <<: spec_base.yml
 
 processors:
-  - filter_methods
   - default_constructor
   - instance_properties
+  - filter_methods
   - crystal_wrapper
   - cpp_wrapper
   - crystal_binding
