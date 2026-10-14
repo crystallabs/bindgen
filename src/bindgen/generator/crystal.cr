@@ -10,10 +10,30 @@ module Bindgen
         super
 
         @wrote_glue = false
+
+        # Classes that will be written, but haven't been yet.
+        @unwritten = Set(Graph::Class).new
+
+        # Classes held back until their superclass has been written.
+        @deferred = [] of Graph::Class
       end
 
       def write(node : Graph::Container)
+        collect_classes(node)
         visit_node(node)
+
+        unless @deferred.empty?
+          raise "BUG: Superclasses of #{@deferred.map(&.diagnostics_path).join(", ")} were never written"
+        end
+      end
+
+      # Visits all children of *container*.  After each child, writes the
+      # deferred classes inside *container* which became writable.
+      def visit_children(container : Graph::Container)
+        container.nodes.each do |child|
+          visit_node(child)
+          write_deferred(container) unless @deferred.empty?
+        end
       end
 
       def visit_platform_specific(specific)
@@ -26,7 +46,131 @@ module Bindgen
       end
 
       def visit_class(klass)
-        return unless @db.try_or(klass.origin.name, true, &.generate_wrapper?)
+        return unless write_class?(klass)
+
+        # A Crystal class must be defined after its superclass.
+        if unwritten_superclass?(klass)
+          @deferred << klass
+        else
+          write_class(klass)
+        end
+      end
+
+      # Is a wrapper for *klass* generated?
+      private def write_class?(klass)
+        @db.try_or(klass.origin.name, true, &.generate_wrapper?)
+      end
+
+      # Collects all classes below *container* this generator will write.
+      private def collect_classes(container)
+        container.nodes.each do |node|
+          case node
+          when Graph::Class
+            next unless write_class?(node)
+            @unwritten << node
+            collect_classes(node)
+          when Graph::PlatformSpecific
+            collect_classes(node) if node.platforms.includes? PLATFORM
+          when Graph::Namespace
+            collect_classes(node)
+          end
+        end
+      end
+
+      # Does *klass* inherit from a class which will be written later?
+      private def unwritten_superclass?(klass)
+        base_class = klass.base_class
+        return false if base_class.nil?
+
+        base = Graph::Path.from(base_class).lookup(klass)
+        base.is_a?(Graph::Class) && @unwritten.includes?(base)
+      end
+
+      # Writes the deferred classes inside *container* whose superclasses have
+      # been written in the meantime.  The containers between *container* and
+      # these classes are reopened as needed, as in:
+      #
+      # ```
+      # module N
+      #   class A
+      #   end
+      #   # `C < B` is deferred.
+      # end
+      #
+      # class B < N::A
+      # end
+      #
+      # module N # Reopened
+      #   class C < B
+      #   end
+      # end
+      # ```
+      private def write_deferred(container)
+        reopened = [] of Graph::Container
+
+        while klass = @deferred.find { |k| inside?(k, container) && !unwritten_superclass?(k) }
+          @deferred.delete(klass)
+          path = reopen_path(klass, container)
+
+          # Close what isn't shared with the previous class, open the rest.
+          common = reopened.zip?(path).take_while { |a, b| a.same?(b) }.size
+          (reopened.size - common).times { close_block }
+          path[common..].each { |ctr| reopen_block(ctr) }
+
+          reopened = path
+          write_class(klass)
+        end
+
+        reopened.size.times { close_block }
+      end
+
+      # Is *node* a descendant of *container*?
+      private def inside?(node, container)
+        parent = node.parent
+
+        while parent
+          return true if parent.same?(container)
+          parent = parent.parent
+        end
+
+        false
+      end
+
+      # The containers to reopen to write *klass* in *container*, outermost
+      # first.  `PlatformSpecific`s are omitted.
+      private def reopen_path(klass, container)
+        path = [] of Graph::Container
+        parent = klass.parent
+
+        while parent && !parent.same?(container)
+          path.unshift(parent) unless parent.is_a?(Graph::PlatformSpecific)
+          parent = parent.parent
+        end
+
+        path
+      end
+
+      # Reopens the already written *container*.
+      private def reopen_block(container)
+        if container.is_a?(Graph::Class)
+          isstruct = @db.try_or(container.origin.name, false, &.kind.struct?)
+          puts "#{isstruct ? "struct" : "class"} #{container.name}"
+        else
+          puts "module #{container.name}"
+        end
+
+        @depth += 1
+      end
+
+      # Closes a block opened by `#reopen_block`.
+      private def close_block
+        @depth -= 1
+        puts "end"
+      end
+
+      # Writes *klass*, which must not be written before its superclass.
+      private def write_class(klass)
+        @unwritten.delete(klass)
 
         scope = "private" if klass.origin.private?
         prefix = "abstract" if klass.abstract?
@@ -36,7 +180,7 @@ module Bindgen
         code_block scope, prefix, isstruct ? "struct" : "class", klass.name, suffix do
           write_included_modules(klass.included_modules)
           write_instance_variables(klass.instance_variables)
-          super
+          visit_children(klass)
         end
       end
 

@@ -1,0 +1,14 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.
+
+classes:
+  N::A: N::A
+  B: B
+  N::C: N::C
+  N::M::D: N::M::D
+  N::Abstract: N::Abstract
+  E: E
+  N::M::F: N::M::F
+  N::G: N::G
+  Concrete: Concrete
