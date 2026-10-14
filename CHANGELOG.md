@@ -20,6 +20,11 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   for the LLVM and Clang libraries only in LLVM's library directory.
 * Sequential container wrappers define `#unsafe_at` for the C++ accessor.
   `#unsafe_fetch` is now provided by `BindgenHelper::SequentialContainer`.
+* Classes declaring any constructor, including `= default` and `= delete`,
+  no longer get an aggregate constructor: they aren't aggregates in C++20.
+* A `functions:` key matching both the qualified and the bare name of a
+  function in a namespace now uses the qualified name, also for its capture
+  groups.
 
 ### Added
 
@@ -66,3 +71,7 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Bit-fields are reported by the clang tool.  Copying a structure with a
   bit-field is refused, as Crystal can't describe its layout.
 * GNU-style variadic macros (`args...`) are no longer dropped.
+* `functions:` keys with a namespace (`ns::(.*)`) are matched as documented.
+  Function classes accept qualified names in `constructors:` and
+  `destructor:`.
+* `TEMPLATE.yml` no longer documents the non-existent `kind: Value`.
