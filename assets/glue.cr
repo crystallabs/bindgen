@@ -75,6 +75,20 @@ module BindgenHelper
     )
   end
 
+  # Wraps `String` to a `Binding::CrystalString`, which can then be passed on to
+  # C++.  The result points into *string*, it doesn't copy it.
+  def self.wrap_string(string : String) : Binding::CrystalString
+    Binding::CrystalString.new(
+      ptr: string.to_unsafe,
+      size: string.bytesize,
+    )
+  end
+
+  # Unwraps a `Binding::CrystalString` to a `String`, copying its bytes.
+  def self.unwrap_string(string : Binding::CrystalString) : String
+    String.new(string.ptr, string.size)
+  end
+
   # Wraps `Slice` to a `Binding::CrystalSlice`, which can then pass on to C++.
   def self.wrap_slice(slice : Slice(T)) forall T
     Binding::CrystalSlice.new(

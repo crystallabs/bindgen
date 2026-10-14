@@ -60,8 +60,10 @@ unsigned: { alias_for: "unsigned int" }
   binding_type: CrystalString
   to_cpp: "bindgen_crystal_to_stdstring(%)"
   from_cpp: "bindgen_stdstring_to_crystal(%)"
-  from_crystal: "Binding::CrystalString.new(ptr: %.to_unsafe, size: %.bytesize)"
-  to_crystal: "String.new(%.ptr, %.size)"
+  # `%` is replaced textually: Using it twice would evaluate the expression,
+  # which may be a call into C++, twice.
+  from_crystal: "BindgenHelper.wrap_string(%)"
+  to_crystal: "BindgenHelper.unwrap_string(%)"
 
 # Qt specific types
 uchar: { binding_type: UInt8, kind: Struct, builtin: true }

@@ -68,8 +68,19 @@ static __attribute__((noreturn)) void bindgen_fatal_panic(const char *message) {
 // Break C++'s encapsulation to allow easy wrapping of protected methods.
 #define protected public
 
+// The result points into `str`, whose owner has to keep it alive.
 static CrystalString bindgen_stdstring_to_crystal(const std::string &str) {
   return CrystalString{ str.data(), static_cast<int>(str.size()) };
+}
+
+// A temporary, like the result of a function returning a `std::string` by
+// value, is destroyed before the wrapper function returns.  Its bytes are
+// copied into memory owned by the GC, so that they outlive the call.
+static CrystalString bindgen_stdstring_to_crystal(const std::string &&str) {
+  char *copy = static_cast<char *>(GC_MALLOC_ATOMIC(str.size() + 1));
+  memcpy(copy, str.data(), str.size());
+  copy[str.size()] = '\0';
+  return CrystalString{ copy, static_cast<int>(str.size()) };
 }
 
 static std::string bindgen_crystal_to_stdstring(CrystalString str) {

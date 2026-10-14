@@ -421,6 +421,12 @@ types:
 
     # Inserted into C++ to turn the type into something the `binding_type` will
     # be able to understand.  Template value is the whole C++ call.
+    #
+    # Note for all four conversion templates: `%` is replaced textually by an
+    # expression, which commonly is a function call.  Use `%` only once, or
+    # that call is done once per use; pass it to a helper function instead.
+    # If the C++ expression is a temporary, anything `from_cpp` returns has to
+    # outlive it.
     from_cpp: "convert_from_cpp(%)"
 
     # Inserted into C++ to turn the `binding_type` into something C++ can

@@ -1,0 +1,9 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.
+
+classes:
+  Strings: Strings
+
+functions:
+  "string_(.*)": { destination: "Funcs", name: "\\1" }
