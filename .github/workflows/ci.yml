@@ -102,8 +102,10 @@ jobs:
 
       - uses: crystal-lang/install-crystal@v1
 
+      # The runner image's Homebrew index can be stale.  Homebrew's LLVM 23.1.0
+      # static libraries contain bitcode Apple's linker can't link.
       - name: Install dependencies
-        run: brew install llvm pcre2 bdw-gc
+        run: brew update && brew install llvm pcre2 bdw-gc
 
       - name: Install shards
         run: shards install
