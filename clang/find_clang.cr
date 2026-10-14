@@ -33,6 +33,24 @@ OPTIONS[:cmake_variables] = File.expand_path "#{__DIR__}/variables.cmake"
 OPTIONS[:spec_base] = File.expand_path "#{__DIR__}/../spec/integration/spec_base.yml"
 parse_cli_args
 
+# The static Clang libraries the tool is linked against: The ones it uses, and
+# those they depend on.  Which of these exist depends on the LLVM version.
+CLANG_LIBS = %w[
+  clangTooling clangToolingCore clangToolingInclusions clangFormat
+  clangFrontend clangDriver clangOptions clangParse clangSerialization
+  clangSema clangAPINotes clangAnalysis clangAnalysisLifetimeSafety
+  clangASTMatchers clangEdit clangRewrite clangAST clangLex clangBasic
+  clangSupport
+]
+
+# The LLVM components these Clang libraries use.  Which of these exist
+# depends on the LLVM version, too.
+LLVM_COMPONENTS = %w[
+  support option core mc mcparser object binaryformat bitreader
+  bitstreamreader demangle profiledata remarks targetparser windowsdriver
+  frontendopenmp frontendhlsl plugins
+]
+
 # Link against LLVM's shared rather than static libraries?  Auto-detected below
 # if unset.
 dynamic = ENV["BINDGEN_DYNAMIC"]?.presence.try(&.==("1"))
@@ -73,9 +91,9 @@ OPTIONS[:system_include_dirs] = find_system_include_dirs
 
 # Now extract clang and llvm-specific libs.  Static libraries are preferred if
 # both kinds are available, but the two kinds are never mixed.
-static_clang_libs = find_static_libraries(llvm_libdir, "clang")
-static_llvm_libs = find_static_libraries(llvm_libdir, "LLVM")
-dynamic = static_clang_libs.empty? || static_llvm_libs.empty? if dynamic.nil?
+static_clang_libs = CLANG_LIBS.select { |name| File.exists?("#{llvm_libdir}/lib#{name}.a") }
+has_static_llvm = File.exists?("#{llvm_libdir}/libLLVMSupport.a")
+dynamic = static_clang_libs.empty? || !has_static_llvm if dynamic.nil?
 log "Linking LLVM and Clang #{dynamic ? "dynamically" : "statically"}. (Adjust with env BINDGEN_DYNAMIC=0/1 if needed)"
 
 if dynamic
@@ -83,9 +101,12 @@ if dynamic
   OPTIONS[:llvm_libs] = find_shared_libraries(llvm_libdir, "LLVM", "LLVM")
 else
   OPTIONS[:clang_libs] = static_clang_libs
-  OPTIONS[:llvm_libs] = static_llvm_libs
+  # llvm-config adds the libraries these components depend on.
+  components = output_of(llvm_config, "--components").split & LLVM_COMPONENTS
+  log "Using LLVM components #{components.join ' '}"
+  OPTIONS[:llvm_libs] = output_of(llvm_config, "--link-static", "--libs", components).split.map(&.lchop("-l"))
   # Static LLVM libraries don't pull in their own dependencies.
-  OPTIONS[:system_libs] = output_of(llvm_config, "--system-libs", "--link-static").split
+  OPTIONS[:system_libs] = output_of(llvm_config, "--link-static", "--system-libs", components).split
 end
 
 # Fall back to what llvm-config says if no LLVM library was found.
@@ -329,14 +350,6 @@ def find_system_include_dirs
     .select { |path| File.directory? path }
 end
 
-# Finds all static LLVM or clang libraries in *dir*.  We don't need all of
-# them, but the linker only picks what's used.
-def find_static_libraries(dir, prefix)
-  Dir["#{dir}/lib#{prefix}*.a"]
-    .map { |path| File.basename(path)[/^lib(.+)\.a$/, 1] }
-    .reject(&.starts_with?("clang_rt")) # Compiler runtime, not part of clang.
-end
-
 # Finds the shared LLVM or clang libraries in *dir*.  If the all-in-one
 # library *preferred* exists, only that one is used.
 def find_shared_libraries(dir, prefix, preferred)
@@ -387,9 +400,9 @@ def write_if_changed(path, content)
 end
 
 # Runs the command and arguments as shell command line in backticks.
-# Returns it's output.chomp.
+# Arrays among the arguments are flattened.  Returns its output.chomp.
 def output_of(*args)
-  `#{args.map { |r| "\"#{r}\"" }.join ' '}`.chomp
+  `#{args.to_a.flatten.map { |r| "\"#{r}\"" }.join " "}`.chomp
 end
 
 # Convenience functions for accessing OPTIONS
