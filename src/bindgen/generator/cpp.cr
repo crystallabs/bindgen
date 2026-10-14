@@ -70,6 +70,11 @@ module Bindgen
             puts "using #{base}::#{ctor};" # C++11
           end
 
+          if structure.tag?(Graph::Struct::COPY_BASE_CONSTRUCTOR_TAG)
+            base = structure.base_class.not_nil!
+            puts "#{structure.name}(const #{base} &other) : #{base}(other) { }"
+          end
+
           structure.fields.each do |name, type|
             puts "#{type.type_name} #{name};"
           end

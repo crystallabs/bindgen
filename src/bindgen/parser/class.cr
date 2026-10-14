@@ -142,10 +142,7 @@ module Bindgen
       def each_wrappable_method(&)
         @methods.each do |method|
           next if method.private?
-          next if method.name == "operator="  # TODO: Support assignments!
-          next if method.conversion_operator? # TODO: Support conversions!
-          next if method.copy_constructor?    # TODO: Support copy constructors!
-          next if method.has_move_semantics?  # Move semantics are hard to wrap.
+          next if method.has_move_semantics? # Move semantics are hard to wrap.
 
           # Don't try to wrap copy-constructors in an abstract class.
           next if abstract? && method.copy_constructor?

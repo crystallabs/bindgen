@@ -143,6 +143,9 @@ template <typename T>
 struct CrystalGCCleanupWrapper: public T, public gc_cleanup
 {
   using T::T;
+
+  // Copy constructors aren't inherited.
+  CrystalGCCleanupWrapper(const T &other) : T(other) { }
 };
 
 // Unions can't be inherited from, these are allocated as they are.  This

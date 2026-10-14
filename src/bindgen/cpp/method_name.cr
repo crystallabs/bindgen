@@ -38,7 +38,8 @@ module Bindgen
             name = class_name_for_new(method.class_name)
             @db.cookbook.constructor_name(method.name, name)
           end
-        when .member_method?, .member_getter?, .member_setter?, .signal?, .operator?
+        when .member_method?, .member_getter?, .member_setter?, .signal?, .operator?,
+             .conversion_operator?
           if exact_member
             "#{self_var}->#{qualified method}"
           else

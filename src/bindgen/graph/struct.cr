@@ -8,6 +8,10 @@ module Bindgen
       # Used to signal the `Generator::Cpp` to generate a `using BASE::BASE;`.
       INHERIT_CONSTRUCTORS_TAG = "INHERIT_CONSTRUCTORS_TAG"
 
+      # Used to signal the `Generator::Cpp` to generate a constructor copying
+      # an instance of the base class, which isn't inherited by the above.
+      COPY_BASE_CONSTRUCTOR_TAG = "COPY_BASE_CONSTRUCTOR_TAG"
+
       # Non-static fields in this structure.
       getter fields : Hash(String, Call::Result)
 

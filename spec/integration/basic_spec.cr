@@ -12,6 +12,25 @@ describe "a basic C++ wrapper" do
           Test::AdderWrap.new(4).sum(5).should eq(9)
         end
 
+        it "supports copy constructors" do
+          original = Test::Copyable.new(1)
+          copy = Test::Copyable.new(original)
+          copy.value.should eq(2)
+          copy.value = 5
+          original.value.should eq(1)
+        end
+
+        it "supports assignment operators" do
+          target = Test::Copyable.new(1)
+          target.assign!(Test::Copyable.new(3)).value.should eq(13)
+          target.value.should eq(13)
+        end
+
+        it "supports conversion operators" do
+          Test::Copyable.new(7).to_int.should eq(7)
+          Test::Copyable.new(0).to_bool.should be_false
+        end
+
         it "supports member operator overloading" do
           subject = Test::Ops.new
 

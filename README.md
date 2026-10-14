@@ -120,9 +120,9 @@ The following rules are automatically applied to all bindings:
 |  +- Getters and setters for instance variables   | **YES** |
 |  +- Getters and setters for static variables     | **YES** |
 |  +- Constructors                                 | **YES** |
-|  +- Copy constructors, assignment operators      |   TBD   |
+|  +- Copy constructors, assignment operators      | **YES** |
 |  +- Overloaded operators                         | Partial |
-|  +- Conversion functions                         |   TBD   |
+|  +- Conversion functions                         | **YES** |
 | Mapping C/C++ global functions                   |         |
 |  +- Mapping global functions                     | **YES** |
 |  +- Wrapping as Crystal class                    | **YES** |
@@ -470,6 +470,11 @@ function-like macros are silently skipped.
 * **Run before**: No specific dependency
 
 Performs special handling for operator methods.
+
+Operators are wrapped as methods named after them; those Crystal can't
+overload get a name, like `operator=` becoming `#assign!`.  Conversion
+operators become `#to_` and the type, like `#to_bool` for `operator bool()`.  A
+copy constructor becomes an overload of `.new` taking the object to copy.
 
 ## `Qt`
 

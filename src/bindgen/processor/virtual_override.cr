@@ -167,6 +167,10 @@ module Bindgen
         )
 
         structure.set_tag(Graph::Struct::INHERIT_CONSTRUCTORS_TAG)
+        if klass.origin.wrap_methods.any?(&.copy_constructor?)
+          structure.set_tag(Graph::Struct::COPY_BASE_CONSTRUCTOR_TAG)
+        end
+
         structure
       end
 

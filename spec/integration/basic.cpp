@@ -32,6 +32,21 @@ public:
   const IgnoreMe *ignoreByReturnCPtr() { return new IgnoreMe(); }
 };
 
+struct Copyable {
+  int value;
+
+  Copyable(int v) : value(v) { }
+  Copyable(const Copyable &other) : value(other.value + 1) { }
+
+  Copyable &operator=(const Copyable &other) {
+    value = other.value + 10;
+    return *this;
+  }
+
+  operator int() const { return value; }
+  operator bool() const { return value != 0; }
+};
+
 struct Ops {
   int operator+  (int x) const { return x * 1; }
   int operator-  (int x) const { return x * 2; }

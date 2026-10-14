@@ -343,10 +343,11 @@ module Bindgen
           name
         when .member_setter?, .static_setter?
           name + "="
-        when .constructor?, .aggregate_constructor?
+        when .constructor?, .aggregate_constructor?, .copy_constructor?
           "initialize"
-        when .copy_constructor?
-          "clone"
+        when .conversion_operator?
+          # `operator Foo::Bar *()` becomes `#to_foo_bar`
+          "to_#{@return_type.base_name.gsub("::", "_").underscore}"
         when .destructor?
           "finalize"
         when .macro?
@@ -518,6 +519,7 @@ module Bindgen
         when .member_getter?         then "#{@name}_GETTER"
         when .member_setter?         then "#{@name}_SETTER"
         when .operator?              then "_OPERATOR_#{binding_operator_name}"
+        when .conversion_operator?   then "_CONVERT_#{@return_type.mangled_name}"
         when .static_method?         then "#{@name}_STATIC"
         when .static_getter?         then "#{@name}_STATIC_GETTER"
         when .static_setter?         then "#{@name}_STATIC_SETTER"
