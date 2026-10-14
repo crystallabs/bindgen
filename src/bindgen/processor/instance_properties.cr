@@ -29,10 +29,7 @@ module Bindgen
           # Ignore all reference fields for now.
           next if field.reference? || field.move?
 
-          # For C arrays only built-in types are supported; user types will need
-          # a custom `Slice`-like wrapper so that raw pointers are not returned.
-          next if field.c_array? && (!field.builtin? || !field.c_complete_array?)
-          next if field.pointer_to_c_array? && !field.builtin_array_pointer?
+          next if (field.c_array? || field.pointer_to_c_array?) && !@db.c_array_supported?(field)
 
           pattern, config = lookup_member_config(var_config, field.name)
           next if config.ignore

@@ -157,4 +157,54 @@ describe Bindgen::TypeDatabase do
       sparse["New"].kind.should eq(Bindgen::Parser::Type::Kind::Enum)
     end
   end
+
+  describe "C arrays" do
+    arrays = new_database
+    arrays.add("Item", graph_node: Bindgen::Graph::Class.new(Bindgen::Parser::Class.new(name: "Item"), "Item"))
+    arrays.add("Hidden", generate_wrapper: false)
+    arrays.add("Color", kind: Bindgen::Parser::Type::Kind::Enum)
+    arrays.add("Grid", copy_structure: true)
+
+    builtin = Bindgen::Parser::Type.new(
+      base_name: "int", full_name: "int [4]", const: false, reference: false,
+      pointer: 1, builtin: true, extents: [4_u64],
+    )
+
+    describe "#c_array_supported?" do
+      it "supports arrays of built-in types" do
+        arrays.c_array_supported?(builtin).should be_true
+      end
+
+      it "supports arrays and references to arrays of other types by value" do
+        %w[Item Color Grid].each do |name|
+          arrays.c_array_supported?(parse("#{name} [3]")).should be_true
+          arrays.c_array_supported?(parse("const #{name} (&)[3]")).should be_true
+        end
+      end
+
+      it "doesn't support other arrays" do
+        arrays.c_array_supported?(parse("Item []")).should be_false
+        arrays.c_array_supported?(parse("Item *[3]")).should be_false
+        arrays.c_array_supported?(parse("Item [3] *")).should be_false
+        arrays.c_array_supported?(parse("Item [2][3]")).should be_false
+        arrays.c_array_supported?(parse("Hidden [3]")).should be_false
+        arrays.c_array_supported?(parse("Unknown [3]")).should be_false
+      end
+    end
+
+    describe "#array_view?" do
+      it "is true for arrays of wrapped classes" do
+        arrays.array_view?(parse("Item [3]")).should be_true
+        arrays.array_view?(parse("const Item [3]")).should be_true
+      end
+
+      it "is false for other arrays" do
+        arrays.array_view?(builtin).should be_false
+        arrays.array_view?(parse("Color [3]")).should be_false
+        arrays.array_view?(parse("Grid [3]")).should be_false
+        arrays.array_view?(parse("Item [2][3]")).should be_false
+        arrays.array_view?(parse("Item (&)[3]")).should be_false
+      end
+    end
+  end
 end

@@ -132,15 +132,28 @@ module Bindgen
 
       # Passes the pointer or reference to a C array *type* as pointer to a
       # `StaticArray`.  A reference is made from a `Slice` in the wrapper, see
-      # `#to_wrapper`.
+      # `#to_wrapper`, or from a `BindgenHelper::ArrayView` passed as pointer to
+      # its first element.
       private def array_pointer_to_binding(type, qualified) : Call::Result
         typer = Typename.new(@db)
         type_name, in_lib = typer.binding(type)
         type_name = typer.qualified(type_name, in_lib) if qualified
         template = Template::None.new
 
-        if type.reference_to_c_array?
-          array = typer.full(array_pointer_result(type.pointee_array, type_name), expects_type: false)
+        if type.reference_to_c_array? && @db.array_view?(type.pointee_array)
+          # The view's pointer to the first element.
+          template = Template.from_string("BindgenHelper.view_to_array(%, #{type.extents.first})", simple: true)
+          return Call::Result.new(
+            type: type.pointee_array.remove_all_extents,
+            type_name: type_name,
+            reference: false,
+            pointer: 1,
+            conversion: template,
+          )
+        elsif type.reference_to_c_array?
+          # The conversion is done in the wrapper, outside of the `lib`.
+          element = typer.qualified(*typer.binding(type))
+          array = typer.full(array_pointer_result(type.pointee_array, element), expects_type: false)
           template = Template.from_string("BindgenHelper.slice_to_array(%, #{array})", simple: true)
         end
 
@@ -163,14 +176,16 @@ module Bindgen
       # Computes a result for passing *type* to the wrapper.
       def to_wrapper(type : Parser::Type) : Call::Result
         if type.reference_to_c_array?
-          # Taken as `Slice` of the elements of the referenced array.
+          # Taken as `Slice` of the elements of the referenced array, or as
+          # `BindgenHelper::ArrayView` of wrapped classes.
           typer = Typename.new(@db)
           array = type.pointee_array
           element = array_pointer_result(array.array_element, typer.qualified(*typer.wrapper(type)))
+          container = @db.array_view?(array) ? "BindgenHelper::ArrayView" : "Slice"
 
           return Call::Result.new(
             type: array.remove_all_extents,
-            type_name: "Slice(#{typer.full(element, expects_type: false)})",
+            type_name: "#{container}(#{typer.full(element, expects_type: false)})",
             reference: false,
             pointer: 0,
           )
@@ -256,10 +271,16 @@ module Bindgen
           Log.trace { "type_name: #{type_name}" }
           template = Template::None.new
 
-          if type.c_array? && !no_slice
+          if type.c_array? && !no_slice && @db.array_view?(type)
             is_ref = false
             ptr = 0
-            inner_result = from_binding(type.array_element, no_slice: true)
+            element = typer.qualified(*typer.wrapper(type.array_element))
+            template = Template::Basic.new("BindgenHelper::ArrayView(#{element}).new(%)", simple: true)
+            type_name = "Binding::CrystalArray"
+          elsif type.c_array? && !no_slice
+            is_ref = false
+            ptr = 0
+            inner_result = from_binding(type.array_element, qualified: true, no_slice: true)
             template = Template::Basic.new("BindgenHelper::SliceConverter(#{typer.full(inner_result)}).unwrap(%)", simple: true)
             type_name = "Binding::CrystalSlice"
           end
@@ -304,14 +325,19 @@ module Bindgen
               nilable = false
             end
 
-            if type.c_array? && !no_slice
+            array = type.c_array? && !no_slice
+            if array && @db.array_view?(type)
+              is_ref = false
+              ptr = 0
+              type_name = "BindgenHelper::ArrayView(#{typer.qualified(*typer.wrapper(type.array_element))})"
+            elsif array
               is_ref = false
               ptr = 0
               inner_result = from_wrapper(type.array_element, no_slice: true)
               type_name = "Slice(#{typer.full(inner_result)})"
             end
 
-            if !rules.builtin? && !is_constructor && !rules.converter && rules.to_crystal.no_op? && !in_lib && !rules.kind.enum?
+            if !array && !rules.builtin? && !is_constructor && !rules.converter && rules.to_crystal.no_op? && !in_lib && !rules.kind.enum?
               template = wrapper_initialize_template(rules, type_name, nilable)
             end
 

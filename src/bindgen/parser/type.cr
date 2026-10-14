@@ -436,7 +436,7 @@ module Bindgen
       # types, like `int (*)[4]` or `const float (&)[3][3]`?  These are passed
       # as pointer to a `StaticArray`, or as `Slice` if it's a reference.
       #
-      # TODO: Support arrays of wrapped types.
+      # TODO: Support pointers to arrays of other types.
       def builtin_array_pointer? : Bool
         @array_pointer == 1 && !@move && @builtin && !@base_name.ends_with?(']') &&
           @extents.none?(&.zero?)

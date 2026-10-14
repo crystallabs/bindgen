@@ -55,6 +55,18 @@ lib Binding
     size : LibC::Int
     read_only : Bool
   end
+
+  # Container for a C array of wrapped class instances, see
+  # `BindgenHelper::ArrayView`.  `assign` copy-assigns the element at its
+  # second argument to the one at its first, it's null if the C++ type can't be
+  # copy-assigned.
+  struct CrystalArray
+    ptr : Void*
+    size : LibC::Int
+    read_only : Bool
+    element_size : LibC::Int
+    assign : Void*, Void* -> Void
+  end
 end
 
 # Helpers for bindings.  Required.
@@ -129,6 +141,73 @@ module BindgenHelper
   module SliceConverter(T)
     def self.unwrap(slice : Binding::CrystalSlice)
       Slice(T).new(slice.ptr.as(Pointer(T)), slice.size, read_only: slice.read_only)
+    end
+  end
+
+  # Passes the *view* as reference to a C array of *size* elements.  Raises an
+  # `ArgumentError` unless the sizes match.
+  def self.view_to_array(view : ArrayView(T), size : Int32) : Pointer(Void) forall T
+    unless view.size == size
+      raise ArgumentError.new("Expected an ArrayView of #{size} elements, got #{view.size}")
+    end
+
+    view.to_unsafe
+  end
+
+  # `Indexable` view of a C array of wrapped class instances `T`, like an array
+  # member of a wrapped class.  The view and its elements refer to the C++
+  # array, they don't copy it: changes to an element are visible in C++.
+  #
+  # Elements are assigned through their C++ copy-assignment operator.  This
+  # raises if the array is `const`, or the class can't be copy-assigned.
+  struct ArrayView(T)
+    include Indexable(T)
+
+    def initialize(@array : Binding::CrystalArray)
+    end
+
+    def size : Int32
+      @array.size
+    end
+
+    # Returns if the C array is `const`.
+    def read_only? : Bool
+      @array.read_only
+    end
+
+    # Returns a wrapper of the element at *index*, referring to the element in
+    # the C array.
+    def unsafe_fetch(index : Int) : T
+      T.new(unwrap: element_pointer(index))
+    end
+
+    # Copy-assigns *value* to the element at *index*.
+    def []=(index : Int, value : T) : T
+      raise "Can't write to read-only ArrayView" if read_only?
+      raise "Can't copy-assign elements of #{T}" if @array.assign.pointer.null?
+
+      index = check_index_out_of_bounds(index)
+      @array.assign.call(element_pointer(index), value.to_unsafe.as(Void*))
+      value
+    end
+
+    # Returns a pointer to the first element.
+    def to_unsafe : Pointer(Void)
+      @array.ptr
+    end
+
+    def to_s(io)
+      to_a.to_s(io)
+    end
+
+    def inspect(io)
+      io << "<Wrapped "
+      to_a.inspect(io)
+      io << ">"
+    end
+
+    private def element_pointer(index) : Pointer(Void)
+      (@array.ptr.as(UInt8*) + index.to_i64 * @array.element_size).as(Void*)
     end
   end
 

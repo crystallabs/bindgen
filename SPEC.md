@@ -145,13 +145,23 @@ A returned reference to such an array becomes a `Slice` like an array member
 A pointer to such an array is a pointer to a `StaticArray`, also in instance
 properties and copied structures.
 
-Methods using arrays of other types, or of unknown size, are not wrapped.
-Neither are virtual methods using arrays, unless they are `final`.
+A reference to an array of enums or of copied structures is a `Slice` of these,
+like `Slice(Color)` or `Slice(Binding::Point)`.  A reference to a
+one-dimensional array of a wrapped class is a `BindgenHelper::ArrayView` of
+the wrapper class, see §2.4.6.  An `ArrayView` of the wrong size raises an
+`ArgumentError`.
+
+Methods using arrays of other types, multi-dimensional arrays of wrapped
+classes, pointers to arrays of other than built-in types, or arrays of unknown
+size are not wrapped.  Neither are virtual methods using arrays, unless they
+are `final`.
 
 ```cpp
 struct Foo {
   float trace(const float (&matrix)[3][3]);
   int (&values())[4];
+  Bar (&bars())[2];
+  int sum(const Bar (&bars)[2]);
   int first(const int list[4]); // Same as `const int *list`
   int sum(const int (*rows)[3], int count);
   int corner(int m[][3]); // Same as `int (*m)[3]`
@@ -162,6 +172,8 @@ struct Foo {
 class Foo
   def trace(matrix : Slice(StaticArray(Float32, 3))) : Float32 end
   def values : Slice(Int32) end
+  def bars : BindgenHelper::ArrayView(Bar) end
+  def sum(bars : BindgenHelper::ArrayView(Bar)) : Int32 end
   def first(list : Int32*) : Int32 end
   def sum(rows : Int32[3]*, count : Int32) : Int32 end
   def corner(m : Int32[3]*) : Int32 end
@@ -540,6 +552,18 @@ end
 Getters are generated for complete C arrays of built-in types, which return
 `Slice`s instead of Crystal `Array`s.  The `Slice`s are marked as read-only if
 the array member is `const`.  Multi-dimensional arrays are also supported.
+Arrays of enums and of copied structures are `Slice`s of these too.
+
+A one-dimensional array of a wrapped class returns a
+`BindgenHelper::ArrayView` of the wrapper class.  It's an `Indexable` view of
+the C++ array: Its elements are wrappers referring to the array's elements,
+not copies of them, so changes to them are visible in C++.  This differs from
+class-type value members, whose getter returns a copy.  Assigning an element
+through `#[]=` copies the value with the C++ copy-assignment operator.  It
+raises if the array is `const` (see `#read_only?`), or if the class can't be
+copy-assigned.
+
+No setters are generated for array members.
 
 ```cpp
 struct Foo {
@@ -547,6 +571,7 @@ struct Foo {
   void *baz[8];
   const float quux[2];
   Foo *children[3];
+  Bar bars[2];
 };
 ```
 
@@ -555,6 +580,7 @@ class Foo
   def bar : Slice(Int32[25][20]) end
   def baz : Slice(Void*) end
   def quux : Slice(Float32) end # read_only: true
+  def bars : BindgenHelper::ArrayView(Bar) end
 
   # `#children` is not defined
 end

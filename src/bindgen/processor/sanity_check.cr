@@ -43,6 +43,13 @@ module Bindgen
       # any C++ type at all)
       ENUMERABLE_RX = /^Enumerable(?:\([A-Za-z0-9_():*{}, ]*\))?$/
 
+      # Regular expression for the Crystal type of a C array of other than
+      # built-in types, capturing the element type: `Slice(Color)`
+      ARRAY_RX = /^(?:Slice|BindgenHelper::ArrayView)\((.+)\)$/
+
+      # Binding types of C arrays, defined in `glue.cr`.
+      ARRAY_BINDING_TYPES = {"Binding::CrystalSlice", "Binding::CrystalArray"}
+
       # A binding error
       struct Error
         # The node this error occured at
@@ -257,8 +264,12 @@ module Bindgen
           true # Crystal built-in
         elsif expr.type_name.matches?(ENUMERABLE_RX)
           true # Containers
-        else   # Do a full look-up otherwise
-          Graph::Path.from(expr.type_name).lookup(base) != nil
+        elsif ARRAY_BINDING_TYPES.includes?(expr.type_name)
+          true # C arrays passed to Crystal
+        else
+          # C arrays are reachable if their elements are.  Do a full look-up.
+          type_name = ARRAY_RX.match(expr.type_name).try(&.[1]) || expr.type_name
+          Graph::Path.from(type_name).lookup(base) != nil
         end
       end
 

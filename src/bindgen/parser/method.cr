@@ -434,8 +434,8 @@ module Bindgen
         return true if @return_type.c_array? && !member_getter? && !static_getter?
         return true if @arguments.any?(&.c_array?)
 
-        array_types = ([@return_type] + @arguments).select(&.pointer_to_c_array?)
-        return true unless array_types.all?(&.builtin_array_pointer?)
+        array_types = ([@return_type] + @arguments).select { |t| t.c_array? || t.pointer_to_c_array? }
+        return true unless array_types.all? { |t| db.c_array_supported?(t) }
 
         # TODO: Overriding these from Crystal needs passing the arrays through
         # `CrystalProc`s.

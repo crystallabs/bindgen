@@ -116,8 +116,20 @@ describe "C++ instance properties" do
           props.v2_ptr.should be_a(Slice(Int32*[11]))
         end
 
-        it "is ignored for arrays of user types" do
-          {{ Test::Props.has_method?("points") }}.should be_false
+        it "supports array members of wrapped types" do
+          props = Test::Props.new(5, 8)
+          points = props.points
+          points.should be_a(Test::BindgenHelper::ArrayView(Test::Point))
+          points.size.should eq(2)
+
+          # The elements refer to the member, unlike `#position_val`
+          points[1].x = 3
+          props.points[1].x.should eq(3)
+          points[0] = Test::Point.new(4, 5)
+          props.points[0].y.should eq(5)
+        end
+
+        it "is ignored for arrays of pointers to user types" do
           {{ Test::Props.has_method?("points_ptr") }}.should be_false
         end
 

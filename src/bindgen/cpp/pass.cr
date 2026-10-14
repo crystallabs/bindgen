@@ -36,7 +36,7 @@ module Bindgen
           # Note: `CrystalSlice` was supposed to be a template type, but
           # `extern "C"` functions cannot return template types, so the element
           # type is always erased.
-          "CrystalSlice"
+          @db.array_view?(type) ? "CrystalArray" : "CrystalSlice"
         elsif type.kind.function?
           crystal_proc_name(type)
         else
@@ -175,11 +175,12 @@ module Bindgen
           ptr = 1
           pass_by = TypeDatabase::PassBy::Pointer
         elsif array = type.c_array?
+          helper = @db.array_view?(type) ? "bindgen_array_to_view" : "bindgen_array_to_slice"
           type = type.remove_all_extents
           is_ref = false
           ptr = 0
           pass_by = TypeDatabase::PassBy::Value
-          template = Template::Basic.new("bindgen_array_to_slice(%)", simple: true)
+          template = Template::Basic.new("#{helper}(%)", simple: true)
         end
 
         # The rules of an array's element type don't apply to the slice.

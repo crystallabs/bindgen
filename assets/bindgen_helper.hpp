@@ -121,6 +121,44 @@ template<typename T, std::size_t N>
   return CrystalSlice{ arr, static_cast<int>(N), std::is_const<T>::value };
 }
 
+/* Wrapper for a C array of wrapped class instances, see `Binding::CrystalArray`
+ * and `BindgenHelper::ArrayView`.  `assign` copy-assigns the element at its
+ * second argument to the one at its first, it's null if `T` can't be
+ * copy-assigned.
+ */
+struct CrystalArray {
+  const void *pointer;
+  int size;
+  bool read_only;
+  int element_size;
+  void (*assign)(void *, const void *);
+};
+
+template<typename T>
+void bindgen_array_assign(void *dst, const void *src) {
+  *static_cast<T *>(dst) = *static_cast<const T *>(src);
+}
+
+template<typename T>
+typename std::enable_if<std::is_copy_assignable<T>::value, void (*)(void *, const void *)>::type
+bindgen_array_assigner() noexcept {
+  return &bindgen_array_assign<T>;
+}
+
+template<typename T>
+typename std::enable_if<!std::is_copy_assignable<T>::value, void (*)(void *, const void *)>::type
+bindgen_array_assigner() noexcept {
+  return nullptr;
+}
+
+template<typename T, std::size_t N>
+CrystalArray bindgen_array_to_view(T (&arr)[N]) noexcept {
+  return CrystalArray{
+    arr, static_cast<int>(N), std::is_const<T>::value,
+    static_cast<int>(sizeof(T)), bindgen_array_assigner<T>()
+  };
+}
+
 /* Names the type `T` where C++'s declarator syntax can't, like a parameter
  * referring to an array: `bindgen_type<int [4]> &a` is `int (&a)[4]`.
  */

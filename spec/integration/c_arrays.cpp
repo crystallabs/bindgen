@@ -2,6 +2,19 @@ struct Item {
   int value;
 };
 
+enum Color { Red, Green, Blue };
+
+// Wrapped, and copied by its copy-assignment operator.
+class Counted {
+public:
+  Counted() { }
+  Counted(int v) : value(v) { }
+  Counted &operator=(const Counted &other) { value = other.value; assigned++; return *this; }
+
+  int value = 0;
+  int assigned = 0;
+};
+
 // Copied into a `lib struct`.
 struct Grid {
   int (*rows)[3];
@@ -13,6 +26,13 @@ public:
   int values[4] = { 1, 2, 3, 4 };
   float matrix[2][3] = { { 1, 2, 3 }, { 4, 5, 6 } };
   int (*current)[4] = &values;
+
+  Item items[3] = { { 1 }, { 2 }, { 3 } };
+  const Item constItems[2] = { { 4 }, { 5 } };
+  Counted counted[2] = { Counted(6), Counted(7) };
+  Color colors[3] = { Red, Green, Blue };
+  Grid grids[2] = { };
+  Item itemGrid[2][3] = { { { 1 }, { 2 }, { 3 } }, { { 4 }, { 5 }, { 6 } } };
 
   // Decays to `const int *`.
   int first(const int list[4]) { return list[0]; }
@@ -47,15 +67,33 @@ public:
 
   int gridSum(Grid grid) { return sumRows(grid.rows, grid.count); }
 
+  int itemSum(const Item (&list)[3]) {
+    return list[0].value + list[1].value + list[2].value;
+  }
+
+  void bumpItems(Item (&list)[3]) {
+    for (Item &i : list) i.value++;
+  }
+
+  Item (&itemsRef())[3] { return items; }
+  const Item (&constItemsRef() const)[2] { return constItems; }
+
+  int colorSum(const Color (&list)[3]) { return list[0] + list[1] + list[2]; }
+  Color (&colorsRef())[3] { return colors; }
+
+  int gridCount(const Grid (&list)[2]) { return list[0].count + list[1].count; }
+  Grid (&gridsRef())[2] { return grids; }
+
   static int (&staticRef())[2] {
     static int data[2] = { 7, 8 };
     return data;
   }
 
-  // Filtered: Unknown bounds, wrapped elements, overridable.
+  // Filtered: Unknown bounds, pointers to arrays of wrapped elements,
+  // arrays of pointers to wrapped elements, overridable.
+  Item *itemPointers[2] = { };
   void unknownBound(int (&list)[]) { }
   void unknownBoundPtr(int (*list)[]) { }
-  void items(Item (&list)[2]) { }
   void itemsPtr(Item (*list)[2]) { }
   void nested(int (*(*list)[2])[3]) { }
   virtual void overridable(int (&list)[4]) { }

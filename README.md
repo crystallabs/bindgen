@@ -130,7 +130,7 @@ The following rules are automatically applied to all bindings:
 | C arrays in methods                              |         |
 |  +- References to arrays, as `Slice`             | **YES** |
 |  +- Pointers to arrays, as `StaticArray` pointer | **YES** |
-|  +- Arrays of wrapped types                      |   TBD   |
+|  +- Arrays of wrapped types, as `ArrayView`      | **YES** |
 | Copying default argument values                  |         |
 |  +- Integer, float, boolean types                | **YES** |
 |  +- String                                       | **YES** |

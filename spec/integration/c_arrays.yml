@@ -5,7 +5,11 @@
 classes:
   Arrays: Arrays
   Item: Item
+  Counted: Counted
   Grid: Grid
+
+enums:
+  Color: Color
 
 types:
   Grid: { copy_structure: true, generate_binding: false, generate_wrapper: false }

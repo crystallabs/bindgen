@@ -121,6 +121,8 @@ module Bindgen
         type = expr.type
 
         return if type.builtin? || type.void? # Built-ins don't need aliases
+        # Neither do types qualified by the `lib`, like `Binding::CrystalArray`
+        return if expr.type_name.starts_with?("#{Graph::LIB_BINDING}::")
         return if @aliases.has_key? expr.type_name
 
         if rules = @db[type]?

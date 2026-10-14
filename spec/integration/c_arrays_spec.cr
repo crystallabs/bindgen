@@ -95,12 +95,110 @@ describe "C arrays in methods" do
         end
       end
 
+      context "arrays of wrapped classes" do
+        it "has getters returning an ArrayView" do
+          arrays = Test::Arrays.new
+          items = arrays.items
+          items.should be_a(Test::BindgenHelper::ArrayView(Test::Item))
+          items.size.should eq(3)
+          items.read_only?.should be_false
+          items[1].should be_a(Test::Item)
+          items.map(&.value).should eq([1, 2, 3])
+        end
+
+        it "refers to the elements of the array" do
+          arrays = Test::Arrays.new
+          item = arrays.items[2]
+          item.value = 30
+          arrays.items[2].value.should eq(30)
+          item.to_unsafe.should eq(arrays.items[2].to_unsafe)
+          (arrays.items[1].to_unsafe - arrays.items[0].to_unsafe).should eq(sizeof(Int32))
+        end
+
+        it "copy-assigns elements" do
+          arrays = Test::Arrays.new
+          counted = arrays.counted
+          other = Test::Counted.new(42)
+          counted[1] = other
+          counted[1].value.should eq(42)
+          counted[1].assigned.should eq(1)
+          counted[1].to_unsafe.should_not eq(other.to_unsafe)
+          counted[0].value.should eq(6)
+
+          arrays.items[0] = Test::Item.new(value: 10)
+          arrays.items[0].value.should eq(10)
+
+          expect_raises(IndexError) { counted[2] = other }
+        end
+
+        it "doesn't assign to const arrays" do
+          items = Test::Arrays.new.const_items
+          items.read_only?.should be_true
+          items[1].value.should eq(5)
+          expect_raises(Exception, "Can't write to read-only ArrayView") do
+            items[0] = Test::Item.new(value: 1)
+          end
+        end
+
+        it "takes a reference to an array as ArrayView" do
+          arrays = Test::Arrays.new
+          arrays.item_sum(arrays.items).should eq(6)
+          arrays.bump_items(arrays.items)
+          arrays.items.map(&.value).should eq([2, 3, 4])
+
+          expect_raises(ArgumentError, "Expected an ArrayView of 3 elements, got 2") do
+            arrays.item_sum(arrays.const_items)
+          end
+        end
+
+        it "returns a reference to an array as ArrayView" do
+          arrays = Test::Arrays.new
+          items = arrays.items_ref
+          items.should be_a(Test::BindgenHelper::ArrayView(Test::Item))
+          items[0].value = 5
+          arrays.items[0].value.should eq(5)
+          arrays.const_items_ref.read_only?.should be_true
+          arrays.const_items_ref.map(&.value).should eq([4, 5])
+        end
+
+        it "keeps the parent alive" do
+          items = Test::Arrays.new.items
+          GC.collect
+          Array.new(1000) { Test::Arrays.new.items[0].value = 0 }
+          items.map(&.value).should eq([1, 2, 3])
+        end
+      end
+
+      context "arrays of enums" do
+        it "uses a Slice of the enum" do
+          arrays = Test::Arrays.new
+          colors = arrays.colors
+          colors.should be_a(Slice(Test::Color))
+          colors.should eq(Slice[Test::Color::Red, Test::Color::Green, Test::Color::Blue])
+          colors[0] = Test::Color::Blue
+          arrays.colors_ref[0].should eq(Test::Color::Blue)
+          arrays.color_sum(Slice[Test::Color::Green, Test::Color::Blue, Test::Color::Blue]).should eq(5)
+        end
+      end
+
+      context "arrays of copied structures" do
+        it "uses a Slice of the lib struct" do
+          arrays = Test::Arrays.new
+          grids = arrays.grids
+          grids.should be_a(Slice(Test::Binding::Grid))
+          grids[1] = Test::Binding::Grid.new(count: 3)
+          arrays.grids_ref[1].count.should eq(3)
+          arrays.grid_count(arrays.grids).should eq(3)
+        end
+      end
+
       it "skips unsupported methods" do
         names = method_names(Test::Arrays)
         names.should_not contain("unknown_bound")
         names.should_not contain("unknown_bound_ptr")
-        names.should_not contain("items")
         names.should_not contain("items_ptr")
+        names.should_not contain("item_grid")
+        names.should_not contain("item_pointers")
         names.should_not contain("nested")
         names.should_not contain("overridable")
       end

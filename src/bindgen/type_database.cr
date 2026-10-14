@@ -431,5 +431,51 @@ module Bindgen
 
       add(cpp_name, config)
     end
+
+    # Can the complete C array *type*, or a single pointer or reference to one,
+    # be passed to Crystal?  Its elements have to be built-in types, or enums,
+    # copied structures or wrapped classes by value.  For the latter three only
+    # references to arrays are supported, and for wrapped classes only
+    # one-dimensional arrays.  See `#array_view?`.
+    def c_array_supported?(type : Parser::Type) : Bool
+      if type.pointer_to_c_array?
+        return true if type.builtin_array_pointer?
+        return false unless type.reference_to_c_array?
+
+        type = type.pointee_array
+      end
+
+      return false unless type.c_complete_array?
+      return true if type.builtin? || array_view?(type)
+
+      element = type.remove_all_extents
+      return false if element.pointer > 0
+
+      try_or(element, false) do |rules|
+        !rules.builtin? && (rules.kind.enum? || rules.copy_structure?)
+      end
+    end
+
+    # Is *type* a one-dimensional C array of a wrapped class by value?  These
+    # are passed as `Binding::CrystalArray`, wrapped by
+    # `BindgenHelper::ArrayView` in Crystal.
+    def array_view?(type : Parser::Type) : Bool
+      return false unless type.c_complete_array? && type.extents.size == 1
+      return false if type.builtin?
+
+      element = type.remove_all_extents
+      return false if element.pointer > 0
+
+      try_or(element, false) { |rules| plain_wrapped_class?(rules) }
+    end
+
+    # Is the type of *rules* a named class with a wrapper, without custom
+    # conversions?
+    private def plain_wrapped_class?(rules : TypeConfig) : Bool
+      rules.kind.class? && !rules.builtin? && !rules.copy_structure? &&
+        !rules.anonymous? && rules.generate_wrapper? && rules.converter.nil? &&
+        rules.to_crystal.no_op? && rules.from_crystal.no_op? &&
+        rules.graph_node.is_a?(Graph::Class)
+    end
   end
 end

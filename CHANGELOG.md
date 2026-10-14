@@ -44,6 +44,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
     `Slice`s.  Passing one of the wrong size raises an `ArgumentError`.
   * Pointers to arrays of built-in types, like `int (*)[4]`, become pointers
     to `StaticArray`s in arguments, results and members.
+  * Array members and references to arrays of enums and copied structures
+    use `Slice`s.  Those of wrapped classes use `BindgenHelper::ArrayView`,
+    an `Indexable` view whose elements refer to the C++ array, and which
+    copy-assigns elements through `#[]=`.
 * Generic container modules (#102): `Container(T)` can be used as type
   restriction, `Container.of(T)` returns the wrapper class of an instantiation
   and `.from` builds one from any `Enumerable`.
