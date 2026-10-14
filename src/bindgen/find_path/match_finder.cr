@@ -43,7 +43,11 @@ module Bindgen
       private def run_path_try(path : String, search_paths) : Array(String)
         pattern = Util.template(path, @parent.root, env: @parent.variables)
         patterns = prefix_search_paths(search_paths, pattern)
-        Dir[patterns]
+
+        # A path may contain characters special to `Dir[]`, like in
+        # `/opt/sdk[1]/include`.  Try those as they are if nothing matched.
+        candidates = Dir[patterns]
+        candidates.empty? ? patterns : candidates
       end
 
       # :ditto:

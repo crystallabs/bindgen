@@ -1,4 +1,5 @@
 require "../spec_helper"
+require "file_utils"
 
 describe Bindgen::FindPath do
   root_dir = "#{__DIR__}/.." # spec/
@@ -367,6 +368,28 @@ describe Bindgen::FindPath do
   end
 
   context "search paths feature" do
+    it "finds a path containing glob characters" do
+      dir = File.join(Dir.tempdir, "bindgen-spec-[1]")
+      Dir.mkdir_p(dir)
+      File.write(File.join(dir, "file.txt"), "")
+
+      config = Bindgen::FindPath::Configuration.from_yaml <<-YAML
+      TEST:
+        kind: File
+        try: [ "file.txt" ]
+        search_paths: [ #{dir.inspect} ]
+      YAML
+
+      vars = {} of String => String
+      subject = Bindgen::FindPath.new(root_dir, vars)
+      errors = subject.find_all!(config)
+
+      errors.empty?.should be_true
+      vars.should eq({"TEST" => File.join(dir, "file.txt")})
+    ensure
+      FileUtils.rm_rf(dir) if dir
+    end
+
     it "supports them" do
       config = Bindgen::FindPath::Configuration.from_yaml <<-YAML
       TEST:
