@@ -8,11 +8,11 @@ module Bindgen
 
     # Returns the glue code from `PATH`, skipping the header.
     def self.read : String
-      File.open(PATH) do |h|
-        while h.read_line != MARKER
+      File.open(PATH) do |file|
+        while file.read_line != MARKER
         end
 
-        return h.gets_to_end
+        return file.gets_to_end
       end
     end
   end

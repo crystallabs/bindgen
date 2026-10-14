@@ -262,7 +262,7 @@ def find_llvm_config_binary(paths = nil, min_version = "14.0.0") : String?
       - llvm-config
       - llvm-config-*
     search_paths:
-      #{paths.try(&.map { |p| "- \"" + p + "\"" }.join("\n  ")) || ENV["PATH"].split(/:+/).map { |p| "- \"" + p + "\"" }.join("\n  ")}
+      #{paths.try(&.map { |path| "- \"" + path + "\"" }.join("\n  ")) || ENV["PATH"].split(/:+/).map { |path| "- \"" + path + "\"" }.join("\n  ")}
     version:
       min: "#{min_version}"
       command: "% --version"
@@ -399,7 +399,7 @@ end
 # Runs the command and arguments as shell command line in backticks.
 # Arrays among the arguments are flattened.  Returns its output.chomp.
 def output_of(*args)
-  `#{args.to_a.flatten.map { |r| "\"#{r}\"" }.join " "}`.chomp
+  `#{args.to_a.flatten.map { |arg| "\"#{arg}\"" }.join " "}`.chomp
 end
 
 # Convenience functions for accessing OPTIONS

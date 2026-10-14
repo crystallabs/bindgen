@@ -371,13 +371,13 @@ module Bindgen
 
         # If the existing collection of underlying types refer to our newly
         # created alias, resolve them too.
-        @aliases = @aliases.to_h do |n, t|
+        @aliases = @aliases.to_h do |alias_name, t|
           replaced_t = t.substitute(name, underlying_type)
-          if replaced_t.uses_typename?(n)
+          if replaced_t.uses_typename?(alias_name)
             raise "Recursive type alias found: " \
-                  "#{n.inspect} refers to #{replaced_t.full_name.inspect}"
+                  "#{alias_name.inspect} refers to #{replaced_t.full_name.inspect}"
           end
-          {n, replaced_t}
+          {alias_name, replaced_t}
         end
 
         # Actually add our alias to the type database.

@@ -20,6 +20,11 @@ Excluded:
 Style/PercentLiteralDelimiters:
   DefaultDelimiters: ~
 
+# Short blocks conventionally name their parameter by initial: `|m|` for a
+# method or match, `|t|` for a type, `|f|` for a field, `|l, r|` for pairs.
+Naming/BlockParameterName:
+  AllowedNames: [a, b, e, i, j, k, v, x, y, k1, k2, v1, v2, db, ex, id, io, ip, op, tx, wg, ws, f, l, m, r, t]
+
 Metrics/CyclomaticComplexity:
   Excluded:
   - src/bindgen/cpp/pass.cr
@@ -28,26 +33,6 @@ Metrics/CyclomaticComplexity:
   - src/bindgen/find_path/generic_version.cr
   - src/bindgen/parser/method.cr
   - src/bindgen/processor/instance_properties.cr
-
-Naming/BlockParameterName:
-  Excluded:
-  - clang/find_clang.cr
-  - spec/clang/spec_helper.cr
-  - spec/integration/basic_spec.cr
-  - src/bindgen/call_builder/crystal_container_of.cr
-  - src/bindgen/cpp/pass.cr
-  - src/bindgen/crystal/pass.cr
-  - src/bindgen/glue_reader.cr
-  - src/bindgen/graph/path.cr
-  - src/bindgen/parser/class.cr
-  - src/bindgen/parser/method.cr
-  - src/bindgen/processor/copy_structs.cr
-  - src/bindgen/processor/inheritance.cr
-  - src/bindgen/processor/instantiate_containers.cr
-  - src/bindgen/processor/virtual_override.cr
-  - src/bindgen/template/basic.cr
-  - src/bindgen/type_database.cr
-  - src/bindgen/util.cr
 
 Naming/QueryBoolMethods:
   Excluded:
