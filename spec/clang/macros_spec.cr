@@ -3,7 +3,7 @@ require "./spec_helper"
 describe "clang tool macros feature" do
   it "exports the macros" do
     clang_tool(
-      %[
+      <<-CPP,
         #define THING_ONE 1
         #define THING_TWO 2
         #define ANOTHER 3
@@ -23,7 +23,7 @@ describe "clang tool macros feature" do
         #define EVALUATE_TRUE true
         #define EVALUATE_FALSE false
         #define EVALUATE_FLOAT 3.5
-      ],
+        CPP
       "-m 'THING_.*|ANOTHER|ADD_.*|EVALUATE_.*'",
       macros: [
         {

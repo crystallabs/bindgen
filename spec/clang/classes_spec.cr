@@ -3,13 +3,13 @@ require "./spec_helper"
 describe "clang tool classes feature" do
   it "exports the width of bit-fields" do
     clang_tool(
-      %[
+      <<-CPP,
         struct Flags {
           unsigned plain;
           unsigned narrow : 3;
           int wide : 12;
         };
-      ],
+        CPP
       "-c Flags",
       classes: {
         Flags: {
@@ -25,7 +25,7 @@ describe "clang tool classes feature" do
 
   it "exports if a constructor is declared" do
     clang_tool(
-      %[
+      <<-CPP,
         struct Plain { int x; };
         struct Defaulted { Defaulted() = default; int x; };
         struct Deleted { Deleted(int) = delete; int x; };
@@ -33,7 +33,7 @@ describe "clang tool classes feature" do
 
         // Declares the implicit constructors of `Plain`.
         Plain copy(Plain plain = Plain()) { return plain; }
-      ],
+        CPP
       "-c Plain -c Defaulted -c Deleted -c Provided",
       classes: {
         Plain:     {hasUserDeclaredConstructor: false},
@@ -46,7 +46,7 @@ describe "clang tool classes feature" do
 
   it "tells pointers to arrays and arrays of pointers apart" do
     clang_tool(
-      %[
+      <<-CPP,
         struct Arrays {
           int *pointers[4];
           int (*array)[4];
@@ -54,7 +54,7 @@ describe "clang tool classes feature" do
           const int (&ref)[2][3];
           int (*arrays[2])[4];
         };
-      ],
+        CPP
       "-c Arrays",
       classes: {
         Arrays: {
@@ -72,10 +72,10 @@ describe "clang tool classes feature" do
 
   it "ignores a class template of the same name in another scope" do
     clang_tool(
-      %[
+      <<-CPP,
         namespace detail { template<typename T> struct Node { T *next; }; }
         struct Node { int value; };
-      ],
+        CPP
       "-c Node",
       classes: {
         Node: {fields: [{name: "value"}]},
@@ -99,10 +99,10 @@ describe "clang tool classes feature" do
 
   it "exports if a class is final" do
     clang_tool(
-      %[
+      <<-CPP,
         struct Open { virtual int f(); };
         struct Closed final { virtual int f(); };
-      ],
+        CPP
       "-c Open -c Closed",
       classes: {
         Open:   {isFinal: false},
@@ -113,11 +113,11 @@ describe "clang tool classes feature" do
 
   it "exports if a class is polymorphic" do
     clang_tool(
-      %[
+      <<-CPP,
         struct Plain { int f(); };
         struct Virtual { virtual ~Virtual(); };
         struct Inherited : Virtual { int f(); };
-      ],
+        CPP
       "-c Plain -c Virtual -c Inherited",
       classes: {
         Plain:     {isPolymorphic: false},
@@ -129,12 +129,12 @@ describe "clang tool classes feature" do
 
   it "exports if a class is trivially copyable and standard-layout" do
     clang_tool(
-      %[
+      <<-CPP,
         struct Plain { int x; };
         struct Copying { Copying(const Copying &) { } int x; };
         struct Mixed { int x; private: int y; };
         struct Derived : Plain { int y; };
-      ],
+        CPP
       "-c Plain -c Copying -c Mixed -c Derived",
       classes: {
         Plain:   {isTriviallyCopyable: true, isStandardLayout: true},

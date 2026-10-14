@@ -44,64 +44,64 @@ describe Bindgen::ConfigReader::Parser do
 
   describe "normal yaml file" do
     it "works normally" do
-      parse(%<
+      parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
         list: [one, two]
         string: three
         recurse: { list: [four], string: five }
-      >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+        YAML
     end
   end
 
   describe "conditional feature" do
     context "single if" do
       it "takes the branch" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           string: WRONG
           if_foo_is_bar:
             string: three
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "skips the branch" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           string: three
           if_foo_is_something:
             string: WRONG
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
     end
 
     context "if-else" do
       it "takes the if-branch" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           if_foo_is_bar:
             string: three
           else:
             string: WRONG
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "skips the else-branch" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           if_foo_isnt_bar:
             string: WRONG
           else:
             string: three
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
     end
 
     context "if-elsif-else" do
       it "takes the if-branch" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           if_foo_is_bar:
             string: three
@@ -110,11 +110,11 @@ describe Bindgen::ConfigReader::Parser do
           else:
             string: ELSE WRONG
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "takes the elsif-branch" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           if_foo_isnt_bar:
             string: IF WRONG
@@ -123,11 +123,11 @@ describe Bindgen::ConfigReader::Parser do
           else:
             string: ELSE WRONG
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "takes the else-branch" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           if_foo_isnt_bar:
             string: IF WRONG
@@ -136,13 +136,13 @@ describe Bindgen::ConfigReader::Parser do
           else:
             string: three
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
     end
 
     context "if-if-else" do
       it "takes the if-branch" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           if_foo_is_bar:
             string: EARLY WRONG
@@ -151,11 +151,11 @@ describe Bindgen::ConfigReader::Parser do
           else:
             string: WRONG
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "skips the else-branch" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           if_foo_is_bar:
             string: EARLY WRONG
@@ -164,176 +164,176 @@ describe Bindgen::ConfigReader::Parser do
           else:
             string: three
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
     end
 
     context "versions" do
       it "newer_or" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           string: WRONG
           if_version_newer_or_0.9.9:
             string: three
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "newer_or equals" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           string: WRONG
           if_version_newer_or_1.0.0:
             string: three
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "not newer_or" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           string: three
           if_version_newer_or_1.0.1:
             string: WRONG
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "older_or" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           string: WRONG
           if_version_older_or_1.0.1:
             string: three
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "older_or equals" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           string: WRONG
           if_version_older_or_1.0.0:
             string: three
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "not older_or" do
-        parse(%<
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           list: [one, two]
           string: three
           if_version_older_or_0.9.9:
             string: WRONG
           recurse: { list: [four], string: five }
-        >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
     end
 
     context "fails" do
       it "for elsif without if" do
         expect_raises(Bindgen::ConfigReader::Parser::Error, /elsif-branch without if-branch/) do
-          parse(%<
+          parse(<<-YAML, Hash(String, String))
             foo: bar
             elsif_foo_is_bar: { }
-          >, Hash(String, String))
+            YAML
         end
       end
 
       it "for else without if" do
         expect_raises(Bindgen::ConfigReader::Parser::Error, /else-branch without if-branch/) do
-          parse(%<
+          parse(<<-YAML, Hash(String, String))
             foo: bar
             else: { }
-          >, Hash(String, String))
+            YAML
         end
       end
     end
 
     it "allows for intermixed values" do
-      parse(%<
+      parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
         if_foo_isnt_bar:
           string: WRONG
         list: [one, two]
         else:
           string: three
         recurse: { list: [four], string: five }
-      >).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+        YAML
     end
   end
 
   describe "dependency feature" do
     files["./some-list"] = %[{ list: [one, two] }]
     files["./some-string"] = %[{ string: three }]
-    files["./recurse-1"] = %[
+    files["./recurse-1"] = <<-YAML
       list: [four]
       string: five
       recurse:
         <<: recurse-2
-    ]
-    files["./recurse-2"] = %[
+      YAML
+    files["./recurse-2"] = <<-YAML
       list: [six]
       string: seven
-    ]
-    files["./recurse-infinite"] = %[
+      YAML
+    files["./recurse-infinite"] = <<-YAML
       <<: recurse-infinite
-    ]
+      YAML
     files["./subdir/first"] = %[{ <<: second }]
     files["./subdir/second"] = %[{ string: three }]
 
     describe "functionality" do
       it "injects into open mapping" do
-        parse(%[
+        parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
           <<: some-list
           string: three
           recurse: { list: [four], string: five }
-        ]).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+          YAML
       end
 
       it "supports recursion" do
-        parse(%[
+        expected = YamlThing.new(%w[one two], "three",
+          YamlThing.new(%w[four], "five",
+            YamlThing.new(%w[six], "seven")
+          )
+        )
+
+        parse(<<-YAML).should eq(expected)
           list: [one, two]
           string: three
           recurse:
             <<: recurse-1
-        ]).should eq(
-          YamlThing.new(%w[one two], "three",
-            YamlThing.new(%w[four], "five",
-              YamlThing.new(%w[six], "seven")
-            )
-          )
-        )
+          YAML
       end
 
       it "supports multiple injections" do
-        parse(%[
+        expected = YamlThing.new(%w[one two], "three",
+          YamlThing.new(%w[four], "five",
+            YamlThing.new(%w[six], "seven")
+          )
+        )
+
+        parse(<<-YAML).should eq(expected)
           <<: some-list
           <<: some-string
           recurse:
             <<: recurse-1
-        ]).should eq(
-          YamlThing.new(%w[one two], "three",
-            YamlThing.new(%w[four], "five",
-              YamlThing.new(%w[six], "seven")
-            )
-          )
-        )
+          YAML
       end
 
       it "supports sub-directories" do
-        parse(%[
+        parse(<<-YAML).should eq(YamlThing.new(%w[one], "three"))
           list: [one]
           <<: subdir/first
-        ]).should eq(YamlThing.new(%w[one], "three"))
+          YAML
       end
     end
 
     describe "error behaviour" do
       it "fails if recursion is too deep" do
         expect_raises(Bindgen::ConfigReader::Parser::Error, /dependency depth/) do
-          parse(%[
+          parse(<<-YAML)
             <<: recurse-infinite
-          ])
+            YAML
         end
       end
     end
@@ -341,12 +341,12 @@ describe Bindgen::ConfigReader::Parser do
 
   describe "conditional with dependency feature" do
     it "works" do
-      parse(%[
+      parse(<<-YAML).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
         list: [one, two]
         if_foo_is_bar:
           <<: some-string
         recurse: { list: [four], string: five }
-      ]).should eq(YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five")))
+        YAML
     end
   end
 end

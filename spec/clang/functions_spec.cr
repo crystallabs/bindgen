@@ -3,14 +3,14 @@ require "./spec_helper"
 describe "clang tool functions feature" do
   it "exports the C functions" do
     clang_tool(
-      %[
+      <<-CPP,
         void simple();
         void defaultArg(const char *thing = "Hello");
         int varArg(int count, ...);
         int arrayArg(int values[4]);
         extern "C" int externC();
         extern "C" { int externCContext(); }
-      ],
+        CPP
       "-f 'simple|.*Arg|externC.*'",
       functions: [
         {
@@ -92,7 +92,7 @@ describe "clang tool functions feature" do
 
   it "omits tag keywords from type names" do
     clang_tool(
-      %[
+      <<-CPP,
         struct Plain { };
         union Both { int i; float f; };
         enum Kind { One };
@@ -101,7 +101,7 @@ describe "clang tool functions feature" do
 
         struct Plain *tagged(struct Plain value, const union Both &both, enum Kind kind);
         substruct *tricky(Box<struct Plain> box, class Box<union Both *> *boxes);
-      ],
+        CPP
       "-f 'tagged|tricky'",
       functions: [
         {
@@ -127,11 +127,11 @@ describe "clang tool functions feature" do
 
   it "exports what it can from sources with errors" do
     clang_tool(
-      %[
+      <<-CPP,
         void before();
         void broken(UnknownType value);
         void after();
-      ],
+        CPP
       "-f 'before|after'",
       functions: [
         {name: "before"},

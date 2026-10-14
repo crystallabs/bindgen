@@ -30,19 +30,23 @@ private def inject_describe_block(code, name)
     range = pos...pos
     code.sub(range, %<describe "Online test of #{name}" do >) + "\nend"
   else
-    %<describe "Online test of #{name}" do
+    <<-CRYSTAL
+      describe "Online test of #{name}" do
         #{code}
-      end>
+      end
+      CRYSTAL
   end
 end
 
 # Embeds *code* into a `spec` skeleton.  Automatically requires the generated
 # crystal wrapper of *name*.
 private def embedded_test_code(name, code)
-  %<require "spec"
+  <<-CRYSTAL
+    require "spec"
     require "./#{name}"
 
-    #{code}>
+    #{code}
+    CRYSTAL
 end
 
 # Prepends a `#<loc..>` pragma to *code*, pointing at *file* on line *base*.
