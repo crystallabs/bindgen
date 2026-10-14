@@ -109,8 +109,7 @@ module Bindgen
           if field_klass && inlinable
             add_fields_to_graph(field_klass.origin, calls)
           else
-            result = pass.to_binding(field)
-            check_field_layout!(klass, field, result)
+            result = lib_struct_field(klass, field, pass.to_binding(field))
             var_name = argument.name(field.crystal_name, calls.size)
             calls[var_name] = result
           end
@@ -118,34 +117,40 @@ module Bindgen
       end
 
       # Makes sure that the *field* of *klass* has the same layout in C++ as its
-      # *result* has in the `lib struct`.  Raises if it doesn't.
+      # *result* has in the `lib struct`.  Returns the result to use, raises if
+      # there is none.
       #
       # Only built-in types, enumerations, other copied structures and
       # pointers have.  Anything else is either passed as pointer, or as another
       # type than it really is (like `std::string` as `CrystalString`), which
-      # is fine for a method argument, but not for a structure member.
-      private def check_field_layout!(klass, field, result)
+      # is fine for a method argument, but not for a structure member.  A
+      # pointer to such a type becomes a `Void` pointer instead.
+      private def lib_struct_field(klass, field, result) : Call::Result
         type_name = field.full_name
         binding_pointer = result.pointer + (result.reference ? 1 : 0)
+        converted = @db.try_or(field, false) { |rules| converted_type?(field, rules) }
 
         reason = if field.reference? || field.move?
                    "it is a reference"
                  elsif field.pointer_to_c_array?
                    "pointers to C arrays aren't supported yet"
-                 elsif @db.try_or(field, false) { |rules| converted_type?(field, rules) }
-                   "its type #{type_name} is converted when passed to Crystal"
-                 elsif binding_pointer == type_pointer_depth(field)
+                 elsif !converted && binding_pointer == type_pointer_depth(field)
                    nil # Same layout.
-                 elsif field.pointer < 1
-                   "its type #{type_name} is neither built-in, an enumeration nor a copied structure"
+                 elsif field.pointer > 0
+                   void = Parser::Type.builtin_type("void", pointer: field.pointer)
+                   return Crystal::Pass.new(@db).to_binding(void)
+                 elsif converted
+                   "its type #{type_name} is converted when passed to Crystal"
                  else
-                   "its type #{type_name} isn't passed as it is"
+                   "its type #{type_name} is neither built-in, an enumeration nor a copied structure"
                  end
 
         if reason
           raise "Can't copy structure of class #{klass.name.inspect}: " \
                 "The field #{field.name.inspect} can't be part of a lib struct, #{reason}"
         end
+
+        result
       end
 
       # Do the *rules* of *type* pass it as another type to Crystal?

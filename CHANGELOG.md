@@ -65,6 +65,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Fixed
 
+* Pointers to converted types, like `std::string *`, in copied structures
+  become `Void*` instead of being rejected.
 * Building and running on macOS with Homebrew: LLVM, PCRE2 and the libraries
   LLVM depends on are found, the SDK's C headers are searched, and `tool.sh`
   no longer requires coreutils.

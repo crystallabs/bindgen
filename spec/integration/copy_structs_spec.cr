@@ -46,6 +46,12 @@ describe "copied structure functionality" do
           subject.after.should be_a(Pointer(Test::Binding::PolyLine))
         end
 
+        it "supports pointers to converted types as raw pointers" do
+          subject = Test::Binding::StringPointer.new
+          subject.name.should be_a(Pointer(Void))
+          subject.point.should be_a(Pointer(Test::Binding::Point))
+        end
+
         it "supports unions" do
           subject = Test::Binding::PlainUnion.new
           instance_var_names(subject).should eq(%w{x y})

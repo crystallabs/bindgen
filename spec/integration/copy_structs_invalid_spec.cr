@@ -82,14 +82,6 @@ describe "copied structure validation" do
     errors.should contain("std::string")
   end
 
-  it "rejects a pointer to a std::string" do
-    code, errors = copy_structures("StringPointerMember")
-    code.should eq(1)
-    errors.should contain(%(Can't copy structure of class "StringPointerMember"))
-    errors.should contain(%(field "name"))
-    errors.should contain("std::string *")
-  end
-
   it "rejects a container member" do
     code, errors = copy_structures("ContainerMember")
     code.should eq(1)

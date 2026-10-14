@@ -6,6 +6,7 @@ classes:
   Point: Point
   Line: Line
   PolyLine: PolyLine
+  StringPointer: StringPointer
   Nested: Nested
   Nested::Inner: Nested::Inner
   Nested::Inner2: Nested::Inner2
@@ -20,6 +21,7 @@ types:
   Point: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   Line: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   PolyLine: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  StringPointer: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   Nested: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   Nested::Inner: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   Nested::Inner2: { copy_structure: true, generate_binding: false, generate_wrapper: false }

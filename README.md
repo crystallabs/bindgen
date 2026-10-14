@@ -293,8 +293,9 @@ end
 Copies structures of those types, that have `copy_structure: true` set in the
 configuration, into `lib Binding`.  Such a type is passed by value.  It has to
 be layout-compatible to a C structure: Its members may only be built-in types,
-enumerations, other copied structures and pointers.  bindgen refuses to copy a
-structure with a member it can't represent, like a `std::string`, a container
+enumerations, other copied structures and pointers.  A pointer to a type which
+is converted, like `std::string *`, becomes a `Void*`.  bindgen refuses to copy
+a structure with a member it can't represent, like a `std::string`, a container
 or a class which isn't copied itself, and one whose C++ type isn't trivially
 copyable and standard-layout.
 

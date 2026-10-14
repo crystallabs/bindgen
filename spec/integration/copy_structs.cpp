@@ -19,6 +19,12 @@ struct PolyLine {
   PolyLine *before, *after;
 };
 
+// `std::string` is converted, so a pointer to it is a raw pointer.
+struct StringPointer {
+  std::string *name;
+  Point *point;
+};
+
 struct Nested {
   struct Inner {
     float a;

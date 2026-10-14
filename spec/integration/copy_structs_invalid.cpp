@@ -36,11 +36,6 @@ struct StringMember {
   std::string name;
 };
 
-// Would be a `CrystalString`, which isn't a pointer.
-struct StringPointerMember {
-  std::string *name;
-};
-
 struct ContainerMember {
   std::vector<std::string> mount_options;
 };
