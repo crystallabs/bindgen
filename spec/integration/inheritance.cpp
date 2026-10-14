@@ -185,3 +185,11 @@ struct Grandparent {
 };
 
 struct Parent : Grandparent { };
+
+// All virtual methods are filtered, leaving an empty jumptable.
+struct IgnoredByConfig { };
+
+struct OnlyFilteredVirtuals {
+  virtual void take(IgnoredByConfig *) { }
+  int value() { return 8; }
+};

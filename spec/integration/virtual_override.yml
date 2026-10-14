@@ -22,9 +22,12 @@ classes:
   Overloads: Overloads
   Grandparent: Grandparent
   Parent: Parent
+  OnlyFilteredVirtuals: OnlyFilteredVirtuals
 
 types:
   Subclass:
     superclass_ignore_methods: [ "^random" ]
   Skip:
     generate_superclass: false
+  IgnoredByConfig:
+    ignore: true

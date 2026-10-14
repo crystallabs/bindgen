@@ -237,6 +237,10 @@ describe "C++ virtual overriding from Crystal feature" do
           Test::Module::SuperV.new.f
         end
       end
+
+      it "supports classes whose virtual methods are all filtered" do
+        Test::OnlyFilteredVirtuals.new.value.should eq(8)
+      end
     end
   end
 end

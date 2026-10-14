@@ -148,3 +148,5 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * A virtual method of a second base overridden as private in the derived class
   was called through it, which didn't compile.
 * Constructors of classes with a private destructor are no longer wrapped.
+* A class whose virtual methods were all filtered generated an empty `lib`
+  struct, which Crystal rejects.

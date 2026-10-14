@@ -73,6 +73,9 @@ module Bindgen
         # The C++ virtual methods are built by `Processor::CppWrapper`.
       end
 
+      # Type of the field of an otherwise empty jumptable.
+      PADDING_TYPE = Parser::Type.builtin_type("char")
+
       # If *klass* shall be sub-classed, or not.
       private def subclass?(klass) : Bool
         # Indestructible and final types are never sub-classed.
@@ -149,7 +152,8 @@ module Bindgen
 
       # Adds the `BgJumptable` struct for C++ to *klass*.
       private def add_cpp_jumptable_struct(klass, host)
-        build_jumptable_struct(klass, host) do |method|
+        padding = Cpp::Pass.new(@db).to_cpp(PADDING_TYPE)
+        build_jumptable_struct(klass, host, padding) do |method|
           cpp_jumptable_field method
         end
       end
@@ -272,16 +276,21 @@ module Bindgen
 
       # Adds the `BgJumptable` struct for Crystal to *klass*.
       private def add_crystal_jumptable_struct(klass)
-        build_jumptable_struct(klass, binding) do |method|
+        padding = Crystal::Pass.new(@db).to_binding(PADDING_TYPE)
+        build_jumptable_struct(klass, binding, padding) do |method|
           crystal_jumptable_field method
         end
       end
 
       # Builds the `Graph::Struct` jumptable for *klass*, putting it into
-      # *parent*.
-      private def build_jumptable_struct(klass, parent, &)
+      # *parent*.  If all virtual methods were filtered, the table only holds
+      # *padding*, as Crystal doesn't allow an empty `lib` struct.
+      private def build_jumptable_struct(klass, parent, padding, &)
+        fields = jumptable_fields(klass) { |m| yield m }
+        fields["bgUnused"] = padding if fields.empty?
+
         Graph::Struct.new(
-          fields: jumptable_fields(klass) { |m| yield m },
+          fields: fields,
           name: jumptable_name(klass),
           parent: parent,
         )
