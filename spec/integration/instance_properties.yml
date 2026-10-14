@@ -13,6 +13,7 @@ classes:
   Point: Point
   Anonymous: Anonymous
   Wrapped: Wrapped
+  RenameMe: Renamed
   Props: Props
   PlainUnion: PlainUnion
   ManagedUnion: ManagedUnion

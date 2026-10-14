@@ -69,6 +69,13 @@ struct Wrapped {
 
 
 
+// Wrapped under another name in Crystal.
+struct RenameMe {
+  struct {
+    int y;
+  } z;
+};
+
 union PlainUnion {
   int x;
   float y;

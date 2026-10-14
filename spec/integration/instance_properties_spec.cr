@@ -308,6 +308,14 @@ describe "C++ instance properties" do
           w.z2.to_unsafe.should_not eq(z.to_unsafe)
         end
 
+        it "nests anonymous types in their renamed enclosing class" do
+          r = Test::Renamed.new
+          r.z.should be_a(Test::Renamed::Unnamed0)
+          r.z.y = 3
+          r.z.y.should eq(3)
+          {{ Test.has_constant?("RenameMe") }}.should be_false
+        end
+
         it "supports nested members of anonymous types" do
           a = Test::Anonymous.new
           a.p2.x2 = 6

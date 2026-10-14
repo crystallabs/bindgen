@@ -158,3 +158,5 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   isn't at offset 0, like a non-polymorphic base of a polymorphic class.  Its
   methods then got the wrong pointer.  The Crystal superclass is now the first
   wrapped base at offset 0.
+* Anonymous types of a class renamed in `classes:` were put into a namespace
+  named after the C++ class, instead of into the renamed class.

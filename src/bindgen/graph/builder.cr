@@ -11,12 +11,13 @@ module Bindgen
       # Copies *document* into the *ns*.
       def build_document(document : Parser::Document, ns : Namespace) : Namespace
         document.classes.each do |_, klass|
-          target_name = @db[klass.name]?.try(&.crystal_type) || klass.name.camelcase
+          target_name = crystal_path(klass.name, document)
 
           if @db[klass.name]?.nil? && klass.anonymous?
             enclosing_type = klass.name.gsub(/::[^:]+$/, "")
 
             @db.add(klass.name,
+              crystal_type: target_name,
               binding_type: klass.name,
               copy_structure: @db.try_or(enclosing_type, false, &.copy_structure?),
               generate_binding: false,
@@ -28,6 +29,19 @@ module Bindgen
         end
 
         ns # Done!
+      end
+
+      # Crystal path of the class *name*.  An anonymous class is nested in its
+      # enclosing class, which may have been renamed.
+      private def crystal_path(name : String, document : Parser::Document) : String
+        if crystal_type = @db[name]?.try(&.crystal_type)
+          crystal_type
+        elsif document.classes[name]?.try(&.anonymous?)
+          enclosing, _, local_name = name.rpartition("::")
+          "#{crystal_path(enclosing, document)}::#{local_name.camelcase}"
+        else
+          name.camelcase
+        end
       end
 
       # Copies *klass* at path *name* into the *root*.
