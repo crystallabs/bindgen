@@ -288,9 +288,9 @@ functions:
   # methods, the qualified name includes the complete namespace path: The
   # qualified name of `namespace foo { void bar(); }` is thus `foo::bar`.
   #
-  # If the qualified name of a namespaced function doesn't match, its bare name
-  # is tried: `bar` matches `foo::bar` too.  A key matching both, like `(.*)`,
-  # uses the qualified name, also for its capture groups.
+  # A namespaced function is found by its bare name as well: `bar` matches
+  # `foo::bar` too.  The bare name is tried first, so a key matching both,
+  # like `(.*)`, doesn't capture the namespace.
   #
   # Just like macros, the first capture group defaults to be the resulting
   # function name.  Without a capture group, the function name is copied.

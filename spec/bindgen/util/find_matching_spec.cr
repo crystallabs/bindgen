@@ -50,9 +50,12 @@ describe Bindgen::Util::FindMatching do
       found.should eq([{"read_one", ["read_one", "one"]}])
     end
 
-    it "prefers the qualified name" do
+    it "prefers the bare name" do
       found = find("(.*)", function("read_one", "storage"))
-      found.should eq([{"read_one", ["storage::read_one", "storage::read_one"]}])
+      found.should eq([{"read_one", ["read_one", "read_one"]}])
+
+      found = find("(.*)_one", function("read_one", "storage"))
+      found.should eq([{"read_one", ["read_one", "read"]}])
     end
 
     it "doesn't match another namespace" do

@@ -133,8 +133,8 @@ describe "C-specific functionality" do
           Test::Storage::Write.one.should eq(10)
         end
 
-        it "prefers the qualified name" do
-          Test::Storage::Storage.get.should eq(20)
+        it "prefers the bare name" do
+          Test::Storage.get.should eq(20)
         end
       end
 

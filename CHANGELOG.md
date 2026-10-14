@@ -22,9 +22,6 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `#unsafe_fetch` is now provided by `BindgenHelper::SequentialContainer`.
 * Classes declaring any constructor, including `= default` and `= delete`,
   no longer get an aggregate constructor: they aren't aggregates in C++20.
-* A `functions:` key matching both the qualified and the bare name of a
-  function in a namespace now uses the qualified name, also for its capture
-  groups.
 * Wrapper classes of `copy_structure` types get property methods for the
   fields.  Set `instance_variables: false` to turn them off.
 * Copying a structure with members a `lib struct` can't hold (`std::string`,

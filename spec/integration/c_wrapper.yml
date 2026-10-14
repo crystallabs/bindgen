@@ -53,7 +53,7 @@ functions:
   "storage::read_(.*)": Storage::Read # Qualified name
   "storage::deep::(.*)": Storage::Deep # Nested namespace
   "write_(.*)": Storage::Write # Bare name of a namespaced function
-  # Matches both names, the qualified one wins: `\\1` is `storage::`.
+  # Matches both names, the bare one wins: `\\1` is empty.
   "(.*)raw_(.*)": { destination: "Storage", name: "\\1\\2" }
 
   # Name rewriting
