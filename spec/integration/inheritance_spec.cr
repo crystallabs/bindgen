@@ -39,6 +39,11 @@ describe "single and multiple inheritance feature" do
         Test::Subclass.new.const_overload.should eq(3)
       end
 
+      it "doesn't wrap private overrides of methods of second base" do
+        {{ Test::Subclass.has_method?("privately_overridden") }}.should be_false
+        Test::Subclass.new.as_abstract_thing.privately_overridden.should eq(6)
+      end
+
       it "adds shadow-impl class for abstract classes" do
         {{ Test::AbstractThingImpl.superclass == Test::AbstractThing }}.should be_true
 

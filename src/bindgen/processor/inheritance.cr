@@ -109,7 +109,8 @@ module Bindgen
       # bases not hidden by *klass*.  Methods of the other bases are moved into
       # *klass*, so their wrappers get the `this` pointer adjusted by C++.
       private def base_methods(klass, wrapped) : Array(Parser::Method)
-        known_virtuals = klass.wrappable_methods.select(&.virtual?)
+        # Private overrides count too: C++ can't call those through *klass*.
+        known_virtuals = klass.methods.select(&.virtual?)
 
         list = wrapped.each_with_index.flat_map do |base, index|
           methods = base.origin.wrappable_methods.select do |method|

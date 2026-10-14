@@ -136,3 +136,5 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Conversion operators to types without rules, like a pointer to a member,
   are ignored.
 * Downcasts compile without RTTI (`-fno-rtti`), and abort when called.
+* A virtual method of a second base overridden as private in the derived class
+  was called through it, which didn't compile.
