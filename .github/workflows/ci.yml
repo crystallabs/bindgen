@@ -13,13 +13,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # install-crystal installs packages without refreshing the package
+      # index, which fails when the runner image's index has gone stale.
+      - name: Update package index
+        run: sudo apt-get update
+
       - uses: crystal-lang/install-crystal@v1
 
       - name: Install shards
         run: shards install
 
+      # bin/ is in .gitignore, so it isn't in the checkout
       - name: Build Ameba
-        run: crystal build -o bin/ameba lib/ameba/bin/ameba.cr
+        run: mkdir -p bin && crystal build lib/ameba/src/cli.cr -o bin/ameba
 
       # Rules and the baseline of known findings are in .ameba.yml
       - name: Run Ameba
@@ -49,12 +55,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # install-crystal installs packages without refreshing the package
+      # index, which fails when the runner image's index has gone stale.
+      - name: Update package index
+        run: sudo apt-get update
+
       - uses: crystal-lang/install-crystal@v1
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-
           # Versions not packaged by Ubuntu come from apt.llvm.org
           if ! apt-cache show "libclang-$LLVM-dev" > /dev/null 2>&1; then
             codename="$(lsb_release -cs)"
