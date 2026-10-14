@@ -6,7 +6,7 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Breaking changes
 
-* LLVM and Clang 14 or newer are required.  Tested with 14, 19 and 22.
+* LLVM and Clang 14 or newer are required.  Tested with 14, 19, 22 and 23.
 * Crystal 1.8 or newer is required.
 * `assets/bindgen_helper.hpp` changed.  Projects which copied it into their
   `ext/` directory have to copy it again.
@@ -61,6 +61,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Fixed
 
+* Building and running on macOS with Homebrew: LLVM, PCRE2 and the libraries
+  LLVM depends on are found, the SDK's C headers are searched, and `tool.sh`
+  no longer requires coreutils.
+* Static linking against LLVM 23.
 * Constructors of aggregates, unions and of types with a `from_cpp` converter
   generated C++ code which didn't compile.
 * `find_path` regular expressions were compiled with the dot-all instead of the
