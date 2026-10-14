@@ -113,6 +113,8 @@ module Bindgen
 
         reason = if field.reference? || field.move?
                    "it is a reference"
+                 elsif field.pointer_to_c_array?
+                   "pointers to C arrays aren't supported yet"
                  elsif @db.try_or(field, false) { |rules| converted_type?(field, rules) }
                    "its type #{type_name} is converted when passed to Crystal"
                  elsif binding_pointer == type_pointer_depth(field)

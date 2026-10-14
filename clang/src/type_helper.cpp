@@ -64,6 +64,14 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &qt, clang::
 	}
 
 	if (const auto *arr = ctx.getAsArrayType(qt)) {
+		// An array reached through a pointer or reference, like `int (*)[4]`,
+		// can't be told apart from an array of pointers (`int *[4]`) by the
+		// extents.  Keep the array as base type instead, which isn't known.
+		if (target.pointer > static_cast<int>(target.extents.size())) {
+			target.baseName = fullyQualifiedName(qt.getUnqualifiedType(), ctx);
+			return;
+		}
+
 		// Do not support `T [static 4]` or `T [*]` for now
 #if CLANG_VERSION_MAJOR >= 18
 		if (arr->getSizeModifier() == clang::ArraySizeModifier::Normal) {

@@ -44,6 +44,28 @@ describe "clang tool classes feature" do
     )
   end
 
+  it "tells pointers to arrays and arrays of pointers apart" do
+    clang_tool(
+      %[
+        struct Arrays {
+          int *pointers[4];
+          int (*array)[4];
+          const int (&ref)[2][3];
+        };
+      ],
+      "-c Arrays",
+      classes: {
+        Arrays: {
+          fields: [
+            {name: "pointers", baseName: "int", pointer: 2, extents: [4]},
+            {name: "array", baseName: "int[4]", pointer: 1, extents: [] of UInt64},
+            {name: "ref", baseName: "const int[2][3]", pointer: 1, isReference: true},
+          ],
+        },
+      },
+    )
+  end
+
   it "ignores a class template of the same name in another scope" do
     clang_tool(
       %[

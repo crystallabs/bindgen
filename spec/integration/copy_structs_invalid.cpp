@@ -80,3 +80,8 @@ struct AliasMember {
 struct ReferenceMember {
   int &value;
 };
+
+// A pointer to an array is laid out as one pointer, not as an array.
+struct ArrayPointerMember {
+  int (*rows)[4];
+};

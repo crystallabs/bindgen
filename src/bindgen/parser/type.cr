@@ -374,6 +374,12 @@ module Bindgen
         @extents.size > 0
       end
 
+      # Is this a pointer or reference to a C array, like `int (*)[4]`?  The
+      # clang tool reports the array as base type of those.
+      def pointer_to_c_array? : Bool
+        @extents.empty? && @base_name.ends_with?(']')
+      end
+
       # Is this type a C array with known size?
       def c_complete_array?
         c_array? && @extents.none?(&.zero?)

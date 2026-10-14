@@ -426,6 +426,8 @@ module Bindgen
         # `Slice` in Crystal).  The getters of array members do work.
         return true if @return_type.c_array? && !member_getter? && !static_getter?
         return true if @arguments.any?(&.c_array?)
+        return true if @return_type.pointer_to_c_array?
+        return true if @arguments.any?(&.pointer_to_c_array?)
 
         # Check that all arguments, which pass in explicit by-value, either take
         # the value directly, or a const-reference to it.
