@@ -198,6 +198,17 @@ struct AbstractMiddle : PureGrandparent { };
 
 struct AbstractLeaf : AbstractMiddle { };
 
+// The override doesn't name its argument.
+struct NamedArgument {
+  virtual int named(int value) { return value; }
+  virtual int unnamed(int) { return 2; }
+};
+
+struct UnnamedArgument : NamedArgument {
+  int named(int) override { return 1; }
+  int unnamed(int value) override { return value; }
+};
+
 struct Parent : Grandparent { };
 
 struct Child : Parent { };

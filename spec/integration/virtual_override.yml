@@ -27,6 +27,8 @@ classes:
   PureGrandparent: PureGrandparent
   AbstractMiddle: AbstractMiddle
   AbstractLeaf: AbstractLeaf
+  NamedArgument: NamedArgument
+  UnnamedArgument: UnnamedArgument
   OnlyFilteredVirtuals: OnlyFilteredVirtuals
 
 types:

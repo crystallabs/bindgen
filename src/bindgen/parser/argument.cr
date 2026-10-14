@@ -88,12 +88,14 @@ module Bindgen
         )
       end
 
-      # Merges this argument with *other*.  Only merges defaultness, its value
-      # and nil-ability.  For the value, this argument takes precedence over
-      # *other*.
+      # Merges this argument with *other*.  Only merges the name, defaultness,
+      # its value and nil-ability.  For the value, this argument takes
+      # precedence over *other*.  The name is taken from *other*, as Crystal
+      # expects the arguments of an overriding method to be named like those of
+      # the overridden one.  Unnamed arguments are named by their position.
       def merge(other : Argument)
         Argument.new(
-          name: @name,
+          name: other.name,
           base_name: @base_name,
           full_name: @full_name,
           const: @const,

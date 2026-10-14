@@ -247,6 +247,15 @@ describe "C++ virtual overriding from Crystal feature" do
         it "implements pure methods of a grandparent in the Impl class" do
           {{ Test::AbstractLeafImpl.has_method?("pure") }}.should be_true
         end
+
+        it "names the arguments of an override like the overridden method" do
+          {% begin %}
+            {% method = Test::UnnamedArgument.methods.find(&.name.== "named") %}
+            {{ method.args.first.name.stringify }}.should eq("value")
+            {% method = Test::UnnamedArgument.methods.find(&.name.== "unnamed") %}
+            {{ method.args.first.name.stringify }}.should eq("unnamed_arg_0")
+          {% end %}
+        end
       end
 
       context "namespaced classes" do

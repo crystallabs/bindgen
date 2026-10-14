@@ -152,3 +152,5 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   struct, which Crystal rejects.
 * Virtual methods declared further up than the direct bases, like
   `QWidget::resizeEvent` for `QLabel`, couldn't be overridden in Crystal.
+* Overrides of virtual methods name their arguments like the overridden method,
+  which Crystal warned about.
