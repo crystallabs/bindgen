@@ -7,6 +7,7 @@ describe "clang tool functions feature" do
         void simple();
         void defaultArg(const char *thing = "Hello");
         int varArg(int count, ...);
+        int arrayArg(int values[4]);
         extern "C" int externC();
         extern "C" { int externCContext(); }
       ],
@@ -50,6 +51,14 @@ describe "clang tool functions feature" do
           arguments: [
             {fullName: "int", isVariadic: false},
             {fullName: "", isVariadic: true},
+          ],
+          returnType: {fullName: "int"},
+        },
+        { # Array parameters decay to pointers
+          type:      "StaticMethod",
+          name:      "arrayArg",
+          arguments: [
+            {fullName: "int *", pointer: 1, extents: [] of UInt64},
           ],
           returnType: {fullName: "int"},
         },
