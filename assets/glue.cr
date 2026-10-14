@@ -92,7 +92,7 @@ module BindgenHelper
 
   # Yields *value*.  Used by conversion templates using `%` more than once, so
   # that the expression is evaluated only once.
-  def self.evaluate_once(value)
+  def self.evaluate_once(value, &)
     yield value
   end
 
