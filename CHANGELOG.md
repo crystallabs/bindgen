@@ -39,6 +39,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   diagnostics (#51).  The script asks `llvm-config` and `clang++` for most
   paths instead of parsing a compiler command line (#36).
 * Static builds link only the Clang and LLVM libraries the tool needs.
+* `BINDGEN_CLANG_FLAGS` passes extra flags to `clang++` when looking for the
+  C++ standard library, e.g. `-stdlib=libc++`.
 * Logging uses Crystal's `Log` directly, the `spoved` dependency is gone.
   The output and the `--debug` and `--trace` flags are unchanged.
 * GitHub Actions workflow, replacing Travis CI.

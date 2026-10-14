@@ -29,6 +29,13 @@ ones (`libclang-cpp` and `libLLVM`) otherwise.  Set the environment variable
 BINDGEN_DYNAMIC=1 cmake . && make
 ```
 
+The C++ standard library headers are those `clang++` uses by default.  To use
+another one, pass the flag selecting it in `BINDGEN_CLANG_FLAGS`:
+
+```
+BINDGEN_CLANG_FLAGS=-stdlib=libc++ cmake . && make
+```
+
 ### On Clang
 
 The tool has one big flaw: It uses clang.  While clang is a good tool for this

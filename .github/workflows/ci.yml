@@ -26,20 +26,26 @@ jobs:
         run: bin/ameba
 
   spec:
-    name: LLVM ${{ matrix.llvm }} (${{ matrix.link }})
+    name: LLVM ${{ matrix.llvm }} (${{ matrix.link }}, ${{ matrix.stdlib }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         llvm: [14, 16, 18, 20, 22]
         link: [auto]
+        stdlib: [default]
         include:
           - llvm: 22
             link: shared
+            stdlib: default
+          - llvm: 22
+            link: auto
+            stdlib: libc++
     env:
       LLVM: ${{ matrix.llvm }}
       # Left empty, static or shared linking is detected.
       BINDGEN_DYNAMIC: ${{ matrix.link == 'shared' && '1' || '' }}
+      BINDGEN_CLANG_FLAGS: ${{ matrix.stdlib == 'libc++' && '-stdlib=libc++' || '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -61,6 +67,10 @@ jobs:
             "clang-$LLVM" "libclang-$LLVM-dev" "libclang-cpp$LLVM-dev" "llvm-$LLVM-dev" \
             cmake libgc-dev libpcre2-dev libyaml-dev libevent-dev \
             libxml2-dev libz3-dev libzstd-dev zlib1g-dev libncurses-dev
+
+          if [ "${{ matrix.stdlib }}" = "libc++" ]; then
+            sudo apt-get install -y --no-install-recommends "libc++-$LLVM-dev" "libc++abi-$LLVM-dev"
+          fi
 
       - name: Install shards
         run: shards install

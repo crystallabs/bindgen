@@ -55,6 +55,10 @@ LLVM_COMPONENTS = %w[
 # if unset.
 dynamic = ENV["BINDGEN_DYNAMIC"]?.presence.try(&.==("1"))
 
+# Extra flags for clang++ when asking it for the C++ standard library and when
+# building the specs, e.g. `-stdlib=libc++`.
+OPTIONS[:clang_flags] = ENV["BINDGEN_CLANG_FLAGS"]? || ""
+
 # Determine which llvm-config we are using
 unless OPTIONS[:llvm_config] ||= find_llvm_config_binary min_version: "14.0.0"
   log "Cant find llvm config"
@@ -183,7 +187,7 @@ spec_base_content = {
   generators: {
     cpp: {
       output: "tmp/{SPEC_NAME}.cpp",
-      build:  "#{clang} #{llvm_cxx_flags} #{system_include_dirs.map { |x| "-I#{File.expand_path(x)}" }.join(' ')}" \
+      build:  "#{clang} #{clang_flags} #{llvm_cxx_flags} #{system_include_dirs.map { |x| "-I#{File.expand_path(x)}" }.join(' ')}" \
              " -c -o {SPEC_NAME}.o {SPEC_NAME}.cpp -I.. -Wall -Werror -Wno-unused-function" \
              "#{dynamic ? "" : " -fPIC"}",
       preamble: <<-PREAMBLE
@@ -195,7 +199,7 @@ spec_base_content = {
       output: "tmp/{SPEC_NAME}.cr",
     },
   },
-  library: "%/tmp/{SPEC_NAME}.o -lstdc++ -lgccpp",
+  library: "%/tmp/{SPEC_NAME}.o #{cxx_stdlib_link_flags} -lgccpp",
   parser:  {
     files:    ["{SPEC_NAME}.cpp"],
     includes: [
@@ -271,6 +275,9 @@ def print_help_and_exit
   Static libraries are used if available, shared ones otherwise.  Set env var
   BINDGEN_DYNAMIC=1 or BINDGEN_DYNAMIC=0 to force shared or static linking.
 
+  Set env var BINDGEN_CLANG_FLAGS to pass extra flags to clang++, for example
+  -stdlib=libc++ to use that C++ standard library instead of the default one.
+
   If you are missing the packages, please install them:
     ArchLinux: pacman -S llvm clang gc libyaml
     Ubuntu: apt install clang-18 libclang-18-dev llvm-18-dev zlib1g-dev libzstd-dev libgc-dev libpcre2-dev
@@ -302,7 +309,7 @@ def find_system_include_dirs
 
   # Only clang knows where the C++ standard library is.  Its driver passes
   # these directories to the compiler proper as `-internal-isystem`.
-  output = log_and_run("#{clang} -### -fsyntax-only #{__DIR__}/src/bindgen.cpp 2>&1")
+  output = log_and_run("#{clang} #{clang_flags} -### -fsyntax-only #{__DIR__}/src/bindgen.cpp 2>&1")
   unless cc1 = output.lines.reverse.find(&.includes?(%("-cc1")))
     STDERR.puts %(Unexpected output from "#{clang}": Found no compiler invocation.)
     exit 1
@@ -391,6 +398,20 @@ end
 
 def llvm_libdir
   OPTIONS[:llvm_libdir].as String
+end
+
+def clang_flags
+  OPTIONS[:clang_flags].as String
+end
+
+# Linker flags for the C++ standard library the specs are built against.
+# LLVM's libc++ isn't necessarily in the default library search path.
+def cxx_stdlib_link_flags
+  if clang_flags.includes?("-stdlib=libc++")
+    "-L#{llvm_libdir} -Wl,-rpath,#{llvm_libdir} -lc++"
+  else
+    "-lstdc++"
+  end
 end
 
 def clang
