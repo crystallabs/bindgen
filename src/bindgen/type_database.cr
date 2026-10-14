@@ -56,7 +56,16 @@ module Bindgen
       property? ignore = false
 
       # Semantics of the type (Kind overwrite)
+      @[YAML::Field(presence: true)]
       property kind = Bindgen::Parser::Type::Kind::Class
+
+      @[YAML::Field(ignore: true)]
+      @kind_present : Bool
+
+      # Whether `kind:` was given in the YAML configuration.
+      def kind_present? : Bool
+        @kind_present
+      end
 
       # The crystal name of this type.
       property crystal_type : String?
@@ -148,7 +157,7 @@ module Bindgen
         @builtin = false, @ignore_methods = [] of String,
         @superclass_ignore_methods = Util::FAIL_RX,
         @instance_variables = InstanceVariableConfig::Collection.new,
-        @graph_node = nil, @container_type = nil,
+        @graph_node = nil, @container_type = nil, @kind_present = false,
       )
       end
 
@@ -406,12 +415,10 @@ module Bindgen
     def add_sparse_type(cpp_name : String, crystal_name : String?, kind)
       Log.trace &.emit "adding sparse type", cpp_name: cpp_name, crystal_name: crystal_name
 
-      config = @types[cpp_name]?
-      new_config = config.nil?
+      config = @types[cpp_name]? || TypeConfig.new
 
-      config ||= TypeConfig.new
-
-      config.kind = kind if new_config
+      # A `types:` entry without `kind:` gets the kind of `enums:` or `classes:`
+      config.kind = kind unless config.kind_present?
       config.cpp_type ||= cpp_name
       config.crystal_type ||= crystal_name if config.generate_wrapper?
 

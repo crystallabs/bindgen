@@ -133,4 +133,28 @@ describe Bindgen::TypeDatabase do
       db2["NewRules"]?.should be(new_rules)
     end
   end
+
+  describe "#add_sparse_type" do
+    config = Bindgen::TypeDatabase::Configuration.from_yaml(<<-YAML)
+      Implicit: { sub_class: false }
+      Explicit: { kind: Struct }
+      YAML
+
+    sparse = Bindgen::TypeDatabase.new(config, "boehmgc-cpp", with_builtins: false)
+    sparse.add_sparse_type("Implicit", "Implicit", Bindgen::Parser::Type::Kind::Enum)
+    sparse.add_sparse_type("Explicit", "Explicit", Bindgen::Parser::Type::Kind::Enum)
+    sparse.add_sparse_type("New", "New", Bindgen::Parser::Type::Kind::Enum)
+
+    it "sets the kind of a type configured without one" do
+      sparse["Implicit"].kind.should eq(Bindgen::Parser::Type::Kind::Enum)
+    end
+
+    it "keeps an explicitly configured kind" do
+      sparse["Explicit"].kind.should eq(Bindgen::Parser::Type::Kind::Struct)
+    end
+
+    it "sets the kind of a new type" do
+      sparse["New"].kind.should eq(Bindgen::Parser::Type::Kind::Enum)
+    end
+  end
 end
