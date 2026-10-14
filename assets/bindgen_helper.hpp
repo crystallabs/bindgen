@@ -95,15 +95,18 @@ static std::string bindgen_crystal_to_stdstring(CrystalString str) {
 }
 
 /* Wrapper for a Crystal `Slice`.  Layout-compatible to `Slice`. */
+/* Wrapper for a Crystal `Slice`, see `Binding::CrystalSlice`.  `pointer` and
+ * `size` lead, as in earlier versions which lacked `read_only`.
+ */
 struct CrystalSlice {
-  int32_t size;
-  bool read_only;
   const void *pointer;
+  int size;
+  bool read_only;
 };
 
 template<typename T, std::size_t N>
 /*constexpr*/ CrystalSlice bindgen_array_to_slice(T (&arr)[N]) noexcept {
-  return CrystalSlice{ static_cast<int32_t>(N), std::is_const<T>::value, arr };
+  return CrystalSlice{ arr, static_cast<int>(N), std::is_const<T>::value };
 }
 
 /* Wrapper for a Crystal `Proc`. */

@@ -48,11 +48,12 @@ lib Binding
     context : Void*
   end
 
-  # Container for raw memory-data.  The `ptr` could be anything.
+  # Container for raw memory-data.  The `ptr` could be anything.  `ptr` and
+  # `size` lead, as in earlier versions which lacked `read_only`.
   struct CrystalSlice
-    size : Int32
-    read_only : Bool
     ptr : Void*
+    size : LibC::Int
+    read_only : Bool
   end
 end
 
@@ -92,9 +93,9 @@ module BindgenHelper
   # Wraps `Slice` to a `Binding::CrystalSlice`, which can then pass on to C++.
   def self.wrap_slice(slice : Slice(T)) forall T
     Binding::CrystalSlice.new(
+      ptr: slice.to_unsafe.as(Pointer(Void)),
       size: slice.size,
       read_only: slice.read_only?,
-      ptr: slice.to_unsafe.as(Pointer(Void)),
     )
   end
 
@@ -102,9 +103,9 @@ module BindgenHelper
   # `Nil` version, returns an empty slice.
   def self.wrap_slice(nothing : Nil) forall T
     Binding::CrystalSlice.new(
+      ptr: Pointer(Void).null,
       size: 0,
       read_only: true,
-      ptr: Pointer(Void).null,
     )
   end
 

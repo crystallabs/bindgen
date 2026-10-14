@@ -28,6 +28,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   containers, classes by value, unknown types) is an error.  It used to emit
   invalid or layout-incompatible Crystal.
 * `bindgen_helper.hpp` disables clang's `-Wreturn-type-c-linkage`.
+* `Binding::CrystalSlice` gained a `read_only` field after `ptr` and `size`,
+  and `bindgen_helper.hpp` defines the matching C++ `struct CrystalSlice`.
+  Projects defining their own C++ `CrystalSlice` have to use this one.
 
 ### Added
 
