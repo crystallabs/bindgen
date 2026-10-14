@@ -26,6 +26,12 @@ describe "a basic C++ wrapper" do
           target.value.should eq(13)
         end
 
+        it "doesn't wrap constructors of undestructible classes" do
+          Test::Undestructible.value.should eq(7)
+          # Only `#initialize(unwrap)`
+          {{ Test::Undestructible.methods.select(&.name.== "initialize").size }}.should eq(1)
+        end
+
         it "supports conversion operators" do
           Test::Copyable.new(7).to_int.should eq(7)
           Test::Copyable.new(0).to_bool.should be_false

@@ -151,6 +151,9 @@ module Bindgen
           # Don't try to wrap copy-constructors in an abstract class.
           next if abstract? && method.copy_constructor?
 
+          # An instance which can't be destroyed can't be allocated either.
+          next if !destructible? && method.any_constructor?
+
           yield method
         end
       end

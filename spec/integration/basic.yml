@@ -15,6 +15,7 @@ classes:
   TypeConversion: TypeConversion
   PlainStruct: PlainStruct
   Copyable: Copyable
+  Undestructible: Undestructible
 
 types:
   IgnoreMe: # Ignore by type

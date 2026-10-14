@@ -138,3 +138,4 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Downcasts compile without RTTI (`-fno-rtti`), and abort when called.
 * A virtual method of a second base overridden as private in the derived class
   was called through it, which didn't compile.
+* Constructors of classes with a private destructor are no longer wrapped.

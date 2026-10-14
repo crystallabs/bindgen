@@ -51,6 +51,14 @@ struct Copyable {
   operator MemberPointer() const { return &Copyable::value; }
 };
 
+// Has an implicit public copy constructor, but can't be destroyed.
+class Undestructible {
+  ~Undestructible() { }
+
+public:
+  static int value() { return 7; }
+};
+
 struct Ops {
   int operator+  (int x) const { return x * 1; }
   int operator-  (int x) const { return x * 2; }
