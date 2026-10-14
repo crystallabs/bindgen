@@ -80,6 +80,8 @@ module Bindgen
 
         # Abstract classes can't be directly instantiated.
         add_abstract_impl_class(klass) if klass.abstract?
+
+        super # Nested classes
       end
 
       # Copies all virtual methods, that are not already in *klass*, from

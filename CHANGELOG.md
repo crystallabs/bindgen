@@ -172,6 +172,7 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   wrapped base at offset 0.
 * Anonymous types of a class renamed in `classes:` were put into a namespace
   named after the C++ class, instead of into the renamed class.
+* Nested classes didn't inherit from their wrapped bases in Crystal.
 * A class inheriting from a class in another namespace that is defined later,
   like `N::C < B < N::A`, was written before its superclass, which didn't
   compile (#89).  Such classes are moved after their superclass, reopening

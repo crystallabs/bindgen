@@ -232,3 +232,10 @@ struct Polymorphic : NonPolymorphic {
   virtual ~Polymorphic() { }
   virtual int f() { return 1; }
 };
+
+// A nested class with a wrapped base.
+struct Outer {
+  struct Inner : Base {
+    int inner() { return 12; }
+  };
+};

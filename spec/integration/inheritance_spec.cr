@@ -39,6 +39,13 @@ describe "single and multiple inheritance feature" do
         Test::Subclass.new.const_overload.should eq(3)
       end
 
+      it "supports nested classes with a wrapped base" do
+        subject = Test::Outer::Inner.new
+        subject.is_a?(Test::Base).should be_true
+        subject.inner.should eq(12)
+        subject.calc(3, 4).should eq(7)
+      end
+
       it "doesn't inherit in Crystal from a base not at offset 0" do
         subject = Test::Polymorphic.new
         subject.is_a?(Test::NonPolymorphic).should be_false
