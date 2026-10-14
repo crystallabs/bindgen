@@ -20,10 +20,17 @@ module Bindgen
       end
     end
 
-    # YAML converter for building a conversion template from a string.
-    module ConversionTemplateConverter
+    # YAML converter for a conversion template inserted into C++ code.
+    module CppConversionTemplateConverter
       def self.from_yaml(ctx : YAML::ParseContext, node : YAML::Nodes::Node) : Template::Base
-        Template.from_string(Union(String, Nil).new(ctx, node), simple: false)
+        Template.from_string(Union(String, Nil).new(ctx, node), :cpp)
+      end
+    end
+
+    # YAML converter for a conversion template inserted into Crystal code.
+    module CrystalConversionTemplateConverter
+      def self.from_yaml(ctx : YAML::ParseContext, node : YAML::Nodes::Node) : Template::Base
+        Template.from_string(Union(String, Nil).new(ctx, node), :crystal)
       end
     end
 
@@ -77,11 +84,11 @@ module Bindgen
       property binding_type : String?
 
       # Template code ran to turn the real C++ type into the crystal type.
-      @[YAML::Field(converter: Bindgen::TypeDatabase::ConversionTemplateConverter)]
+      @[YAML::Field(converter: Bindgen::TypeDatabase::CppConversionTemplateConverter)]
       property from_cpp : Template::Base = Bindgen::Template::None.new
 
       # Template code ran to turn the crystal type into the real C++ type.
-      @[YAML::Field(converter: Bindgen::TypeDatabase::ConversionTemplateConverter)]
+      @[YAML::Field(converter: Bindgen::TypeDatabase::CppConversionTemplateConverter)]
       property to_cpp : Template::Base = Bindgen::Template::None.new
 
       # Converter for this type in Crystal.  Takes precedence over the
@@ -89,11 +96,11 @@ module Bindgen
       property converter : String?
 
       # Template code ran to turn the binding type to Crystal.
-      @[YAML::Field(converter: Bindgen::TypeDatabase::ConversionTemplateConverter)]
+      @[YAML::Field(converter: Bindgen::TypeDatabase::CrystalConversionTemplateConverter)]
       property to_crystal : Template::Base = Bindgen::Template::None.new
 
       # Template code ran to turn the Crystal type for the binding.
-      @[YAML::Field(converter: Bindgen::TypeDatabase::ConversionTemplateConverter)]
+      @[YAML::Field(converter: Bindgen::TypeDatabase::CrystalConversionTemplateConverter)]
       property from_crystal : Template::Base = Bindgen::Template::None.new
 
       # How to pass this type to C++?

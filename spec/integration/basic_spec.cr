@@ -216,6 +216,13 @@ describe "a basic C++ wrapper" do
           subject = Test::TypeConversion.new
           subject.void_pointer.address.should eq(0x11223344)
         end
+
+        it "evaluates code once in templates using it twice" do
+          subject = Test::TypeConversion.new
+          subject.counted.should eq(11 * 11)
+          subject.counted_call_count.should eq(1)
+          subject.take_counted(3).should eq((3 + 3) + (3 + 3))
+        end
       end
     end
   end

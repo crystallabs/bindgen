@@ -126,7 +126,12 @@ int operator--(FreeOps &) { return 10007; }
 int operator++(FreeOps &, int) { return 10008; }
 int operator--(FreeOps &, int) { return 10009; }
 
+// Configured with conversion templates using `%` twice.
+typedef int counted_t;
+
 class TypeConversion {
+  int countedCalls = 0;
+
 public:
 
   char next(char c) {
@@ -144,6 +149,18 @@ public:
   // Regression test for issue #2: Void pointer yields a return in C++ wrapper.
   void *voidPointer() {
     return reinterpret_cast<void *>(0x11223344); // Don't break on 32bit!
+  }
+
+  counted_t counted() {
+    return ++countedCalls;
+  }
+
+  int countedCallCount() {
+    return countedCalls;
+  }
+
+  int takeCounted(counted_t value) {
+    return value;
   }
 };
 

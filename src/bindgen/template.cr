@@ -14,5 +14,15 @@ module Bindgen
         Basic.new(pattern, simple: simple)
       end
     end
+
+    # Like `.from_string`, but if *pattern* uses `%` more than once, the
+    # substituted code is evaluated only once.  See `EvaluateOnce`.
+    def self.from_string(pattern : String?, language : EvaluateOnce::Language) : Base
+      if pattern && pattern.count('%') > 1
+        EvaluateOnce.new(Basic.new(pattern), language)
+      else
+        from_string(pattern)
+      end
+    end
   end
 end

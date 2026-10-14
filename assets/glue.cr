@@ -90,6 +90,12 @@ module BindgenHelper
     String.new(string.ptr, string.size)
   end
 
+  # Yields *value*.  Used by conversion templates using `%` more than once, so
+  # that the expression is evaluated only once.
+  def self.evaluate_once(value)
+    yield value
+  end
+
   # Wraps `Slice` to a `Binding::CrystalSlice`, which can then pass on to C++.
   def self.wrap_slice(slice : Slice(T)) forall T
     Binding::CrystalSlice.new(

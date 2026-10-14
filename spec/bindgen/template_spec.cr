@@ -80,6 +80,22 @@ describe "Template" do
     end
   end
 
+  describe ".from_string with a language" do
+    it "evaluates the code once if `%` is used twice" do
+      template = Bindgen::Template.from_string("f(%, %)", :crystal)
+      template.template("g()").should eq(
+        "BindgenHelper.evaluate_once(g()) { |bg_value| f(bg_value, bg_value) }")
+
+      template = Bindgen::Template.from_string("f(%, %)", :cpp)
+      template.template("g()").should eq(
+        "([&]() { auto &&bg_value = (g()); return f(bg_value, bg_value); }())")
+    end
+
+    it "substitutes the code directly if `%` is used once" do
+      Bindgen::Template.from_string("f(%)", :cpp).template("g()").should eq("f(g())")
+    end
+  end
+
   describe "Sequence#template" do
     it "composes multiple templates" do
       a_conv = Bindgen::Template::Basic.new("%_a")

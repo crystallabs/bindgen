@@ -26,6 +26,14 @@ types:
     wrapper_pass_by: Value
     to_crystal: "String.new(%)"
     from_crystal: "%.to_unsafe"
+  counted_t: # `%` used twice, each code is still evaluated once
+    binding_type: Int32
+    crystal_type: Int32
+    builtin: true
+    from_cpp: "(%) * 10 + (%)"
+    to_cpp: "(%) + (%)"
+    to_crystal: "(%) * (%)"
+    from_crystal: "(%) + (%)"
   "std::atomic<int>":
     binding_type: Int32
     crystal_type: Int32
