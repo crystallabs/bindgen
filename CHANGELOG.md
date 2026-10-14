@@ -43,6 +43,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Generic container modules (#102): `Container(T)` can be used as type
   restriction, `Container.of(T)` returns the wrapper class of an instantiation
   and `.from` builds one from any `Enumerable`.
+* `#to?(T.class)` casts between wrapper classes, down to polymorphic
+  sub-classes through `dynamic_cast` (#87).
 * Shared linking uses `libclang-cpp` and `libLLVM` (#66).
 * `tool.sh` builds `bin/bindgen` once and reuses it.
 * The clang tool's output carries a format version, so an outdated

@@ -93,6 +93,22 @@ describe "clang tool classes feature" do
     )
   end
 
+  it "exports if a class is polymorphic" do
+    clang_tool(
+      %[
+        struct Plain { int f(); };
+        struct Virtual { virtual ~Virtual(); };
+        struct Inherited : Virtual { int f(); };
+      ],
+      "-c Plain -c Virtual -c Inherited",
+      classes: {
+        Plain:     {isPolymorphic: false},
+        Virtual:   {isPolymorphic: true},
+        Inherited: {isPolymorphic: true},
+      },
+    )
+  end
+
   it "exports if a class is trivially copyable and standard-layout" do
     clang_tool(
       %[

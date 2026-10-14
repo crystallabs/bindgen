@@ -17,7 +17,43 @@ module Bindgen
     #   end # Later ones converted
     # end
     # ```
+    #
+    # Classes with further wrapped bases, and polymorphic classes with wrapped
+    # polymorphic ancestors or descendants, get a `#to?(T.class)` method,
+    # casting `self` to the wrapper class `T`.  It returns `self` for its own
+    # class, calls `#as_X` for the further bases, and casts down to polymorphic
+    # sub-classes through a `dynamic_cast`, returning `nil` if the instance
+    # isn't a `T`.  The result wraps the same C++ object.  Other types are
+    # passed on to the `#to?` of the Crystal superclass, or are a compile-time
+    # error.
+    #
+    # ```
+    # x = Bar.create # Returns a `Bar`, which actually is a `Foo`
+    # x.to?(Foo)     # => #<Foo:...>
+    # x.to?(Baz)     # Compile-time error
+    # ```
     class Inheritance < Base
+      def initialize(config, db)
+        super
+
+        @casts = {} of Graph::Class => ToBody
+      end
+
+      def process(graph : Graph::Container, doc : Parser::Document)
+        super
+
+        # Casts not handled by a class are passed on to its Crystal superclass.
+        @casts.each do |klass, body|
+          superclass = klass
+          while superclass = crystal_superclass(superclass)
+            if @casts.has_key?(superclass)
+              body.inherited = true
+              break
+            end
+          end
+        end
+      end
+
       def visit_class(klass : Graph::Class)
         # Mark abstract classes
         klass.abstract = klass.origin.abstract?
@@ -40,6 +76,8 @@ module Bindgen
           # Unify the argument types for all virtual methods
           unify_virtual_methods(klass)
         end
+
+        add_downcast_methods(klass)
 
         # Abstract classes can't be directly instantiated.
         add_abstract_impl_class(klass) if klass.abstract?
@@ -107,6 +145,121 @@ module Bindgen
         target = call.build(converter, body: CastBody.new)
 
         graph.calls[Graph::Platform::Cpp] = wrapper.build(converter, target)
+
+        add_cast(klass, base, converter.crystal_name)
+      end
+
+      # Adds casts from all polymorphic, wrapped ancestors of *klass* which
+      # don't inherit them in Crystal, down to *klass*.
+      private def add_downcast_methods(klass)
+        return unless klass.origin.polymorphic?
+        return if klass.wrapped_class # Skip `Impl` classes
+        return unless wrapper_generated?(klass)
+
+        downcast_hosts(klass).each { |host| add_downcast_method(host, klass) }
+      end
+
+      # Finds the top-most polymorphic class of each Crystal inheritance chain
+      # in the ancestors of *klass*.  All other polymorphic ancestors inherit
+      # their casts from one of these.
+      private def downcast_hosts(klass) : Array(Graph::Class)
+        ancestors = Set(Graph::Class).new
+        collect_ancestors(klass, ancestors)
+
+        ancestors.select do |ancestor|
+          next false unless ancestor.origin.polymorphic?
+          next false unless wrapper_generated?(ancestor)
+
+          superclass = crystal_superclass(ancestor)
+          superclass.nil? || !superclass.origin.polymorphic?
+        end
+      end
+
+      # Collects all wrapped, non-private ancestors of *klass* into *set*.
+      private def collect_ancestors(klass, set)
+        bases = klass.origin.bases.reject(&.private?)
+
+        wrapped_classes(bases).each do |base|
+          collect_ancestors(base, set) if set.add?(base)
+        end
+      end
+
+      # The wrapped base class *klass* inherits from in Crystal.
+      private def crystal_superclass(klass) : Graph::Class?
+        bases = klass.origin.bases.reject { |b| b.private? || b.virtual? }
+        wrapped_classes(bases).first?
+      end
+
+      private def wrapper_generated?(klass)
+        @db.try_or(klass.origin.name, true, &.generate_wrapper?)
+      end
+
+      # Adds a cast from *host* to *target* doing a `dynamic_cast` in C++.
+      private def add_downcast_method(host, target)
+        method = Parser::Method.build(
+          name: "CAST_#{target.mangled_name}",
+          return_type: target.origin.as_type(pointer: 1).make_pointer_nilable.as(Parser::Type),
+          arguments: [] of Parser::Argument,
+          class_name: host.origin.name,
+        )
+
+        # Only the C++ wrapper and the binding are generated for this method,
+        # the Crystal wrapper calls it from `#to?`.
+        platforms = Graph::Platforms.flags(CrystalBinding, Cpp)
+        graph = Graph::Method.new(origin: method, name: method.name, parent: host.platform_specific(platforms))
+
+        call = CallBuilder::CppCall.new(@db)
+        wrapper = CallBuilder::CppWrapper.new(@db)
+        target_call = call.build(method, body: CastBody.new("dynamic_cast"))
+        graph.calls[Graph::Platform::Cpp] = wrapper.build(method, target_call)
+
+        binding = CallBuilder::CrystalBinding.new(@db).build(
+          method, host.origin.as_type, CallBuilder::CrystalBinding::InvokeBody,
+        )
+        result = Crystal::Pass.new(@db).from_wrapper(method.return_type)
+        code = result.apply_conversion(binding.body.to_code(binding, Graph::Platform::Crystal))
+
+        add_cast(host, target, code)
+      end
+
+      # Adds a cast of *klass* to *target* to its `#to?` method, evaluating
+      # *code*.  Also makes sure that *target* can be cast to itself.
+      private def add_cast(klass, target, code)
+        type_name, _ = Crystal::Typename.new(@db).wrapper(target.origin.as_type)
+        cast_body(klass).branches[type_name] = code
+        cast_body(target)
+      end
+
+      # Returns the body of the `#to?` method of *klass*, adding it first if
+      # required.
+      private def cast_body(klass) : ToBody
+        @casts[klass] ||= begin
+          type = klass.origin.as_type
+          type_name, _ = Crystal::Typename.new(@db).wrapper(type)
+
+          method = Parser::Method.build(
+            name: "to?",
+            return_type: type,
+            arguments: [] of Parser::Argument,
+            class_name: klass.origin.name,
+            crystal_name: "to?",
+          )
+
+          body = ToBody.new
+          body.branches[type_name] = "self"
+
+          host = klass.platform_specific(Graph::Platform::Crystal)
+          graph = Graph::Method.new(origin: method, name: method.crystal_name, parent: host)
+          graph.calls[Graph::Platform::Crystal] = Call.new(
+            origin: method,
+            name: method.crystal_name,
+            arguments: [] of Call::Argument,
+            result: Crystal::Pass.new(@db).from_wrapper(type),
+            body: body,
+          )
+
+          body
+        end
       end
 
       # Builds a method converting *from* in *to*.
@@ -225,6 +378,7 @@ module Bindgen
           has_copy_constructor: klass.has_copy_constructor?,
           has_user_declared_constructor: klass.has_user_declared_constructor?,
           abstract: false,
+          polymorphic: klass.polymorphic?,
           destructible: klass.destructible?,
           name: "#{klass.name}Impl",
           byte_size: klass.byte_size,
@@ -259,12 +413,43 @@ module Bindgen
         end
       end
 
-      # C++ body doing a `static_cast<T*>(_self_)`.
+      # C++ body doing a `static_cast<T*>(_self_)`, or another *cast*.
       class CastBody < Call::Body
+        def initialize(@cast = "static_cast")
+        end
+
         def to_code(call : Call, platform : Graph::Platform) : String
           typer = Cpp::Typename.new
           type_name = typer.full(call.result)
-          "static_cast<#{type_name}>(_self_)"
+          "#{@cast}<#{type_name}>(_self_)"
+        end
+      end
+
+      # Crystal body of the `#to?(T.class)` method, choosing the cast by `T`.
+      class ToBody < Call::Body
+        # Code returning the cast instance, by target Crystal type name.
+        getter branches = {} of String => String
+
+        # Does the Crystal superclass also have a `#to?` method?
+        property? inherited = false
+
+        def to_code(call : Call, platform : Graph::Platform) : String
+          String.build do |b|
+            b << "def " << call.name << "(_type_ : T.class) forall T\n"
+            @branches.each_with_index do |(type_name, code), idx|
+              b << (idx == 0 ? "  {% if" : "  {% elsif") << " T == " << type_name << " %}\n"
+              b << "    " << code << "\n"
+            end
+
+            b << "  {% else %}\n"
+            if inherited?
+              b << "    super\n"
+            else
+              b << "    {% raise \"Can't cast \#{@type} to \#{T}\" %}\n"
+            end
+            b << "  {% end %}\n"
+            b << "end\n"
+          end
         end
       end
     end

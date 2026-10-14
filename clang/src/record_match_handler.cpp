@@ -108,6 +108,7 @@ bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *r
 	klass.hasUserDeclaredConstructor = record->hasUserDeclaredConstructor();
 	klass.isAbstract = record->isAbstract();
 	klass.isFinal = record->isEffectivelyFinal();
+	klass.isPolymorphic = record->isPolymorphic();
 	klass.isTriviallyCopyable = record->isTriviallyCopyable();
 	klass.isStandardLayout = record->isStandardLayout();
 	klass.typeKind = record->getTagKind();

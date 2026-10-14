@@ -111,3 +111,39 @@ namespace Module {
     virtual void f() { }
   };
 }
+
+// Downcasting.  `Animal` is abstract, `Dog` is the Crystal superclass of
+// `Puppy`, and `Hamster` can also be cast to from its secondary base `Pet`.
+struct Animal {
+  virtual ~Animal() { }
+  virtual int legs() const = 0;
+
+  static Animal *create(int kind);
+};
+
+struct Dog : Animal {
+  int legs() const override { return 4; }
+  int fetch() { return 1; }
+};
+
+struct Puppy final : Dog {
+  int fetch() { return 2; }
+};
+
+struct Pet {
+  virtual ~Pet() { }
+  int owner() { return 3; }
+};
+
+struct Hamster : Animal, Pet {
+  int legs() const override { return 4; }
+  int wheel() { return 5; }
+};
+
+Animal *Animal::create(int kind) {
+  switch (kind) {
+  case 0: return new Dog;
+  case 1: return new Puppy;
+  default: return new Hamster;
+  }
+}

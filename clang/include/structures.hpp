@@ -156,6 +156,7 @@ struct Class {
 	bool isDestructible = true; // Does this class have a public or protected destructor?
 	bool isAbstract; // Does the class have pure virtual methods?
 	bool isFinal; // Is this class final, so it can't be derived from?
+	bool isPolymorphic; // Does the class declare or inherit a virtual method?
 	bool isTriviallyCopyable; // Can an instance be copied like a C structure?
 	bool isStandardLayout; // Is the class laid out like a C structure?
 	bool isAnonymous; // Is this class anonymous?
@@ -197,7 +198,7 @@ struct TypeInfoResult {
 
 // Version of the output format.  Increase it together with
 // `Bindgen::Parser::Document::FORMAT_VERSION` whenever the output changes.
-static const int BG_FORMAT_VERSION = 4;
+static const int BG_FORMAT_VERSION = 5;
 
 struct Document {
 	JsonMap<std::string, Enum> enums;

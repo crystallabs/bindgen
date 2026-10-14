@@ -209,6 +209,7 @@ JsonStream &operator<<(JsonStream &s, const Class &value) {
 		<< std::make_pair("typeKind", value.typeKind) << c
 		<< std::make_pair("isAbstract", value.isAbstract) << c
 		<< std::make_pair("isFinal", value.isFinal) << c
+		<< std::make_pair("isPolymorphic", value.isPolymorphic) << c
 		<< std::make_pair("isTriviallyCopyable", value.isTriviallyCopyable) << c
 		<< std::make_pair("isStandardLayout", value.isStandardLayout) << c
 		<< std::make_pair("isAnonymous", value.isAnonymous) << c

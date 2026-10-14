@@ -289,6 +289,33 @@ end
 inherits from `MyFoo` and overrides `#bar`, the overriding method may refer to
 `MyFoo#bar` using `super` directly.
 
+#### §2.3.6 Casting
+
+Wrapped classes related through inheritance get a `#to?(T.class)` method,
+casting to the wrapper class `T`:
+
+* To its own class, it returns `self`.
+* To a further base-class of multiple inheritance, it calls `#as_X`.
+* To a sub-class, if both are polymorphic (declare or inherit a virtual
+  method), it does a `dynamic_cast` in C++ and returns `T?`: `nil` if the
+  object isn't a `T`.  The result wraps the same C++ object.
+* Anything else is passed on to `#to?` of the Crystal base-class, if any.
+  Casting to an unrelated type is a compile-time error.
+
+```cpp
+struct Bar { virtual ~Bar(); static Bar *create(); };
+struct Foo : Bar { };
+```
+
+```crystal
+Bar.create.to?(Foo) # => #<Foo:...>, or nil
+Foo.new.to?(Bar)    # => The same Foo
+```
+
+**Note**: A downcast returns a new instance of the wrapper class `T`, even if
+the object was created by a Crystal sub-class of `T`.  `T` must be a wrapper
+class, not a Crystal sub-class of one.
+
 ### §2.4 Instance properties
 
 Property methods can be generated for any static or instance variable in a

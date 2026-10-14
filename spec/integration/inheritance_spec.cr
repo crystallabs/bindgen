@@ -46,6 +46,81 @@ describe "single and multiple inheritance feature" do
         subject.should be_a(Test::AbstractThing)
         String.new(subject.name).should eq("Hello")
       end
+
+      context "#to?" do
+        it "casts down to a sub-class" do
+          dog = Test::Animal.create(0).to?(Test::Dog)
+          dog.should be_a(Test::Dog)
+          dog.as(Test::Dog).fetch.should eq(1)
+
+          puppy = Test::Animal.create(1).to?(Test::Puppy)
+          puppy.should be_a(Test::Puppy)
+          puppy.as(Test::Puppy).fetch.should eq(2)
+        end
+
+        it "casts down through a Crystal superclass" do
+          puppy = Test::Animal.create(1).to?(Test::Dog).as(Test::Dog).to?(Test::Puppy)
+          puppy.as(Test::Puppy).fetch.should eq(2)
+        end
+
+        it "returns nil if the instance isn't of that type" do
+          Test::Animal.create(0).to?(Test::Puppy).should be_nil
+          Test::Animal.create(0).to?(Test::Hamster).should be_nil
+          Test::Animal.create(2).to?(Test::Dog).should be_nil
+          Test::Base.new.to?(Test::Subclass).should be_nil
+        end
+
+        it "wraps the same object" do
+          subject = Test::Subclass.new
+          subject.belong_to_us.to?(Test::Subclass).as(Test::Subclass).to_unsafe.should eq(subject.to_unsafe)
+          subject.belong_to_us.to?(Test::Subclass).as(Test::Subclass).calc(4, 5).should eq(20)
+        end
+
+        it "casts down from a secondary base" do
+          hamster = Test::Animal.create(2).to?(Test::Hamster).as(Test::Hamster)
+          pet = hamster.to?(Test::Pet)
+          pet.should be_a(Test::Pet)
+          pet.owner.should eq(3)
+
+          again = pet.to?(Test::Hamster).as(Test::Hamster)
+          again.to_unsafe.should eq(hamster.to_unsafe)
+          again.wheel.should eq(5)
+
+          thing = Test::Subclass.new.as_abstract_thing
+          String.new(thing.to?(Test::Subclass).as(Test::Subclass).name).should eq("Hello")
+        end
+
+        it "returns self when casting to the own type" do
+          dog = Test::Dog.new
+          dog.to?(Test::Dog).should be(dog)
+          typeof(dog.to?(Test::Dog)).should eq(Test::Dog)
+        end
+
+        it "returns self when casting to a Crystal superclass" do
+          puppy = Test::Puppy.new
+          puppy.to?(Test::Dog).should be(puppy)
+          puppy.to?(Test::Animal).should be(puppy)
+
+          subject = Test::Subclass.new
+          subject.to?(Test::Base).should be(subject)
+        end
+
+        it "casts up to a secondary base" do
+          thing = Test::Subclass.new.to?(Test::AbstractThing)
+          thing.should be_a(Test::AbstractThing)
+          String.new(thing.name).should eq("Hello")
+        end
+
+        it "returns a nilable downcast result" do
+          typeof(Test::Dog.new.to?(Test::Puppy)).should eq(Test::Puppy?)
+          typeof(Test::Pet.new.to?(Test::Hamster)).should eq(Test::Hamster?)
+        end
+
+        it "isn't added to non-polymorphic classes" do
+          {{ Test::Super1.has_method?("to?") }}.should be_false
+          {{ Test::Module::Derived1.has_method?("to?") }}.should be_false
+        end
+      end
     end
   end
 end

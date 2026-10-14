@@ -19,3 +19,8 @@ classes:
   Derived2: Derived2
   Module::Super3: Module::Super3
   Module::Derived3: Module::Derived3
+  Animal: Animal
+  Dog: Dog
+  Puppy: Puppy
+  Pet: Pet
+  Hamster: Hamster
