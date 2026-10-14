@@ -153,6 +153,7 @@ module Bindgen
       def to_crystal(type : Parser::Type, is_constructor = false) : Call::Result
         # The referenced array becomes a `Slice` like an array member.
         type = type.pointee_array if type.reference_to_c_array?
+        return through(type) if type.pointer_to_c_array?
 
         is_copied = type_copied?(type)
         is_ref = type.reference?

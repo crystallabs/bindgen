@@ -34,6 +34,8 @@ module Bindgen
             name = name[6..-1] # Remove `const `
           end
 
+          name, array_indirections = split_array_indirections(name)
+
           # Is it a reference?
           if name.ends_with?('&')
             reference = true
@@ -58,6 +60,16 @@ module Bindgen
 
           name = name.strip
 
+          # The indirections of a pointer or reference to a C array come last.
+          array_pointer = 0
+          if array_indirections && !extents.empty?
+            array_pointer = array_indirections.size
+            reference = array_indirections.ends_with?('&')
+            pointer_depth += array_pointer
+            pointer += array_pointer
+            pointer -= 1 if reference
+          end
+
           # Is it a template?
           if template
             # Adjust template name to remove `const` etc.
@@ -81,11 +93,24 @@ module Bindgen
             void: (name == "void"),
             pointer: pointer_depth,
             extents: extents,
+            array_pointer: array_pointer,
             base_name: name,
-            full_name: typer.full(name, const, pointer, reference, extents),
+            full_name: typer.full(name, const, pointer, reference, extents, array_pointer),
             template: template,
             nilable: false,
           )
+        end
+
+        # Splits the indirections off a pointer or reference to a C array.  Both
+        # `int (*)[4]` and `int [4] *` return `{"int [4]", "*"}`.
+        private def split_array_indirections(name) : {String, String?}
+          if match = name.match(/\(\s*([*&\s]+)\)\s*((?:\[\s*\d*\s*\]\s*)+)$/)
+            {"#{match.pre_match} #{match[2]}", match[1].delete(' ')}
+          elsif match = name.match(/\]\s*([*&\s]+)$/)
+            {name[0..match.begin(0)], match[1].delete(' ')} # Keep the bracket
+          else
+            {name, nil}
+          end
         end
 
         # Tree structure of a template.

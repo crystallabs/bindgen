@@ -129,6 +129,7 @@ The following rules are automatically applied to all bindings:
 | Overloaded methods (Also default arguments)      | **YES** |
 | C arrays in methods                              |         |
 |  +- References to arrays, as `Slice`             | **YES** |
+|  +- Pointers to arrays, as `StaticArray` pointer | **YES** |
 |  +- Arrays of wrapped types                      |   TBD   |
 | Copying default argument values                  |         |
 |  +- Integer, float, boolean types                | **YES** |

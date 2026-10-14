@@ -25,9 +25,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Wrapper classes of `copy_structure` types get property methods for the
   fields.  Set `instance_variables: false` to turn them off.
 * Copying a structure with members a `lib struct` can't hold (`std::string`,
-  containers, classes by value, references, pointers to arrays, unknown types)
-  is an error.  It used to emit
-  invalid or layout-incompatible Crystal.
+  containers, classes by value, references, pointers to arrays of other than
+  built-in types, unknown types) is an error.  It used to emit invalid or
+  layout-incompatible Crystal.
 * Copying a structure which isn't trivially copyable and standard-layout is an
   error.
 * `bindgen_helper.hpp` disables clang's `-Wreturn-type-c-linkage`.
@@ -42,6 +42,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   * Array members of built-in types get a getter returning a `Slice`.
   * Methods taking or returning references to arrays of built-in types use
     `Slice`s.  Passing one of the wrong size raises an `ArgumentError`.
+  * Pointers to arrays of built-in types, like `int (*)[4]`, become pointers
+    to `StaticArray`s in arguments, results and members.
 * Generic container modules (#102): `Container(T)` can be used as type
   restriction, `Container.of(T)` returns the wrapper class of an instantiation
   and `.from` builds one from any `Enumerable`.

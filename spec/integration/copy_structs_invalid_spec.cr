@@ -62,10 +62,10 @@ describe "copied structure validation" do
     output.should contain("flag : Bool\n")
   end
 
-  it "rejects a member pointing to an array" do
+  it "rejects a member pointing to an array of structures" do
     code, errors = copy_structures("ArrayPointerMember")
     code.should eq(1)
-    errors.should contain(%(field "rows" can't be part of a lib struct, pointers to C arrays))
+    errors.should contain(%(field "rows" can't be part of a lib struct, pointers to C arrays are only supported for complete arrays of built-in types))
   end
 
   it "rejects a reference member" do

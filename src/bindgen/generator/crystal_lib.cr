@@ -53,6 +53,10 @@ module Bindgen
               extents = result.type.extents.reverse
               subscripts = extents.join { |v| "[#{v}]" }
               ptr -= extents.size
+            elsif (outer = result.type.array_pointer) > 0
+              # A pointer to a C array, like `Int32[4]*`.
+              subscripts = result.type.extents.reverse.join { |v| "[#{v}]" } + "*" * outer
+              ptr -= outer
             end
 
             stars = "*" * ptr if ptr > 0

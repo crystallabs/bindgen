@@ -76,9 +76,9 @@ struct ReferenceMember {
   int &value;
 };
 
-// A pointer to an array is laid out as one pointer, not as an array.
+// Pointers to arrays are only supported for arrays of built-in types.
 struct ArrayPointerMember {
-  int (*rows)[4];
+  Point (*rows)[4];
 };
 
 // Structures which can't be copied byte-wise.

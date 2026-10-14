@@ -32,7 +32,7 @@ module Bindgen
           # For C arrays only built-in types are supported; user types will need
           # a custom `Slice`-like wrapper so that raw pointers are not returned.
           next if field.c_array? && (!field.builtin? || !field.c_complete_array?)
-          next if field.pointer_to_c_array? # Not supported yet
+          next if field.pointer_to_c_array? && !field.builtin_array_pointer?
 
           pattern, config = lookup_member_config(var_config, field.name)
           next if config.ignore

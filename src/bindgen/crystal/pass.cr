@@ -149,13 +149,14 @@ module Bindgen
 
       # Builds the result of a C array *type*, or a pointer or reference to
       # one, whose element type is named *type_name*.
-      private def array_pointer_result(type, type_name, template = Template::None.new)
+      private def array_pointer_result(type, type_name, template = Template::None.new, nilable = false)
         Call::Result.new(
           type: type,
           type_name: type_name,
           reference: false,
           pointer: type.pointer - type.extents.size,
           conversion: template,
+          nilable: nilable,
         )
       end
 
@@ -173,6 +174,11 @@ module Bindgen
             reference: false,
             pointer: 0,
           )
+        end
+
+        if type.pointer_to_c_array?
+          typer = Typename.new(@db)
+          return array_pointer_result(type, typer.qualified(*typer.wrapper(type)), nilable: type.nilable?)
         end
 
         to(type) do |is_ref, ptr, nilable|
@@ -236,6 +242,7 @@ module Bindgen
 
         # The referenced array becomes a `Slice` like an array member.
         type = type.pointee_array if type.reference_to_c_array?
+        return array_pointer_to_binding(type, qualified) if type.pointer_to_c_array?
 
         from(type, is_constructor: is_constructor, no_slice: no_slice) do |is_ref, ptr, _nilable|
           typer = Typename.new(@db)
@@ -274,6 +281,11 @@ module Bindgen
         Log.trace &.emit "from wrapper", type: type.base_name, is_constructor: is_constructor
 
         type = type.pointee_array if type.reference_to_c_array?
+
+        if type.pointer_to_c_array?
+          typer = Typename.new(@db)
+          return array_pointer_result(type, typer.qualified(*typer.wrapper(type)))
+        end
 
         from(type, no_slice: no_slice) do |is_ref, ptr, nilable|
           typer = Typename.new(@db)

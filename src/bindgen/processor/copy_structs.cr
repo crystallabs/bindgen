@@ -132,8 +132,10 @@ module Bindgen
 
         reason = if field.reference? || field.move?
                    "it is a reference"
+                 elsif field.builtin_array_pointer?
+                   nil # A pointer to a `StaticArray`.
                  elsif field.pointer_to_c_array?
-                   "pointers to C arrays aren't supported yet"
+                   "pointers to C arrays are only supported for complete arrays of built-in types"
                  elsif !converted && binding_pointer == type_pointer_depth(field)
                    nil # Same layout.
                  elsif field.pointer > 0

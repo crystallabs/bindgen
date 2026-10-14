@@ -416,6 +416,16 @@ module Bindgen
         @array_pointer > 0 || @base_name.ends_with?(']')
       end
 
+      # Is this a single pointer or reference to a complete C array of built-in
+      # types, like `int (*)[4]` or `const float (&)[3][3]`?  These are passed
+      # as pointer to a `StaticArray`, or as `Slice` if it's a reference.
+      #
+      # TODO: Support arrays of wrapped types.
+      def builtin_array_pointer? : Bool
+        @array_pointer == 1 && !@move && @builtin && !@base_name.ends_with?(']') &&
+          @extents.none?(&.zero?)
+      end
+
       # Is this an lvalue reference to a C array, like `int (&)[4]`?
       def reference_to_c_array? : Bool
         @array_pointer == 1 && @reference && !@move && !@base_name.ends_with?(']')

@@ -5,6 +5,10 @@
 classes:
   Arrays: Arrays
   Item: Item
+  Grid: Grid
+
+types:
+  Grid: { copy_structure: true, generate_binding: false, generate_wrapper: false }
 
 functions:
   arraySum: Funcs

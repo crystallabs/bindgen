@@ -33,6 +33,13 @@ describe Bindgen::Parser::Type do
       parse("int [4][3]").decayed.should eq(parse("int [3]"))
       parse("int *[4][3]").decayed.should eq(parse("int *[3]"))
     end
+
+    it "decays pointers and references to arrays" do # Rule 1
+      parse("int (&)[4]").decayed.should eq(parse("int (*)[4]"))
+      parse("int (*)[4]").decayed.should eq(parse("int [4]"))
+      parse("const int *(*)[4][3]").decayed.should eq(parse("const int *[4][3]"))
+      parse("int (*&)[4]").decayed.should eq(parse("int (**)[4]"))
+    end
   end
 
   describe "#parse" do
@@ -178,10 +185,57 @@ describe Bindgen::Parser::Type do
       type.full_name.should eq("int *[4]")
     end
 
-    pending "recognizes 'int (&) [4]'" do
+    it "recognizes 'int (&) [4]'" do
+      type = parse("int (&) [4]")
+      type.const?.should be_false
+      type.reference?.should be_true
+      type.extents.should eq([4] of UInt64)
+      type.array_pointer.should eq(1)
+      type.pointer.should eq(2)
+      type.c_array?.should be_false
+      type.pointer_to_c_array?.should be_true
+      type.reference_to_c_array?.should be_true
+      type.base_name.should eq("int")
+      type.full_name.should eq("int (&)[4]")
     end
 
-    pending "recognizes 'int [4] *'" do
+    it "recognizes 'int [4] *'" do
+      type = parse("int [4] *")
+      type.const?.should be_false
+      type.reference?.should be_false
+      type.extents.should eq([4] of UInt64)
+      type.array_pointer.should eq(1)
+      type.pointer.should eq(2)
+      type.c_array?.should be_false
+      type.pointer_to_c_array?.should be_true
+      type.reference_to_c_array?.should be_false
+      type.base_name.should eq("int")
+      type.full_name.should eq("int (*)[4]")
+    end
+
+    it "recognizes 'int (*)[4]'" do
+      parse("int (*)[4]").should eq(parse("int [4] *"))
+    end
+
+    it "recognizes 'const float (&)[3][3]'" do
+      type = parse("const float (&)[3][3]")
+      type.const?.should be_true
+      type.reference?.should be_true
+      type.extents.should eq([3, 3] of UInt64)
+      type.array_pointer.should eq(1)
+      type.pointer.should eq(3)
+      type.base_name.should eq("float")
+      type.full_name.should eq("const float (&)[3][3]")
+    end
+
+    it "recognizes 'int *(*&)[4]'" do
+      type = parse("int *(*&)[4]")
+      type.reference?.should be_true
+      type.extents.should eq([4] of UInt64)
+      type.array_pointer.should eq(2)
+      type.pointer.should eq(4)
+      type.base_name.should eq("int")
+      type.full_name.should eq("int *(*&)[4]")
     end
 
     it "recognizes `Container<>`" do
@@ -292,6 +346,13 @@ describe Bindgen::Parser::Type do
       type.extents.should eq([2, 4] of UInt64)
       type.pointer.should eq(2)
       type.full_name.should eq("int [2][4]")
+    end
+
+    it "points to an array replacement" do
+      parse("T *").substitute("T", parse("int [4]")).should eq(parse("int (*)[4]"))
+      parse("const T &").substitute("T", parse("int [4]")).should eq(parse("const int (&)[4]"))
+      parse("T &").substitute("T", parse("int (&)[4]")).should eq(parse("int (&)[4]"))
+      parse("T *").substitute("T", parse("int (*)[4]")).should eq(parse("int (**)[4]"))
     end
 
     it "replaces `T` with another type" do

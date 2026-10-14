@@ -142,6 +142,9 @@ an `ArgumentError` is raised.  A `StaticArray` is passed using `#to_slice`.
 A returned reference to such an array becomes a `Slice` like an array member
 (see §2.4.6).  An array argument which decays to a pointer is a pointer.
 
+A pointer to such an array is a pointer to a `StaticArray`, also in instance
+properties and copied structures.
+
 Methods using arrays of other types, or of unknown size, are not wrapped.
 Neither are virtual methods using arrays, unless they are `final`.
 
@@ -150,6 +153,8 @@ struct Foo {
   float trace(const float (&matrix)[3][3]);
   int (&values())[4];
   int first(const int list[4]); // Same as `const int *list`
+  int sum(const int (*rows)[3], int count);
+  int corner(int m[][3]); // Same as `int (*m)[3]`
 };
 ```
 
@@ -158,6 +163,8 @@ class Foo
   def trace(matrix : Slice(StaticArray(Float32, 3))) : Float32 end
   def values : Slice(Int32) end
   def first(list : Int32*) : Int32 end
+  def sum(rows : Int32[3]*, count : Int32) : Int32 end
+  def corner(m : Int32[3]*) : Int32 end
 end
 ```
 

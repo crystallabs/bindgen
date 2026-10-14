@@ -435,7 +435,7 @@ module Bindgen
         return true if @arguments.any?(&.c_array?)
 
         array_types = ([@return_type] + @arguments).select(&.pointer_to_c_array?)
-        return true unless array_types.all? { |type| supported_array_pointer?(type) }
+        return true unless array_types.all?(&.builtin_array_pointer?)
 
         # TODO: Overriding these from Crystal needs passing the arrays through
         # `CrystalProc`s.
@@ -456,14 +456,6 @@ module Bindgen
         return true if passed_by_value?(db, @return_type) && by_pointer?(@return_type)
 
         false # This method is fine.
-      end
-
-      # Can the reference to a C array *type* be passed?  This needs a
-      # complete array of built-in elements, which is passed as `Slice`.
-      #
-      # TODO: Support arrays of wrapped types.
-      private def supported_array_pointer?(type) : Bool
-        type.reference_to_c_array? && type.builtin? && type.extents.none?(&.zero?)
       end
 
       # Is *type* configured to be passed by-value?

@@ -29,6 +29,17 @@ describe "C arrays in methods" do
           Test::Arrays.new.trace(m).should eq(6f32)
         end
 
+        it "takes a pointer to an array" do
+          rows = StaticArray[StaticArray[1, 2, 3], StaticArray[4, 5, 6]]
+          Test::Arrays.new.sum_rows(rows.to_unsafe, 2).should eq(21)
+          Test::Arrays.new.corner(rows.to_unsafe).should eq(6)
+        end
+
+        it "takes nil for a pointer to an array defaulting to nullptr" do
+          Test::Arrays.new.is_null.should be_true
+          Test::Arrays.new.is_null(nil).should be_true
+        end
+
         it "raises if the size doesn't match" do
           expect_raises(ArgumentError, "Expected a Slice of 4 elements, got 3") do
             Test::Arrays.new.sum(Slice[1, 2, 3])
@@ -53,15 +64,44 @@ describe "C arrays in methods" do
           matrix[1].should eq(StaticArray[4f32, 5f32, 6f32])
         end
 
+        it "returns a pointer to an array" do
+          arrays = Test::Arrays.new
+          values = arrays.values_ptr
+          values.should be_a(Pointer(StaticArray(Int32, 4)))
+          values.value.should eq(StaticArray[1, 2, 3, 4])
+        end
+
         it "returns a reference to a static array" do
           Test::Arrays.static_ref.should eq(Slice[7, 8])
+        end
+      end
+
+      context "pointers to arrays as members" do
+        it "has property methods" do
+          arrays = Test::Arrays.new
+          arrays.current.should be_a(Pointer(StaticArray(Int32, 4)))
+          arrays.current.value.should eq(StaticArray[1, 2, 3, 4])
+
+          other = StaticArray[5, 6, 7, 8]
+          arrays.current = pointerof(other)
+          arrays.current.value[3].should eq(8)
+        end
+
+        it "copies them into a lib struct" do
+          rows = StaticArray[StaticArray[1, 2, 3], StaticArray[4, 5, 6]]
+          grid = Test::Binding::Grid.new(rows: rows.to_unsafe, count: 2)
+          typeof(grid.rows).should eq(Pointer(StaticArray(Int32, 3)))
+          Test::Arrays.new.grid_sum(grid).should eq(21)
         end
       end
 
       it "skips unsupported methods" do
         names = method_names(Test::Arrays)
         names.should_not contain("unknown_bound")
+        names.should_not contain("unknown_bound_ptr")
         names.should_not contain("items")
+        names.should_not contain("items_ptr")
+        names.should_not contain("nested")
         names.should_not contain("overridable")
       end
     end
