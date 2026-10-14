@@ -35,6 +35,15 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * `Binding::CrystalSlice` gained a `read_only` field after `ptr` and `size`,
   and `bindgen_helper.hpp` defines the matching C++ `struct CrystalSlice`.
   Projects defining their own C++ `CrystalSlice` have to use this one.
+* Wrapper classes get more methods: copy constructors become `.new(other)`,
+  `operator=` becomes `#assign!` and conversion operators `#to_TYPE`.  These
+  may clash with methods added to the wrappers by hand.
+* The arguments of an override are named like those of the overridden method,
+  which changes the names of some arguments for named-argument calls.
+* A class whose first wrapped base isn't at offset 0 in C++ no longer inherits
+  from it in Crystal, but converts to it with `#as_X`.
+* Methods and data members using a template instantiation that is neither
+  configured nor a container are ignored.
 
 ### Added
 
@@ -88,7 +97,7 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * GitHub Actions workflow, replacing Travis CI.  It tests LLVM 14 to 23 on
   Ubuntu, shared LLVM on Arch Linux, and Homebrew's LLVM on macOS, linked
   statically and dynamically.
-* Ameba as development dependency with a baseline `.ameba.yml`, run in CI.
+* Ameba as development dependency, configured in `.ameba.yml` and run in CI.
   Installing the development dependencies needs Crystal 1.19 or newer.
 
 ### Fixed
