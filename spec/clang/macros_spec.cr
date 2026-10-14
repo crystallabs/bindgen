@@ -9,6 +9,8 @@ describe "clang tool macros feature" do
         #define ANOTHER 3
         #define NOT_EXPORTED 4
         #define ADD_ONE(x) (x + 1)
+        #define ADD_ALL(first, ...) add(first, __VA_ARGS__)
+        #define ADD_GNU(first, rest...) add(first, rest)
 
         #define EVALUATE_INT32 1
         #define EVALUATE_INT64 1LL
@@ -22,7 +24,7 @@ describe "clang tool macros feature" do
         #define EVALUATE_FALSE false
         #define EVALUATE_FLOAT 3.5
       ],
-      "-m 'THING_.*|ANOTHER|ADD_ONE|EVALUATE_.*'",
+      "-m 'THING_.*|ANOTHER|ADD_.*|EVALUATE_.*'",
       macros: [
         {
           name:       "THING_ONE",
@@ -51,6 +53,20 @@ describe "clang tool macros feature" do
           isVarArg:   false,
           arguments:  ["x"],
           value:      "(x + 1)",
+        },
+        {
+          name:       "ADD_ALL",
+          isFunction: true,
+          isVarArg:   true,
+          arguments:  ["first"],
+          value:      "add(first, __VA_ARGS__)",
+        },
+        {
+          name:       "ADD_GNU",
+          isFunction: true,
+          isVarArg:   true,
+          arguments:  ["first", "rest"],
+          value:      "add(first, rest)",
         },
         {
           name:       "EVALUATE_INT32",

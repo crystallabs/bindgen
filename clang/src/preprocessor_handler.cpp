@@ -41,10 +41,11 @@ static void tryCopyArguments(Macro &m, const clang::MacroInfo *info) {
 		m.arguments.push_back(std::string((*iter)->getName()));
 	}
 
-	// Last argument may be a var-arg identifier.
-	if ((*iter)->getName() == "__VA_ARGS__") {
-		m.isVarArg = true;
-	} else {
+	// The last argument may be variadic.  C99 calls it `__VA_ARGS__`, which
+	// isn't listed.  The GNU extension (`args...`) gives it a name.
+	m.isVarArg = info->isVariadic();
+
+	if (!info->isC99Varargs()) {
 		m.arguments.push_back(std::string((*iter)->getName()));
 	}
 }
@@ -75,10 +76,6 @@ bool PreprocessorHandler::initializeMacro(Macro &m, const clang::Token &token, c
 
 	tryCopyArguments(m, info);
 	m.value = readMacroValue(info, this->m_preprocessor);
-
-	if (info->isGNUVarargs()) {
-		return false; // TODO: Support GNU var-args extension
-	}
 
 	return true; // Okay!
 }
