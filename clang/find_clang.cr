@@ -78,9 +78,10 @@ OPTIONS[:llvm_bindir] = output_of(OPTIONS[:llvm_config], "--bindir")
 OPTIONS[:llvm_libdir] = output_of(OPTIONS[:llvm_config], "--libdir")
 OPTIONS[:llvm_includedir] = output_of(OPTIONS[:llvm_config], "--includedir")
 
-# Determine which clang++ we are using
-unless OPTIONS[:clang] ||= find_clang_binary([llvm_bindir], min_version: "14.0.0")
-  log "Cant find clang"
+# The clang++ belonging to that LLVM installation
+OPTIONS[:clang] ||= File.join(llvm_bindir, "clang++")
+unless File::Info.executable?(clang)
+  log "Cant find clang at #{clang}"
   print_help_and_exit
 end
 log "Using clang binary in #{OPTIONS[:clang].inspect}. Querying it."
@@ -214,7 +215,7 @@ def parse_cli_args
     parser.banner = "find_clang.cr [options]"
 
     parser.on("--llvm-config PATH", "Path to llvm-config binary (default: find llvm-config[-*] in PATH)") { |path| OPTIONS[:llvm_config] = path }
-    parser.on("--clang PATH", "Path to clang binary (default: find clang++[-*] in llvm bindir)") { |path| OPTIONS[:clang] = path }
+    parser.on("--clang PATH", "Path to clang binary (default: clang++ in llvm bindir)") { |path| OPTIONS[:clang] = path }
     parser.on("--print-clang-libs", "Print detected clang libs and exit") { OPTIONS[:print_clang_libs] = true }
     parser.on("--print-llvm-libs", "Print detected llvm libs and exit") { OPTIONS[:print_llvm_libs] = true }
     parser.on("--quiet", "Suppress diagnostic/debug STDERR output") { OPTIONS[:quiet] = true }
@@ -234,28 +235,6 @@ def parse_cli_args
       exit 1
     end
   end
-end
-
-# Finds clang binary (named 'clang++' or 'clang++-*'. Must
-# satisfy minimum version.
-def find_clang_binary(paths, min_version = "14.0.0") : String?
-  log %(Searching for binary clang++ or clang++-* in #{paths.join ':'}. Minimum version #{min_version})
-  clang_find_config = <<-YAML
-  kind: Executable
-  try:
-    - clang++
-    - clang++-*
-  search_paths:
-    #{paths.map { |p| "- \"" + p + "\"" }.join("\n  ")}
-  version:
-    min: #{min_version}
-    command: "% --version"
-    regex: "clang version ([0-9.]+)"
-  YAML
-  clang_find_config = Bindgen::FindPath::PathConfig.from_yaml clang_find_config
-
-  path_finder = Bindgen::FindPath.new(__DIR__)
-  path_finder.find(clang_find_config)
 end
 
 # Finds llvm-config binary inside directories in PATH. It must
