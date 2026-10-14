@@ -33,13 +33,20 @@ cd "$BASE"
 # Build bindgen itself, unless it's up to date.
 BINARY="$BASE/bin/bindgen"
 
-if [ ! -x "$BINARY" ] || [ -n "$(find src assets builtin_types.yml shard.yml -newer "$BINARY" -print -quit)" ]; then
+# The sources, and the shards they use.
+SOURCES=(src assets builtin_types.yml shard.yml shard.lock lib)
+
+if [ ! -x "$BINARY" ] || [ -n "$(find "${SOURCES[@]}" -newer "$BINARY" -print -quit 2>/dev/null)" ]; then
+  if ! command -v crystal > /dev/null; then
+    echo "** Can't build bin/bindgen: \`crystal\` isn't in your \$PATH." >&2
+    exit 127
+  fi
+
   echo "** Building bin/bindgen." >&2
   mkdir -p bin
   crystal build "$SOURCE_FILE" -o "$BINARY" || {
-    echo '  1) Make sure you have crystal installed' >&2
-    echo '  2) Make sure `crystal` is in your $PATH' >&2
-    exit 127
+    echo "** Building bin/bindgen failed.  Did you run \`shards install\` in $BASE?" >&2
+    exit 1
   }
 fi
 
