@@ -63,6 +63,45 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      # Test overriding only some overloads of a virtual method
+      class FIntThing < Test::Overloads
+        def f(x : Int32)
+          10
+        end
+      end
+
+      class FDoubleThing < Test::Overloads
+        def f(x : Float64)
+          20
+        end
+      end
+
+      class FAnyThing < Test::Overloads
+        def f(x)
+          x.is_a?(Int32) ? 10 : 20
+        end
+      end
+
+      class GThing < Test::Overloads
+        def g
+          30
+        end
+      end
+
+      class HBoolThing < Test::Overloads
+        # overloads the non-virtual `Test::Overloads#h(Bool)`
+        def h(x : Bool)
+          60
+        end
+      end
+
+      class GrandparentThing < Test::Parent
+        # overrides Test::Grandparent#in_grandparent
+        def in_grandparent
+          70
+        end
+      end
+
       # Must be reopened because this type is private
       class Test::Subclass::Superclass
         def has_random_number?
@@ -159,6 +198,37 @@ describe "C++ virtual overriding from Crystal feature" do
 
         it "overrides other virtual methods" do
           FinalMethodThing.new.call_random_number.should eq(5)
+        end
+      end
+
+      context "overloaded virtual methods" do
+        it "only overrides overloads with matching argument types" do
+          FIntThing.new.call_f_int.should eq(10)
+          FIntThing.new.call_f_double.should eq(2)
+          FDoubleThing.new.call_f_int.should eq(1)
+          FDoubleThing.new.call_f_double.should eq(20)
+        end
+
+        it "overrides all overloads with an unrestricted method" do
+          FAnyThing.new.call_f_int.should eq(10)
+          FAnyThing.new.call_f_double.should eq(20)
+        end
+
+        it "overrides only the non-const overload" do
+          GThing.new.call_g.should eq(30)
+          GThing.new.call_g_const.should eq(4)
+        end
+
+        it "doesn't override a virtual method by a non-virtual overload" do
+          HBoolThing.new.call_h_int.should eq(5)
+          HBoolThing.new.call_h_bool.should eq(6)
+        end
+      end
+
+      context "indirect base-class" do
+        it "overrides method of a grandparent class" do
+          GrandparentThing.new.call_in_grandparent.should eq(70)
+          Test::Parent.new.call_in_grandparent.should eq(7)
         end
       end
 

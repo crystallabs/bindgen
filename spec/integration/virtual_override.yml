@@ -19,6 +19,9 @@ classes:
   FinalMethod: FinalMethod
   Skip: Skip
   Module::SuperV: Module::SuperV
+  Overloads: Overloads
+  Grandparent: Grandparent
+  Parent: Parent
 
 types:
   Subclass:

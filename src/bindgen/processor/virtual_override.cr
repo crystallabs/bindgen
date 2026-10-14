@@ -417,25 +417,56 @@ module Bindgen
 
       # Hook to set the jumptable in an initializer.
       class JumptableHook < Call::Body
+        # Macro code adding the mangled name `sig[0]` to `forwarded` if any
+        # method in `methods` named `sig[1]` accepts the argument types
+        # `sig[2]`.  Unresolvable type restrictions are assumed to match.
+        MATCH_OVERLOAD_MACRO = <<-MACRO
+              methods.select { |m| m.name.stringify == sig[1] }.each do |m|
+                args = m.splat_index ? m.args[0...m.splat_index] : m.args
+                ok = sig[2].size >= args.select { |a| a.default_value.is_a?(Nop) }.size && (m.splat_index || sig[2].size <= args.size)
+                sig[2].each_with_index do |name, i|
+                  r = ok ? (i < args.size ? args[i] : m.args[m.splat_index]).restriction : nil
+                  if r.is_a?(Path) || r.is_a?(Generic) || r.is_a?(Union)
+                    r = r.resolve?
+                    t = parse_type(name).resolve?
+                    ok = false if r && t && !(t <= r) && !(r <= t)
+                  end
+                end
+                forwarded << sig[0] if ok && !forwarded.includes?(sig[0])
+              end
+
+          MACRO
+
         def initialize(@db : TypeDatabase, @klass : Graph::Class, @table : Graph::Struct, @setter : Parser::Method)
         end
 
         # Generates a piece of macro code, to be evaluated by the Crystal compiler
-        # at compile-time of the user application, which gathers all overwritten
-        # virtual methods into the `forwarded` macro variable.
+        # at compile-time of the user application, which gathers the mangled
+        # names of all overwritten virtual methods into the `forwarded` macro
+        # variable.  An overload is only forwarded if the Crystal sub-class
+        # defines a method of the same name accepting its argument types.
         private def generate_initialize_virtual_methods_macro(methods, b)
-          names = methods.map(&.origin.crystal_name).join(" ")
+          pass = Crystal::Pass.new(@db)
+          typer = Crystal::Typename.new(@db)
 
           b << %[{%\n]
           b << %[  methods = [] of Def\n]
           b << %[  ([@type] + @type.ancestors).select(&.<(#{@klass.name})).map{|x| methods = methods + x.methods}\n]
-          b << %[  forwarded = methods.map(&.name.stringify).select{|m| %w[ #{names} ].includes?(m) }.uniq\n]
+          b << %[  forwarded = [] of String\n]
+          unless methods.empty?
+            b << "  [\n"
+            methods.each do |method|
+              types = pass.arguments_to_wrapper(method.origin.arguments).map { |arg| typer.full(arg).inspect }
+              b << %[    {#{method.mangled_name.inspect}, #{method.origin.crystal_name.inspect}, [#{types.join(", ")}] of String},\n]
+            end
+            b << "  ].each do |sig|\n"
+            b << MATCH_OVERLOAD_MACRO
+            b << %[  end\n]
+          end
           b << %[%}\n]
         end
 
         private def all_virtual_methods : Array(Graph::Method)
-          # TODO: Support for overloaded virtual methods
-          # TODO: Look through parent classes.
           list = [] of Graph::Method
 
           @klass.nodes.each do |node|
@@ -457,11 +488,10 @@ module Bindgen
             generate_initialize_virtual_methods_macro methods, b
             b << "jump_table = #{table_type}.new(\n"
             methods.each do |method|
-              name = method.origin.crystal_name
               functor = builder.build(method.origin)
               code = functor.body.to_code(functor, Graph::Platform::Crystal)
               b << "  #{method.mangled_name}: BindgenHelper.wrap_proc("
-              b << "{% if forwarded.includes?(#{name.inspect}) %} #{code} {% else %} nil {% end %}"
+              b << "{% if forwarded.includes?(#{method.mangled_name.inspect}) %} #{code} {% else %} nil {% end %}"
               b << "),\n"
             end
 

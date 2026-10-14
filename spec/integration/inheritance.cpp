@@ -151,3 +151,29 @@ Animal *Animal::create(int kind) {
   default: return new Hamster;
   }
 }
+
+struct Overloads {
+  virtual int f(int) { return 1; }
+  virtual int f(double) { return 2; }
+
+  virtual int g() { return 3; }
+  virtual int g() const { return 4; }
+
+  virtual int h(int) { return 5; }
+  int h(bool) { return 6; }
+
+  int callFInt() { return this->f(0); }
+  int callFDouble() { return this->f(0.0); }
+  int callG() { return this->g(); }
+  int callGConst() const { return this->g(); }
+  int callHInt() { return this->h(0); }
+  int callHBool() { return this->h(false); }
+};
+
+struct Grandparent {
+  virtual int inGrandparent() { return 7; }
+
+  int callInGrandparent() { return this->inGrandparent(); }
+};
+
+struct Parent : Grandparent { };

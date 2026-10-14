@@ -70,6 +70,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Fixed
 
+* Overriding one overload of a C++ virtual method in Crystal hooked all
+  overloads of that name, recursing endlessly in the others.  Only overloads
+  accepting the C++ argument types are hooked.
 * Pointers to converted types, like `std::string *`, in copied structures
   become `Void*` instead of being rejected.
 * Building and running on macOS with Homebrew: LLVM, PCRE2 and the libraries
