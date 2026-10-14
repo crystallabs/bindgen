@@ -28,4 +28,4 @@ containers:
 
 types:
   rgb: { alias_for: "unsigned int" }
-  bytearray: { alias_for: std::vector<unsigned char> }
+  bytearray: { alias_for: "std::vector<unsigned char>" }
