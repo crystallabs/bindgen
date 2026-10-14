@@ -809,11 +809,13 @@ An exception will be raised if any of the following occur:
 
 <!-- Table is sorted from A-Z ascending, versions descending. -->
 
-| Arch    | System            | CI             | Clang version      |
-| ------- | ----------------- | -------------- | ------------------ |
-| x86_64  | Debian 12         | *None*         | 14, 19, 22         |
-| x86_64  | Ubuntu 24.04      | GitHub Actions | 14, 16, 18, 20, 22 |
-|         | Other systems     | Help wanted    | ?                  |
+| Arch   | System        | CI             | Clang version          |
+| ------ | ------------- | -------------- | ---------------------- |
+| arm64  | macOS         | GitHub Actions | Homebrew's latest      |
+| x86_64 | Arch Linux    | GitHub Actions | Latest (shared)        |
+| x86_64 | Debian 12     | *None*         | 14, 19, 22             |
+| x86_64 | Ubuntu 24.04  | GitHub Actions | 14, 16, 18, 20, 22, 23 |
+|        | Other systems | Help wanted    | ?                      |
 
 LLVM and Clang 14 or newer and Crystal 1.8 or newer are required.
 
@@ -821,6 +823,10 @@ You require the LLVM and Clang development libraries and headers.  If you don't
 have them already installed, bindgen will tell you. These packages are usually
 named after the following pattern on Debian-based systems:
 `clang-18 libclang-18-dev llvm-18 llvm-18-dev`.
+
+On macOS, install them with Homebrew: `brew install llvm pcre2 bdw-gc`.
+Homebrew's LLVM 23.1.0 can't be linked statically; run `brew upgrade llvm` to
+get a newer one, or set `BINDGEN_DYNAMIC=1` to link the shared libraries.
 
 
 # Contributing

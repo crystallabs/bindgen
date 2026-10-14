@@ -294,7 +294,7 @@ def print_help_and_exit
       Ubuntu: apt install clang-18 libclang-18-dev llvm-18-dev zlib1g-dev libzstd-dev libgc-dev libpcre2-dev
       CentOS: yum install crystal libyaml-devel gc-devel pcre2-devel zlib-devel clang-devel
       openSUSE: zypper install llvm clang libyaml-devel gc-devel pcre2-devel zlib-devel clang-devel ncurses-devel
-      Mac OS: brew install crystal bdw-gc gmp libevent libxml2 libyaml llvm
+      macOS: brew install crystal llvm pcre2 bdw-gc
     END
 
   exit 1
