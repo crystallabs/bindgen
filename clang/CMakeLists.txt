@@ -38,6 +38,12 @@ foreach (lib ${system_libs})
   target_link_libraries(parser ${lib})
 endforeach ()
 
+# Static LLVM libraries may contain bitcode (e.g. some Homebrew bottles), which
+# only LLVM's own libLTO can read, not the one of Apple's linker
+if (APPLE AND EXISTS "${LLVM_LIBRARY_DIRS}/libLTO.dylib")
+  target_link_libraries(parser "-Wl,-lto_library,${LLVM_LIBRARY_DIRS}/libLTO.dylib")
+endif ()
+
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   message(STATUS "LLVM Libs: ${llvm_libs}")
 endif ()
