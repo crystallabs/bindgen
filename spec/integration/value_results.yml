@@ -1,0 +1,13 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.
+
+classes:
+  Tracked: Tracked
+  First: First
+  Second: Second
+  Polymorphic: Polymorphic
+  Trivial: Trivial
+
+functions:
+  "tracked_(.*)": { destination: "Funcs", name: "\\1" }

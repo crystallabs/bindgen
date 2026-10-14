@@ -181,8 +181,11 @@ module Bindgen
         "new (UseGC, bindgen_gc_finalizer<#{class_name}>()) #{class_name}"
       end
 
+      # The copy is of the exact *type*, so its destructor can be run by a
+      # finalizer taking the allocated pointer.  `CrystalGCWrapper` can't be
+      # used: It doesn't inherit the copy and move constructors of *type*.
       def value_to_pointer(type : String) : String?
-        "new (UseGC) #{type} (%)"
+        "new (UseGC, bindgen_gc_finalizer<#{type}>()) #{type} (%)"
       end
     end
 
