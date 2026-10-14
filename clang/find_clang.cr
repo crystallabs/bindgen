@@ -405,10 +405,11 @@ def clang_flags
 end
 
 # Linker flags for the C++ standard library the specs are built against.
-# LLVM's libc++ isn't necessarily in the default library search path.
+# LLVM's libc++ isn't necessarily in the default library search path.  Not
+# every libc++.so pulls in libc++abi (apt.llvm.org's doesn't), so name it.
 def cxx_stdlib_link_flags
   if clang_flags.includes?("-stdlib=libc++")
-    "-L#{llvm_libdir} -Wl,-rpath,#{llvm_libdir} -lc++"
+    "-L#{llvm_libdir} -Wl,-rpath,#{llvm_libdir} -lc++ -lc++abi"
   else
     "-lstdc++"
   end
