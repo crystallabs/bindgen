@@ -199,7 +199,7 @@ struct TypeInfoResult {
 
 // Version of the output format.  Increase it together with
 // `Bindgen::Parser::Document::FORMAT_VERSION` whenever the output changes.
-static const int BG_FORMAT_VERSION = 5;
+static const int BG_FORMAT_VERSION = 6;
 
 struct Document {
 	JsonMap<std::string, Enum> enums;
