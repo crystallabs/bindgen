@@ -22,6 +22,11 @@ classes:
   Overloads: Overloads
   Grandparent: Grandparent
   Parent: Parent
+  Child: Child
+  AbstractSecond: AbstractSecond
+  PureGrandparent: PureGrandparent
+  AbstractMiddle: AbstractMiddle
+  AbstractLeaf: AbstractLeaf
   OnlyFilteredVirtuals: OnlyFilteredVirtuals
 
 types:

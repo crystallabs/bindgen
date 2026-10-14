@@ -91,7 +91,11 @@ module Bindgen
       private def copy_base_methods(klass : Graph::Class, wrapped)
         additional_methods = base_methods(klass.origin, wrapped)
 
+        # An `Impl` class already has the pure methods, see `#add_abstract_impl_class`
+        existing = klass.nodes.compact_map(&.as?(Graph::Method).try(&.origin))
+
         additional_methods.each do |method|
+          next if existing.any?(&.equals_virtually?(method))
           if !klass.abstract? && method.pure?
             method = unabstract_method(method)
           end
@@ -113,7 +117,8 @@ module Bindgen
         known_virtuals = klass.methods.select(&.virtual?)
 
         list = wrapped.each_with_index.flat_map do |base, index|
-          methods = base.origin.wrappable_methods.select do |method|
+          candidates = base.origin.wrappable_methods + ancestor_virtuals(base.origin)
+          methods = candidates.select do |method|
             if method.virtual?
               known_virtuals.none? { |known| known.equals_virtually?(method) }
             else
@@ -127,6 +132,17 @@ module Bindgen
 
         # Like `Parser::Class#wrap_methods`, wrap const-overloads only once.
         Util.uniq_by(list) { |a, b| a.equals_except_const?(b) || a.equals_virtually?(b) }
+      end
+
+      # Virtual methods of the wrapped ancestors of *klass* through the first
+      # wrapped base, the nearest first, so a Crystal sub-class can override
+      # those declared further up too.  The other bases' methods are moved into
+      # the class which has them as direct base, see `#base_methods`.
+      private def ancestor_virtuals(klass : Parser::Class) : Array(Parser::Method)
+        bases = klass.bases.reject { |b| b.private? || b.virtual? }
+        return [] of Parser::Method unless base = wrapped_classes(bases).first?
+
+        base.origin.wrappable_methods.select(&.virtual?) + ancestor_virtuals(base.origin)
       end
 
       # Adds all conversion methods from *klass* to *bases*.

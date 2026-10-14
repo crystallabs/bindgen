@@ -184,7 +184,23 @@ struct Grandparent {
   int callInGrandparent() { return this->inGrandparent(); }
 };
 
+// Abstract through the pure `name()` of its second base, like `QLayout`.
+struct AbstractSecond : public Base, public AbstractThing { };
+
+// Abstract through a pure method of its base's base, like
+// `QAbstractGraphicsShapeItem`.
+struct PureGrandparent {
+  virtual ~PureGrandparent() { }
+  virtual int pure() = 0;
+};
+
+struct AbstractMiddle : PureGrandparent { };
+
+struct AbstractLeaf : AbstractMiddle { };
+
 struct Parent : Grandparent { };
+
+struct Child : Parent { };
 
 // All virtual methods are filtered, leaving an empty jumptable.
 struct IgnoredByConfig { };

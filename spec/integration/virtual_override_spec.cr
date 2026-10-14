@@ -102,6 +102,13 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      class GreatGrandparentThing < Test::Child
+        # overrides Test::Grandparent#in_grandparent, two levels up
+        def in_grandparent
+          700
+        end
+      end
+
       # Must be reopened because this type is private
       class Test::Subclass::Superclass
         def has_random_number?
@@ -229,6 +236,16 @@ describe "C++ virtual overriding from Crystal feature" do
         it "overrides method of a grandparent class" do
           GrandparentThing.new.call_in_grandparent.should eq(70)
           Test::Parent.new.call_in_grandparent.should eq(7)
+          GreatGrandparentThing.new.call_in_grandparent.should eq(700)
+        end
+
+        it "implements pure methods of a second base in the Impl class" do
+          {{ Test::AbstractSecond.abstract? }}.should be_true
+          {{ Test::AbstractSecondImpl.has_method?("name") }}.should be_true
+        end
+
+        it "implements pure methods of a grandparent in the Impl class" do
+          {{ Test::AbstractLeafImpl.has_method?("pure") }}.should be_true
         end
       end
 
