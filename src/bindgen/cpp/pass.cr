@@ -84,7 +84,6 @@ module Bindgen
         type_name = type_name_base(type)
 
         if type.kind.function?
-          type_name = crystal_proc_name(type)
           pass_by = TypeDatabase::PassBy::Value
           is_ref = false
           ptr = 0

@@ -25,14 +25,16 @@ module Bindgen
         # Skip if we're to ignore this whole type.
         return if @db.try_or(type, false, &.ignore?)
 
+        # Has to be a template type
         templ = type.template
-        return if templ.nil? # Has to be a template type
+        return if templ.nil?
 
+        # Has to be a configured container type
         container = @config.containers.find(&.class.== templ.base_name)
-        return if container.nil? # Not a configured container type
+        return if container.nil?
 
-                  # Check for the correct amount of template arguments.  There may be more
-                  # than those arguments, which are usually allocators.
+        # Check for the correct amount of template arguments.  There may be more
+        # than those arguments, which are usually allocators.
         arg_count = container_type_arguments(container.type)
         return if templ.arguments.size < arg_count
 
