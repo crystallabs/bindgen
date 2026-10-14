@@ -162,11 +162,13 @@ module Bindgen
       # Check for invalid types in structures
       def visit_struct(structure)
         check_fields!(structure, "Struct")
+        super
       end
 
       # Check for invalid types in unions
       def visit_union(structure)
         check_fields!(structure, "Union")
+        super
       end
 
       # Checks the fields of a `Graph::Struct` or `Graph::CppUnion`.
