@@ -7,6 +7,10 @@ describe "C-only functionality" do
         Test.one.should eq(1)
       end
 
+      it "binds a function matched by several keys once" do
+        {{ Test.has_constant?("Twice") }}.should be_false
+      end
+
       it "binds function within extern C scope" do
         Test.two.should eq(2)
       end

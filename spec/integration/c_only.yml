@@ -25,6 +25,7 @@ processors:
 functions:
   # For `Processor::Functions`
   "extern_(.*)": { destination: "::" }
+  "extern_(one)": { destination: "Twice" } # Already matched above
   "scope::scope_(.*)": { destination: "::" } # Qualified name
   # For `Processor::FunctionClass`
   "class_(.*)": # Simple class

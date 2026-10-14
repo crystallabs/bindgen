@@ -7,10 +7,14 @@ module Bindgen
       def process(graph : Graph::Node, doc : Parser::Document)
         Log.trace { "process node #{graph.diagnostics_path}" }
 
+        # A function matched by several keys is added by the first one only
+        added = Set(Parser::Method).new
+
         @config.functions.each do |regex, config|
           next if config.wrapper # Leave C-class functions alone
 
           list = find_matching(regex, doc.functions)
+          list.select! { |method, _| added.add?(method) }
           next if list.empty?
           handle_functions(graph, config, list)
         end
