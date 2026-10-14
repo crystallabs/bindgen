@@ -46,7 +46,7 @@ module Bindgen
         if expansion && replacement != nil # Support `%` expansion
           replacement
         elsif env_var && env.responds_to?(:[]?) # Support `{ENV}` expansion
-          if alternative == '%'                 # Support `{DOESNT_EXIST|%}`
+          if alternative == "%"                 # Support `{DOESNT_EXIST|%}`
             alternative = replacement
           elsif alternative && alternative.includes?('%')
             # Support `{DOESNT_EXIST|Foo % Bar}`
