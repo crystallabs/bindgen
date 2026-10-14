@@ -20,6 +20,31 @@ module Bindgen
       end
     end
 
+    # Methods keeping some of their arguments alive, used in
+    # `TypeConfig#keep_alive`.  Maps method name patterns to the indices of the
+    # kept arguments, or to `nil` for all of them.
+    alias KeepAlive = Hash(Regex, Array(Int32)?)
+
+    # YAML converter for `TypeConfig#keep_alive`.  Accepts a list of method name
+    # patterns, keeping all arguments alive, or a hash mapping patterns to the
+    # argument indices to keep alive, or to `true` for all of them.
+    module KeepAliveConverter
+      def self.from_yaml(ctx : YAML::ParseContext, node : YAML::Nodes::Node) : KeepAlive
+        rules = KeepAlive.new
+
+        if node.is_a?(YAML::Nodes::Sequence)
+          Array(String).new(ctx, node).each { |pattern| rules[Regex.new(pattern)] = nil }
+        else
+          Hash(String, Array(Int32) | Bool).new(ctx, node).each do |pattern, indices|
+            indices = [] of Int32 if indices == false
+            rules[Regex.new(pattern)] = indices.as?(Array(Int32))
+          end
+        end
+
+        rules
+      end
+    end
+
     # YAML converter for a conversion template inserted into C++ code.
     module CppConversionTemplateConverter
       def self.from_yaml(ctx : YAML::ParseContext, node : YAML::Nodes::Node) : Template::Base
@@ -139,6 +164,12 @@ module Bindgen
       @[YAML::Field(converter: Bindgen::TypeDatabase::ArrayRegexConverter)]
       property superclass_ignore_methods = Bindgen::Util::FAIL_RX
 
+      # Methods whose object arguments are kept alive by
+      # `BindgenHelper.keep_alive`, as C++ keeps a pointer to them.  Each key is
+      # a regex matched against the method name.
+      @[YAML::Field(converter: Bindgen::TypeDatabase::KeepAliveConverter)]
+      property keep_alive = Bindgen::TypeDatabase::KeepAlive.new
+
       # Instance variable configuration.  Each hash key is a regex used to
       # match instance variable names.
       @[YAML::Field(converter: Bindgen::Configuration::InstanceVariablesConverter)]
@@ -162,7 +193,7 @@ module Bindgen
         @sub_class = true, @copy_structure = false, @generate_wrapper = true,
         @generate_binding = true, @generate_superclass = true,
         @builtin = false, @ignore_methods = [] of String,
-        @superclass_ignore_methods = Util::FAIL_RX,
+        @superclass_ignore_methods = Util::FAIL_RX, @keep_alive = KeepAlive.new,
         @instance_variables = InstanceVariableConfig::Collection.new,
         @graph_node = nil, @container_type = nil, @kind_present = false,
       )

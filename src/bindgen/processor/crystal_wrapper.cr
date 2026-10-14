@@ -130,7 +130,54 @@ module Bindgen
         wrapper = CallBuilder::CrystalWrapper.new(@db)
         target = call.build(method.origin, klass_type, CallBuilder::CrystalBinding::InvokeBody)
 
-        wrapper.build(method.origin, target)
+        wrapper_call = wrapper.build(method.origin, target)
+        add_keep_alive_hook(wrapper_call)
+        wrapper_call
+      end
+
+      # Keeps the object arguments of the *call* alive, if its class configures
+      # its method in `keep_alive:`.
+      private def add_keep_alive_hook(call)
+        indices = kept_alive_arguments(call.origin)
+        return if indices.empty?
+
+        body = call.body.as(Call::HookableBody)
+        body.pre_hook = KeepAliveHook.new(indices)
+      end
+
+      # Returns the indices of the arguments of *method* to keep alive.  Only
+      # instances of wrapped classes, passed by pointer or reference, are kept.
+      # A copy constructor doesn't keep its argument.
+      private def kept_alive_arguments(method : Parser::Method) : Array(Int32)
+        indices = [] of Int32
+        return indices if method.copy_constructor?
+        return indices unless rules = @db[method.class_name]?
+
+        rules.keep_alive.each do |pattern, selected|
+          next unless pattern.matches?(method.name)
+          indices.concat(selected || (0...method.arguments.size))
+        end
+
+        indices.uniq.sort!.select do |index|
+          next false unless arg = method.arguments[index]?
+          next false unless arg.pointer == 1
+
+          type_rules = @db[arg]?
+          !!type_rules && type_rules.generate_wrapper? && type_rules.graph_node.is_a?(Graph::Class)
+        end
+      end
+
+      # Pre-hook of a wrapper method passing the arguments at *indices* to
+      # `BindgenHelper.keep_alive`.
+      class KeepAliveHook < Call::Body
+        def initialize(@indices : Array(Int32))
+        end
+
+        def to_code(call : Call, platform : Graph::Platform) : String
+          @indices.join('\n') do |index|
+            "BindgenHelper.keep_alive(#{call.arguments[index].name})"
+          end
+        end
       end
 
       def build_abstract_call(method)

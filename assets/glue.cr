@@ -102,6 +102,39 @@ module BindgenHelper
     String.new(string.ptr, string.size)
   end
 
+  # Objects kept alive by `.keep_alive`, by their `#object_id`.  The GC scans
+  # the pointers stored in the hash.
+  @@kept_alive = {} of UInt64 => Void*
+
+  # Guards `@@kept_alive`.
+  @@kept_alive_mutex = Mutex.new
+
+  # Keeps *object* alive until it's passed to `.release`.  Wrapper methods call
+  # this on arguments of methods configured in `keep_alive:`, as C++ keeps a
+  # pointer to them in memory the GC doesn't scan.  The wrapper references the
+  # C++ object, so neither is collected.  Returns *object*.
+  def self.keep_alive(object : Reference)
+    @@kept_alive_mutex.synchronize { @@kept_alive[object.object_id] = object.as(Void*) }
+    object
+  end
+
+  # `Nil` version, does nothing.
+  def self.keep_alive(nothing : Nil) : Nil
+  end
+
+  # Lets the GC collect *object* again, once it's no longer referenced.  Call
+  # this when C++ no longer uses the object passed to `.keep_alive`.  Returns
+  # *object*.
+  def self.release(object : Reference)
+    @@kept_alive_mutex.synchronize { @@kept_alive.delete(object.object_id) }
+    object
+  end
+
+  # Returns if *object* is kept alive by `.keep_alive`.
+  def self.kept_alive?(object : Reference) : Bool
+    @@kept_alive_mutex.synchronize { @@kept_alive.has_key?(object.object_id) }
+  end
+
   # Yields *value*.  Used by conversion templates using `%` more than once, so
   # that the expression is evaluated only once.
   def self.evaluate_once(value, &)

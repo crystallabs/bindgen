@@ -1,0 +1,29 @@
+<<: spec_base.yml
+
+processors:
+  - default_constructor
+  - instance_properties
+  - filter_methods
+  - crystal_wrapper
+  - cpp_wrapper
+  - crystal_binding
+  - sanity_check
+
+classes:
+  Inner: Inner
+  Outer: Outer
+  Picky: Picky
+
+types:
+  Inner:
+    instance_variables:
+      padding: { ignore: true }
+  Outer:
+    keep_alive:
+      - ^inside$
+      - ^store
+  Picky:
+    keep_alive:
+      setBoth: [2]
+      setNone: false
+      ^$: true # Constructors

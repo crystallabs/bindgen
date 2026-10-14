@@ -142,6 +142,7 @@ The following rules are automatically applied to all bindings:
 | Custom type conversions between C/++ and Crystal | **YES** |
 | Automatic type wrapping and conversion           | **YES** |
 | Integration with Crystals GC                     | **YES** |
+|  +- Keeping objects passed to C++ alive          | **YES** |
 | C++ Template instantiation for containers types  |         |
 |  +- Sequential containers                        | **YES** |
 |  +- Associative containers                       | **YES** |
@@ -338,6 +339,35 @@ Generates the `lib Binding` `fun`s.
 * **Run before**:  `CrystalBinding` and `VirtualOverride`
 
 Generates the Crystal methods in the wrapper classes.
+
+Objects constructed from Crystal are allocated by the GC.  If C++ code keeps a
+pointer to one in memory the GC doesn't scan, like a member of an object
+allocated with plain `new`, the GC collects it once the Crystal wrapper is gone
+(#75).  Configure the methods keeping a pointer to their arguments in
+`keep_alive:` of the class: their wrapper methods pass the arguments, if they
+are wrapped objects passed by pointer or reference, to
+`BindgenHelper.keep_alive`.  It stores the wrapper object, which refers to the
+C++ object, until it's passed to `BindgenHelper.release`.  `BindgenHelper` is
+part of the generated module.
+
+```yaml
+types:
+  QStatusBar:
+    keep_alive: [^addWidget$, ^addPermanentWidget$, ^insert]
+  Outer:
+    keep_alive:
+      ^inside$: true # The setter of the `inside` member
+      ^$: [0]        # Only the first argument of constructors
+```
+
+```crystal
+label = Qt::Label.new("Ready")
+status_bar.add_widget(label) # Keeps the label alive
+status_bar.remove_widget(label)
+Qt::BindgenHelper.release(label) # Lets the GC collect it again
+```
+
+See `TEMPLATE.yml` for details.
 
 ## `DefaultConstructor`
 

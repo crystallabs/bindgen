@@ -73,6 +73,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Named members of anonymous `struct` and `union` types in wrapped classes get
   property methods (#85).  The getter returns a wrapper class like
   `Wrapped::Unnamed1`, which refers to the member inside the object.
+* `keep_alive:` in `types:` configures the methods which keep a pointer to
+  their arguments, like `QStatusBar::addWidget`.  Their wrapper methods pass
+  wrapped objects to `BindgenHelper.keep_alive`, so the GC doesn't collect them
+  while C++ uses them, until `BindgenHelper.release` (#75).
 * Copy constructors (`.new(other)`), assignment operators (`#assign!`) and
   conversion operators (`#to_bool` for `operator bool()`) are wrapped.
 * The integration specs are parsed in the C++ standard they're built in.

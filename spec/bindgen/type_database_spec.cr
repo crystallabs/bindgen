@@ -207,4 +207,23 @@ describe Bindgen::TypeDatabase do
       end
     end
   end
+
+  describe "TypeConfig#keep_alive" do
+    config = Bindgen::TypeDatabase::Configuration.from_yaml(<<-YAML)
+      List: { keep_alive: [addWidget, ^insert] }
+      Hash: { keep_alive: { addWidget: [0, 2], insert: true, remove: false } }
+      YAML
+
+    it "keeps all arguments alive from a list" do
+      config["List"].as(Bindgen::TypeDatabase::TypeConfig).keep_alive.should eq({
+        /addWidget/ => nil, /^insert/ => nil,
+      })
+    end
+
+    it "keeps the selected arguments alive from a hash" do
+      config["Hash"].as(Bindgen::TypeDatabase::TypeConfig).keep_alive.should eq({
+        /addWidget/ => [0, 2], /insert/ => nil, /remove/ => [] of Int32,
+      })
+    end
+  end
 end
