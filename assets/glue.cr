@@ -102,19 +102,46 @@ module BindgenHelper
     String.new(string.ptr, string.size)
   end
 
-  # Objects kept alive by `.keep_alive`, by their `#object_id`.  The GC scans
-  # the pointers stored in the hash.
+  # Objects kept alive by `.keep_alive`, by the address of their C++ object.
+  # Getters return a new wrapper each time, so any wrapper of the C++ object
+  # finds it.  The GC scans the pointers stored in the hash.
   @@kept_alive = {} of UInt64 => Void*
 
-  # Guards `@@kept_alive`.
-  @@kept_alive_mutex = Mutex.new
+  # Guards `@@kept_alive`.  Reentrant, as a GC finalizer may run C++ code
+  # releasing an object while this fiber changes `@@kept_alive`.
+  @@kept_alive_mutex = Mutex.new(:reentrant)
+
+  # Set while `@@kept_alive` changes.  Releases meanwhile are queued in
+  # `@@pending_releases`, which doesn't allocate, and done afterwards.
+  @@kept_alive_busy = false
+  @@pending_releases = StaticArray(UInt64, 64).new(0_u64)
+  @@pending_release_count = 0
+
+  # Changes `@@kept_alive` in the block, then does the queued releases.  Call
+  # with `@@kept_alive_mutex` locked.
+  private def self.change_kept_alive(&)
+    @@kept_alive_busy = true
+    yield
+    while @@pending_release_count > 0
+      @@pending_release_count -= 1
+      @@kept_alive.delete(@@pending_releases[@@pending_release_count])
+    end
+  ensure
+    @@kept_alive_busy = false
+  end
 
   # Keeps *object* alive until it's passed to `.release`.  Wrapper methods call
   # this on arguments of methods configured in `keep_alive:`, as C++ keeps a
   # pointer to them in memory the GC doesn't scan.  The wrapper references the
-  # C++ object, so neither is collected.  Returns *object*.
+  # C++ object, so neither is collected.  If its C++ object is kept alive
+  # already, the wrapper kept first stays.  Returns *object*.
   def self.keep_alive(object : Reference)
-    @@kept_alive_mutex.synchronize { @@kept_alive[object.object_id] = object.as(Void*) }
+    address = object.to_unsafe.address
+    @@kept_alive_mutex.synchronize do
+      change_kept_alive do
+        @@kept_alive[address] = object.as(Void*) unless @@kept_alive.has_key?(address)
+      end
+    end
     object
   end
 
@@ -123,16 +150,32 @@ module BindgenHelper
   end
 
   # Lets the GC collect *object* again, once it's no longer referenced.  Call
-  # this when C++ no longer uses the object passed to `.keep_alive`.  Returns
-  # *object*.
+  # this when C++ no longer uses the object passed to `.keep_alive`.  Any
+  # wrapper of the same C++ object releases it.  Returns *object*.
   def self.release(object : Reference)
-    @@kept_alive_mutex.synchronize { @@kept_alive.delete(object.object_id) }
+    release(object.to_unsafe)
     object
   end
 
-  # Returns if *object* is kept alive by `.keep_alive`.
+  # Releases the C++ object at *pointer*, like `.release(object)`.  For code
+  # which only has the pointer, like a callback run as C++ destroys an object,
+  # which may happen in a GC finalizer.
+  def self.release(pointer : Pointer) : Nil
+    address = pointer.address
+    @@kept_alive_mutex.synchronize do
+      if !@@kept_alive_busy
+        change_kept_alive { @@kept_alive.delete(address) }
+      elsif @@pending_release_count < @@pending_releases.size
+        @@pending_releases[@@pending_release_count] = address
+        @@pending_release_count += 1
+      end # Else the object stays kept alive, which is safe.
+    end
+  end
+
+  # Returns if *object*, or another wrapper of its C++ object, is kept alive by
+  # `.keep_alive`.
   def self.kept_alive?(object : Reference) : Bool
-    @@kept_alive_mutex.synchronize { @@kept_alive.has_key?(object.object_id) }
+    @@kept_alive_mutex.synchronize { @@kept_alive.has_key?(object.to_unsafe.address) }
   end
 
   # Yields *value*.  Used by conversion templates using `%` more than once, so

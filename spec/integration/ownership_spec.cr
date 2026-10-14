@@ -77,6 +77,22 @@ describe "keeping objects passed to C++ alive" do
           Test::BindgenHelper.kept_alive?(inner).should be_false
         end
 
+        it "releases a kept object through another wrapper" do
+          store_inner(5).should be_true
+          inside = Test::Outer.last.inside # A new wrapper of the same C++ object
+          Test::BindgenHelper.kept_alive?(inside).should be_true
+
+          Test::BindgenHelper.release(inside)
+          Test::BindgenHelper.kept_alive?(Test::Outer.last.inside).should be_false
+        end
+
+        it "releases by pointer" do
+          inner = Test::Inner.new(7)
+          Test::BindgenHelper.keep_alive(inner)
+          Test::BindgenHelper.release(inner.to_unsafe)
+          Test::BindgenHelper.kept_alive?(inner).should be_false
+        end
+
         it "ignores nil" do
           Test::BindgenHelper.keep_alive(nil).should be_nil
         end

@@ -35,6 +35,7 @@ dependencies:
       * [CppWrapper](#cppwrapper)
       * [CrystalBinding](#crystalbinding)
       * [CrystalWrapper](#crystalwrapper)
+         * [Objects kept alive for C++](#objects-kept-alive-for-c)
       * [DefaultConstructor](#defaultconstructor)
       * [DumpGraph](#dumpgraph)
       * [Enums](#enums)
@@ -345,15 +346,27 @@ Generates the `lib Binding` `fun`s.
 
 Generates the Crystal methods in the wrapper classes.
 
-Objects constructed from Crystal are allocated by the GC.  If C++ code keeps a
-pointer to one in memory the GC doesn't scan, like a member of an object
-allocated with plain `new`, the GC collects it once the Crystal wrapper is gone
-(#75).  Configure the methods keeping a pointer to their arguments in
-`keep_alive:` of the class: their wrapper methods pass the arguments, if they
-are wrapped objects passed by pointer or reference, to
-`BindgenHelper.keep_alive`.  It stores the wrapper object, which refers to the
-C++ object, until it's passed to `BindgenHelper.release`.  `BindgenHelper` is
-part of the generated module.
+### Objects kept alive for C++
+
+Objects constructed from Crystal are allocated by the GC, which only sees
+pointers in memory it scans.  If C++ code keeps a pointer to one elsewhere, like
+in a member of an object allocated with plain `new`, the GC collects it once the
+Crystal wrapper is gone, while C++ still uses it.  With Qt, which keeps widgets
+added to layouts this way, this crashes in the GC's finalizers
+([Papierkorb/bindgen#75](https://github.com/Papierkorb/bindgen/issues/75)).
+
+Configure the methods keeping a pointer to their arguments in `keep_alive:` of
+the class.  Their wrapper methods pass the arguments, if they are wrapped
+objects passed by pointer or reference, to `BindgenHelper.keep_alive`.  It
+stores the wrapper, which refers to the C++ object, until it's passed to
+`BindgenHelper.release`.  `BindgenHelper` is part of the generated module.
+
+Objects are kept by the address of their C++ object, as getters return a new
+wrapper each time: any wrapper of it, or its pointer, releases it.  Nothing is
+released automatically, so an object C++ deletes stays in the table until
+released.  If the library notifies of destruction, like Qt's
+`QObject::destroyed`, release it from there: `.release` may run in a GC
+finalizer.
 
 ```yaml
 types:

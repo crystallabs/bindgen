@@ -2,6 +2,17 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## Unreleased
+
+### Changed
+
+* `BindgenHelper.keep_alive` keeps objects by the address of their C++ object
+  instead of their wrapper.  `.release` and `.kept_alive?` accept any wrapper of
+  it, like one returned by a getter, and `.release` its pointer.  Keeping an
+  object alive again keeps the first wrapper.
+* `BindgenHelper.release` can be called from C++ code run by a GC finalizer,
+  like a destruction callback, while the kept objects change.
+
 ## 0.8.0 (2026-10-14)
 
 ### Breaking changes
