@@ -25,7 +25,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Wrapper classes of `copy_structure` types get property methods for the
   fields.  Set `instance_variables: false` to turn them off.
 * Copying a structure with members a `lib struct` can't hold (`std::string`,
-  containers, classes by value, unknown types) is an error.  It used to emit
+  containers, classes by value, references, pointers to arrays, unknown types)
+  is an error.  It used to emit
   invalid or layout-incompatible Crystal.
 * `bindgen_helper.hpp` disables clang's `-Wreturn-type-c-linkage`.
 * `Binding::CrystalSlice` gained a `read_only` field after `ptr` and `size`,
