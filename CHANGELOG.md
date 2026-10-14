@@ -16,10 +16,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   openSUSE.
 * `clang/find_clang.cr` writes `clang/variables.yml` instead of
   `clang/Makefile.variables`.
+* `clang/find_clang.cr` no longer reads `CPPFLAGS` and `LDFLAGS`, and looks
+  for the LLVM and Clang libraries only in LLVM's library directory.
 * Sequential container wrappers define `#unsafe_at` for the C++ accessor.
   `#unsafe_fetch` is now provided by `BindgenHelper::SequentialContainer`.
-* Logging uses Crystal's `Log` directly, the `spoved` dependency is gone.
-  The output and the `--debug` and `--trace` flags are unchanged.
 
 ### Added
 
@@ -35,6 +35,12 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `clang/parser` is reported instead of being misread.
 * The clang tool is built by the default C++ compiler, not necessarily by the
   `clang++` of the LLVM it links against.
+* CMake runs `clang/find_clang.cr` once instead of three times, and shows its
+  diagnostics (#51).  The script asks `llvm-config` and `clang++` for most
+  paths instead of parsing a compiler command line (#36).
+* Static builds link only the Clang and LLVM libraries the tool needs.
+* Logging uses Crystal's `Log` directly, the `spoved` dependency is gone.
+  The output and the `--debug` and `--trace` flags are unchanged.
 * GitHub Actions workflow, replacing Travis CI.
 * Ameba as development dependency with a baseline `.ameba.yml`, run in CI.
   Installing the development dependencies needs Crystal 1.19 or newer.
