@@ -663,8 +663,6 @@ module Bindgen
       #
       # Modifies the argument list of this method.
       def merge_args!(other : Method)
-        args = [] of Argument
-
         @arguments.size.times do |i|
           @arguments[i] = @arguments[i].merge(other.arguments[i])
         end

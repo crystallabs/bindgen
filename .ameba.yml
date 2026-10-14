@@ -67,7 +67,6 @@ Lint/SpecEqWithBoolOrNilLiteral:
 Lint/UselessAssign:
   Excluded:
   - spec/bindgen/graph/path_spec.cr
-  - src/bindgen/parser/method.cr
 
 Metrics/CyclomaticComplexity:
   Excluded:
