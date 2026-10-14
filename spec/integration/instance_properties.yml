@@ -20,6 +20,7 @@ classes:
   ConfigRename: ConfigRename
   ConfigNilable: ConfigNilable
   Clashing: Clashing
+  TemplateMembers: TemplateMembers
   NestedProtected: NestedProtected
   NestedPrivate: NestedPrivate
 

@@ -236,6 +236,14 @@ describe "C++ instance properties" do
         end
       end
 
+      context "unknown template instantiations" do
+        it "are ignored" do
+          {% for member in %w[pub_holder pub_holder= holder d_ptr d_ptr=] %}
+            {{ Test::TemplateMembers.has_method?(member) }}.should be_false
+          {% end %}
+        end
+      end
+
       context "C++ unions" do
         it "works" do
           u = Test::PlainUnion.new

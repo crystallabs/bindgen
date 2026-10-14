@@ -6,6 +6,7 @@ module Bindgen
     # 1. Ignoring a type the method uses as argument or result type
     # 2. By adding the name to `type.CLASS.ignore_methods`
     # 3. Methods using anonymous types are always ignored
+    # 4. Methods using unknown template instantiations are always ignored
     class FilterMethods < Base
       include Graph::Visitor::MayDelete
 
@@ -30,6 +31,10 @@ module Bindgen
         remove ||= type_ignored?(m.return_type)
         remove ||= m.arguments.any? { |arg| type_ignored?(arg) }
 
+        # Rule 4: Unknown template instantiations
+        remove ||= unknown_template?(m.return_type)
+        remove ||= m.arguments.any? { |arg| unknown_template?(arg) }
+
         # Remove if ignored
         remove_method(method) if remove
       end
@@ -45,6 +50,15 @@ module Bindgen
       private def type_ignored?(type) : Bool
         # Log.notice { type.base_name } if type.is_a?(Parser::Type)
         @db.try_or(type, false) { |config| config.ignore? || config.anonymous? }
+      end
+
+      # Checks if *type* instantiates a template which is neither configured nor
+      # a container.  Crystal can't name such a type.
+      private def unknown_template?(type) : Bool
+        return false unless templ = type.template
+        return false if @db[type]?
+
+        @config.containers.none?(&.class.== templ.base_name)
       end
     end
   end

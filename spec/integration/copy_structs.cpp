@@ -182,6 +182,21 @@ protected:
   int drop_action = 0;
 };
 
+template<typename T>
+struct Holder {
+  T *ptr = nullptr;
+};
+
+// Members and methods of unknown template instantiations are ignored.
+class TemplateMembers {
+public:
+  Holder<Point> pub_holder;
+  Holder<Point> holder() { return pub_holder; }
+
+protected:
+  Holder<Point> d_ptr;
+};
+
 class NestedProtected {
 protected:
   struct {

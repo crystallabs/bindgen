@@ -121,3 +121,5 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   unadjusted `this` pointer.  Its non-virtual methods are wrapped too.
 * A property method of a data member clashing with a method of the same
   Crystal name, like `drop_action` and `dropAction()`, is no longer generated.
+* Methods and data members using an unknown template instantiation, like
+  `QScopedPointer<QObjectData>`, are ignored.  They produced an invalid alias.
