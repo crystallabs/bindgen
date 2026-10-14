@@ -318,8 +318,11 @@ module Bindgen
           pointer -= 1
         end
 
+        # `T [2]` with an array `int [4]` for `T` is `int [2][4]`.
+        extents = @extents + type.extents
+
         typer = Cpp::Typename.new
-        type_ptr = pointer - @extents.size - (reference ? 1 : 0)
+        type_ptr = pointer - extents.size - (reference ? 1 : 0)
 
         Type.new(
           kind: type.kind,
@@ -331,7 +334,7 @@ module Bindgen
           pointer: pointer,
           extents: extents,
           base_name: type.base_name,
-          full_name: typer.full(type.base_name, const, type_ptr, reference, @extents),
+          full_name: typer.full(type.base_name, const, type_ptr, reference, extents),
           template: type.template,
           nilable: type.nilable?,
         )
@@ -361,9 +364,9 @@ module Bindgen
         @void && @pointer == 0
       end
 
-      # The array extents of this type.
-      def extents
-        @extents.dup
+      # The array extents of this type.  Not to be modified.
+      def extents : Array(UInt64)
+        @extents
       end
 
       # Is this type a C array?

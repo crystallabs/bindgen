@@ -280,6 +280,20 @@ describe Bindgen::Parser::Type do
   end
 
   describe "#substitute" do
+    it "keeps the extents of an array replacement" do
+      type = parse("T").substitute("T", parse("int [4]"))
+      type.extents.should eq([4] of UInt64)
+      type.pointer.should eq(1)
+      type.full_name.should eq("int [4]")
+    end
+
+    it "appends the extents of an array replacement" do
+      type = parse("T [2]").substitute("T", parse("int [4]"))
+      type.extents.should eq([2, 4] of UInt64)
+      type.pointer.should eq(2)
+      type.full_name.should eq("int [2][4]")
+    end
+
     it "replaces `T` with another type" do
       parse("T").substitute("T", parse("int")).should eq(parse("int"))
       parse("U").substitute("T", parse("int")).should eq(parse("U"))
