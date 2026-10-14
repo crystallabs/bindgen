@@ -148,4 +148,19 @@ describe "clang tool macros feature" do
       ]
     )
   end
+
+  it "escapes control characters in evaluated strings" do
+    clang_tool(
+      <<-'CPP',
+        #define EVALUATE_CONTROL "a\x01" "b\rc"
+        CPP
+      "-m 'EVALUATE_.*'",
+      macros: [
+        {
+          name:      "EVALUATE_CONTROL",
+          evaluated: "a\u0001b\rc",
+        },
+      ]
+    )
+  end
 end

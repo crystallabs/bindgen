@@ -1,5 +1,7 @@
 #include "json_stream.hpp"
 
+#include <cstdio>
+
 /* Simple stream writer for JSON data. */
 JsonStream::JsonStream(std::ostream &out)
 : m_out(out)
@@ -63,6 +65,15 @@ void JsonStream::printChar(char c) {
 		case '"': this->m_out << "\\\""; break;
 		case '\n': this->m_out << "\\n"; break;
 		case '\t': this->m_out << "\\t"; break;
-		default: this->m_out << c; break;
+		default:
+			// JSON doesn't allow other control characters in strings either.
+			if (static_cast<unsigned char>(c) < 0x20) {
+				char escaped[7];
+				snprintf(escaped, sizeof(escaped), "\\u%04x", c);
+				this->m_out << escaped;
+			} else {
+				this->m_out << c;
+			}
+			break;
 	}
 }
