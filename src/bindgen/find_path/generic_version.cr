@@ -29,26 +29,26 @@ module Bindgen
           invert = true
         end
         parts1.each_with_index do |str1, i|
-          res = 0
-          if i > parts2.size - 1
-            res = 1
-          else
-            str2 = parts2[i]
-            int1 = str1.to_i rescue nil
-            int2 = str2.to_i rescue nil
-            if int1 && int2
-              res = int1 <=> int2
-            elsif int1 && !int2
-              res = 1
-            elsif !int1 && int2
-              res = -1
-            else
-              res = str1 <=> str2
-            end
-          end
+          res = i < parts2.size ? compare_part(str1, parts2[i]) : 1
           break unless res == 0
         end
         res * (invert ? -1 : 1)
+      end
+
+      # Compares two version parts.  Numeric parts compare as numbers and sort
+      # after non-numeric ones, which compare as strings.
+      private def compare_part(str1, str2) : Int32
+        int1 = str1.to_i rescue nil
+        int2 = str2.to_i rescue nil
+        if int1 && int2
+          int1 <=> int2
+        elsif int1 && !int2
+          1
+        elsif !int1 && int2
+          -1
+        else
+          str1 <=> str2
+        end
       end
 
       def self.parse(str : String)
