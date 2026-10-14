@@ -57,6 +57,19 @@ describe "C++ instance properties" do
           position.y.should eq(34)
         end
 
+        it "supports std::string members" do
+          props = Test::Props.new(5, 8)
+          props.name_val.should eq("props")
+          props.name_val = "changed"
+          props.name_val.should eq("changed")
+        end
+
+        it "is ignored for pointers to std::string" do
+          {{ Test::Props.has_method?("name_ptr") }}.should be_false
+          {{ Test::Props.has_method?("name_ptr=") }}.should be_false
+          {{ Test::Props.has_method?("name_address") }}.should be_false
+        end
+
         it "supports class-type value members" do
           position = Test::Props.new(5, 8).position_val
           position.should be_a(Test::Point)

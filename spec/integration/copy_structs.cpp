@@ -1,5 +1,7 @@
 /* Note: Used by `copy_structs_spec.cr` and `instance_properties_spec.cr`. */
 
+#include <string>
+
 struct Point {
   Point(int x, int y) : x(x), y(y) { }
 
@@ -142,6 +144,10 @@ public:
 
   Point points[2] = {Point(0, 0), Point(0, 0)};
   Point *points_ptr[2];
+
+  std::string name_val = "props";
+  std::string *name_ptr = &name_val;
+  std::string *nameAddress() { return name_ptr; }
 
   static Point corner;
   static const Point origin;

@@ -113,6 +113,7 @@ module Bindgen
           access: access,
           const: true,
         )
+        return if method_origin.filtered?(@db)
 
         method = Graph::Method.new(
           name: field_name,
@@ -149,6 +150,7 @@ module Bindgen
           type: method_type,
           access: access,
         )
+        return if method_origin.filtered?(@db)
 
         method = Graph::Method.new(
           name: field_name,

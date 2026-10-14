@@ -100,3 +100,6 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * A function matched by several `functions:` keys was bound once per key.  The
   first key now wins.
 * The sanity check printed only the number of errors, not the errors.
+* A method returning, or a data member of, a pointer to a by-value type like
+  `std::string *` generated C++ that didn't compile.  It is now ignored, like
+  arguments of such types already were.

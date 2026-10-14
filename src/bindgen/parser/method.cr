@@ -433,18 +433,30 @@ module Bindgen
         # Check that all arguments, which pass in explicit by-value, either take
         # the value directly, or a const-reference to it.
         pass_by_value_violation = @arguments.any? do |arg|
-          pass_by = db.try_or(arg, TypeDatabase::PassBy::Original, &.pass_by)
-          next false unless pass_by.value?           # Is it explicitly by-value?
+          next false unless passed_by_value?(db, arg)
           next true if arg.reference? && !arg.const? # Not const-ref - Violation!
-          pointer_depth = arg.pointer
-          pointer_depth -= 1 if arg.reference?
 
-          pointer_depth > 0 # It's by-pointer - Violation!
+          by_pointer?(arg) # Violation!
         end
 
         return true if pass_by_value_violation
 
+        # The same for the result, which is copied out of a reference.
+        return true if passed_by_value?(db, @return_type) && by_pointer?(@return_type)
+
         false # This method is fine.
+      end
+
+      # Is *type* configured to be passed by-value?
+      private def passed_by_value?(db, type) : Bool
+        db.try_or(type, TypeDatabase::PassBy::Original, &.pass_by).value?
+      end
+
+      # Is *type* a pointer, and not just a reference?
+      private def by_pointer?(type) : Bool
+        pointer_depth = type.pointer
+        pointer_depth -= 1 if type.reference?
+        pointer_depth > 0
       end
 
       # Checks if this method is a post-increment or post-decrement method that
