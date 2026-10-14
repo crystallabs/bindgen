@@ -15,57 +15,18 @@ if(NOT EXISTS ${shards_bin})
   message(STATUS "Found shards exec: ${shards_bin}")
 endif()
 
-# Execute find_clang.cr
-message(STATUS "Run: crystal find_clang.cr -- --clang ${llvm_clang_bin} --llvm-config ${LLVM_CONFIG} --quiet")
+# Execute find_clang.cr.  It writes include/generated.hpp, variables.yml,
+# the spec configuration and variables.cmake, which sets `clang_libs` and
+# `llvm_libs`.  Its diagnostics go to standard error.
+message(STATUS "Run: crystal find_clang.cr -- --clang ${llvm_clang_bin} --llvm-config ${LLVM_CONFIG}")
 
 execute_process(
-        COMMAND ${crystal_bin} ${PROJECT_SOURCE_DIR}/find_clang.cr -- --clang ${llvm_clang_bin} --llvm-config ${LLVM_CONFIG} --quiet
-        # COMMAND_ECHO STDOUT
-        ERROR_VARIABLE find_clang_error
+        COMMAND ${crystal_bin} ${PROJECT_SOURCE_DIR}/find_clang.cr -- --clang ${llvm_clang_bin} --llvm-config ${LLVM_CONFIG}
+        RESULT_VARIABLE find_clang_result
 )
 
-if(NOT ${find_clang_error} STREQUAL "")
-  message(FATAL_ERROR ${find_clang_error})
+if(NOT "${find_clang_result}" STREQUAL "0")
+  message(FATAL_ERROR "find_clang.cr failed: ${find_clang_result}")
 endif()
 
-# Execute find_clang.cr for clang_libs
-message(STATUS "Run: crystal find_clang.cr -- --print-clang-libs --clang ${llvm_clang_bin} --llvm-config ${LLVM_CONFIG} --quiet")
-execute_process(
-        COMMAND ${crystal_bin} ${PROJECT_SOURCE_DIR}/find_clang.cr -- --print-clang-libs --clang ${llvm_clang_bin} --llvm-config ${LLVM_CONFIG} --quiet
-        # COMMAND_ECHO STDOUT
-        OUTPUT_VARIABLE clang_libs
-        ERROR_VARIABLE find_clang_error
-)
-if(NOT ${find_clang_error} STREQUAL "")
-  message(FATAL_ERROR ${find_clang_error})
-endif()
-
-# Execute find_clang.cr for llvm_libs
-message(STATUS "Run: crystal find_clang.cr -- --print-llvm-libs --clang ${llvm_clang_bin} --llvm-config ${LLVM_CONFIG} --quiet")
-execute_process(
-        COMMAND ${crystal_bin} ${PROJECT_SOURCE_DIR}/find_clang.cr -- --print-llvm-libs --clang ${llvm_clang_bin} --llvm-config ${LLVM_CONFIG} --quiet
-        # COMMAND_ECHO STDOUT
-        # ERROR_VARIABLE find_clang_error
-        OUTPUT_VARIABLE llvm_libs
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-if("${llvm_libs}" STREQUAL "")
-  message(WARNING "Unable to find llvm libs. Will run command manually" )
-
-  # NOTE: This execute_process will use `llvm-config --libs all` to gather the libs
-  message(STATUS "Run: ${llvm_config_bin} --libs all")
-  execute_process(
-          COMMAND bash -c "${llvm_config_bin} --libs all | sed -E 's/\\-l/;/g' | sed -E 's/ //g'"
-          # COMMAND_ECHO STDOUT
-          # ERROR_VARIABLE find_clang_error
-          OUTPUT_VARIABLE llvm_libs
-          OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-
-  # Find the libraries that correspond to the LLVM components
-  # that we wish to use
-  # llvm_map_components_to_libnames(llvm_libs all)
-
-endif()
-# message(STATUS "llvm_libs: ${llvm_libs}")
+include(${PROJECT_SOURCE_DIR}/variables.cmake)

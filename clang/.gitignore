@@ -2,3 +2,4 @@ parser
 include/generated.hpp
 *.o
 variables.yml
+variables.cmake
