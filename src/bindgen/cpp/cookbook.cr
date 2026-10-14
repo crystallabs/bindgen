@@ -95,7 +95,7 @@ module Bindgen
 
       # Same as `#constructor_name`, but guarantees that the constructed type is
       # *class_name* itself, and not a helper type wrapping it.  This is
-      # required to brace-initialize an aggregate.
+      # required to brace-initialize an aggregate, and for C++ unions.
       def plain_constructor_name(method_name : String, class_name : String) : String
         constructor_name(method_name, class_name)
       end

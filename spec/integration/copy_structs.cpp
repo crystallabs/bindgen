@@ -62,6 +62,19 @@ union PlainUnion {
   float y;
 };
 
+// A union with a non-trivial destructor, which has to be run by the GC.
+static int managedUnionsAlive = 0;
+
+union ManagedUnion {
+  int x;
+  float y;
+
+  ManagedUnion(int value) : x(value) { managedUnionsAlive++; }
+  ~ManagedUnion() { managedUnionsAlive--; }
+
+  static int alive() { return managedUnionsAlive; }
+};
+
 // neither union should be inlined
 struct UnionInStruct {
   union {

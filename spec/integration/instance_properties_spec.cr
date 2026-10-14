@@ -214,6 +214,22 @@ describe "C++ instance properties" do
           u.y = 123_f32
           u.x.should eq(123_f32.unsafe_as(Int32))
         end
+
+        it "supports a non-trivial destructor" do
+          u = Test::ManagedUnion.new(123)
+          u.x.should eq(123)
+          u.y = 123_f32
+          u.x.should eq(123_f32.unsafe_as(Int32))
+        end
+
+        it "runs the destructor" do
+          count = 10_000
+          count.times { |i| Test::ManagedUnion.new(i) }
+
+          # The GC is conservative, some of them may survive.
+          GC.collect
+          Test::ManagedUnion.alive.should be < count // 2
+        end
       end
 
       context "nested members" do

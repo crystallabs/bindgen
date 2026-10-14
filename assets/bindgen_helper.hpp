@@ -124,7 +124,8 @@ struct CrystalGCCleanupWrapper: public T, public gc_cleanup
   using T::T;
 };
 
-// Unions can't be inherited from, these are allocated as they are.
+// Unions can't be inherited from, these are allocated as they are.  This
+// doesn't run their destructor: bindgen uses `bindgen_gc_finalizer` instead.
 template <typename T>
 using CrystalGCWrapper = typename std::conditional<
   std::is_union<T>::value, T, CrystalGCCleanupWrapper<T>>::type;
@@ -147,8 +148,8 @@ struct BindgenGCFinalizer {
 /* Finalizer for a `T` that is allocated as it is, instead of being wrapped in
  * a `CrystalGCWrapper`: `new (UseGC, bindgen_gc_finalizer<T>()) T { ... }`.
  * Aggregates are allocated like this, as only `T` itself can be initialized
- * from a braced list without copying or moving it.  Returns a null pointer if
- * `T` doesn't need a finalizer.
+ * from a braced list without copying or moving it, and so are unions.  Returns
+ * a null pointer if `T` doesn't need a finalizer.
  */
 template <typename T>
 GCCleanUpFunc bindgen_gc_finalizer() {

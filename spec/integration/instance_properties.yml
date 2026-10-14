@@ -14,6 +14,7 @@ classes:
   Anonymous: Anonymous
   Props: Props
   PlainUnion: PlainUnion
+  ManagedUnion: ManagedUnion
   ConfigIgnoreAll: ConfigIgnoreAll
   ConfigIgnore: ConfigIgnore
   ConfigRename: ConfigRename
