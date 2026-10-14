@@ -117,3 +117,26 @@ jobs:
 
       - name: Run specs
         run: crystal spec
+
+  # Arch ships LLVM and Clang as shared libraries only.
+  arch:
+    name: Arch Linux (shared LLVM)
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            crystal shards clang llvm cmake make gcc gc pcre2 libyaml git
+
+      - uses: actions/checkout@v4
+
+      - name: Install shards
+        run: shards install
+
+      - name: Build clang tool
+        working-directory: clang
+        run: cmake . && make
+
+      - name: Run specs
+        run: crystal spec
