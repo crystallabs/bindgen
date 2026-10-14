@@ -426,7 +426,9 @@ return instances to the (otherwise) abstract class.
 
 Adds `#to?(T.class)` casting methods, which also cast down between polymorphic
 classes through a `dynamic_cast`, returning `nil` if the object isn't a `T`:
-`Bar.create.to?(Foo) # => Foo?`.  See `SPEC.md` §2.3.6.
+`Bar.create.to?(Foo) # => Foo?`.  See `SPEC.md` §2.3.6.  Downcasts use
+`dynamic_cast`: if the C++ code is built without RTTI (`-fno-rtti`, like Qt),
+one aborts the program instead.
 
 ## `InstanceProperties`
 

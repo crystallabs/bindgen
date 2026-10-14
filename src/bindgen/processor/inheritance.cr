@@ -213,7 +213,7 @@ module Bindgen
 
         call = CallBuilder::CppCall.new(@db)
         wrapper = CallBuilder::CppWrapper.new(@db)
-        target_call = call.build(method, body: CastBody.new("dynamic_cast"))
+        target_call = call.build(method, body: CastBody.new("bindgen_dynamic_cast"))
         graph.calls[Graph::Platform::Cpp] = wrapper.build(method, target_call)
 
         binding = CallBuilder::CrystalBinding.new(@db).build(

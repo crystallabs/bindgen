@@ -72,6 +72,18 @@ static __attribute__((noreturn)) void bindgen_fatal_panic(const char *message) {
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 #endif
 
+// Downcast used by `#to?` of the Crystal wrappers.  Without RTTI, like Qt's
+// `-fno-rtti` builds, the cast can't be checked: it fails at run-time instead.
+template <typename To, typename From>
+static To bindgen_dynamic_cast(From *from) {
+#if defined(__GXX_RTTI) || defined(_CPPRTTI)
+  return dynamic_cast<To>(from);
+#else
+  (void)from;
+  bindgen_fatal_panic("Downcasting with #to? needs C++ RTTI, which is disabled");
+#endif
+}
+
 // Break C++'s encapsulation to allow easy wrapping of protected methods.
 #define protected public
 
