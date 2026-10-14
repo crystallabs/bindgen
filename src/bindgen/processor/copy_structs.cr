@@ -5,6 +5,8 @@ module Bindgen
     #
     # Has to be run before the `CrystalBinding` processor.
     class CopyStructs < Base
+      include TypeHelper
+
       def process(graph : Graph::Node, doc : Parser::Document)
         root = graph.by_name(Graph::LIB_BINDING).as(Graph::Library)
 
@@ -91,10 +93,46 @@ module Bindgen
             add_fields_to_graph(field_klass.origin, calls)
           else
             result = pass.to_binding(field)
+            check_field_layout!(klass, field, result)
             var_name = argument.name(field.crystal_name, calls.size)
             calls[var_name] = result
           end
         end
+      end
+
+      # Makes sure that the *field* of *klass* has the same layout in C++ as its
+      # *result* has in the `lib struct`.  Raises if it doesn't.
+      #
+      # Only built-in types, enumerations, other copied structures and
+      # pointers have.  Anything else is either passed as pointer, or as another
+      # type than it really is (like `std::string` as `CrystalString`), which
+      # is fine for a method argument, but not for a structure member.
+      private def check_field_layout!(klass, field, result)
+        type_name = field.full_name
+        binding_pointer = result.pointer + (result.reference ? 1 : 0)
+
+        reason = if @db.try_or(field, false) { |rules| converted_type?(field, rules) }
+                   "its type #{type_name} is converted when passed to Crystal"
+                 elsif binding_pointer == type_pointer_depth(field)
+                   nil # Same layout.
+                 elsif field.pointer < 1
+                   "its type #{type_name} is neither built-in, an enumeration nor a copied structure"
+                 else
+                   "its type #{type_name} isn't passed as it is"
+                 end
+
+        if reason
+          raise "Can't copy structure of class #{klass.name.inspect}: " \
+                "The field #{field.name.inspect} can't be part of a lib struct, #{reason}"
+        end
+      end
+
+      # Do the *rules* of *type* pass it as another type to Crystal?
+      private def converted_type?(type, rules) : Bool
+        cpp_type = rules.cpp_type
+        return true if cpp_type && cpp_type != type.base_name
+
+        !rules.to_cpp.no_op? || !rules.from_cpp.no_op?
       end
 
       # Locates classes whose structures aren't needed due to being inlined in a

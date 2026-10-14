@@ -14,6 +14,7 @@ module Bindgen
     # * Variadic methods are directly bound
     # * Alias targets are reachable
     # * Class base-classes are reachable
+    # * Structure fields are of a supported and reachable type
     class SanityCheck < Base
       # The all-flags constant in a flag-enum
       ENUM_FLAG_ALL = "All"
@@ -160,21 +161,42 @@ module Bindgen
 
       # Check for invalid types in structures
       def visit_struct(structure)
+        check_fields!(structure, "Struct")
+      end
+
+      # Check for invalid types in unions
+      def visit_union(structure)
+        check_fields!(structure, "Union")
+      end
+
+      # Checks the fields of a `Graph::Struct` or `Graph::CppUnion`.
+      private def check_fields!(structure, kind)
         structure.fields.each do |name, result|
+          prefix = "#{kind} #{structure.name}: Field #{name}"
+
           if result.reference
-            add_error(structure, "Struct field #{name} is a reference")
+            add_field_error(structure, "#{prefix} is a reference")
           end
 
           if result.type.c_array?
             if !result.type.builtin?
-              add_error(structure, "Struct field #{name} is a C array of user type")
+              add_field_error(structure, "#{prefix} is a C array of user type")
             end
 
             if !result.type.c_complete_array?
-              add_error(structure, "Struct field #{name} is a C array with unknown bounds")
+              add_field_error(structure, "#{prefix} is a C array with unknown bounds")
             end
           end
+
+          unless type_reachable?(result, structure)
+            add_field_error(structure, "#{prefix} has unreachable type #{result.type_name}")
+          end
         end
+      end
+
+      private def add_field_error(structure, message)
+        Log.error { message }
+        add_error(structure, message)
       end
 
       # Check reachability of all types

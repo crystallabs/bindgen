@@ -293,7 +293,9 @@ end
 Copies structures of those types, that have `copy_structure: true` set in the
 configuration, into `lib Binding`.  Such a type is passed by value.  It has to
 be layout-compatible to a C structure: Its members may only be built-in types,
-enumerations, other copied structures and pointers.
+enumerations, other copied structures and pointers.  bindgen refuses to copy a
+structure with a member it can't represent, like a `std::string`, a container
+or a class which isn't copied itself.
 
 A wrapper class of a `copy_structure` type will host the structure directly
 (instead of a pointer) to it:
@@ -509,6 +511,7 @@ Checks are as follows:
 * Variadic methods are directly bound
 * Alias targets are reachable
 * Class base-classes are reachable
+* Structure fields are of a supported and reachable type
 
 ## `VirtualOverride`
 

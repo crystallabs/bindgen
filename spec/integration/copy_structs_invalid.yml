@@ -1,0 +1,13 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.  `copy_structs_invalid_spec.cr` appends
+# the `classes:` and `types:` sections, to copy one of the structures at a time.
+
+enums:
+  Color: Color
+
+containers:
+  - class: "std::vector"
+    type: Sequential
+    instantiations:
+      - [ "int" ]

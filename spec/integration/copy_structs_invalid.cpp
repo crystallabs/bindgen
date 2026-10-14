@@ -1,0 +1,70 @@
+/* Structures which can't be copied into a `lib struct`. */
+
+#include <string>
+#include <vector>
+
+struct Opaque;
+
+class Wrapped {
+public:
+  int value;
+};
+
+struct Point {
+  int x, y;
+};
+
+enum Color {
+  Red,
+  Green,
+};
+
+// All of these members are fine.
+struct Valid {
+  int number;
+  Color color;
+  Point point;
+  Point *point_ptr;
+  Wrapped *wrapped_ptr;
+  const char *c_string;
+  void *anything;
+  int numbers[4];
+};
+
+struct StringMember {
+  int id;
+  std::string name;
+};
+
+// Would be a `CrystalString`, which isn't a pointer.
+struct StringPointerMember {
+  std::string *name;
+};
+
+struct ContainerMember {
+  std::vector<std::string> mount_options;
+};
+
+struct InstantiatedContainerMember {
+  std::vector<int> numbers;
+};
+
+struct WrappedMember {
+  Wrapped wrapped;
+};
+
+struct WrappedArrayMember {
+  Wrapped wrapped[2];
+};
+
+struct UnknownPointerMember {
+  Opaque *opaque;
+};
+
+union ContainerUnion {
+  int id;
+  std::vector<int> numbers;
+
+  ContainerUnion() : id(0) { }
+  ~ContainerUnion() { }
+};
