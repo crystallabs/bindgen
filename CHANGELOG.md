@@ -18,6 +18,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `clang/Makefile.variables`.
 * Sequential container wrappers define `#unsafe_at` for the C++ accessor.
   `#unsafe_fetch` is now provided by `BindgenHelper::SequentialContainer`.
+* Logging uses Crystal's `Log` directly, the `spoved` dependency is gone.
+  The output and the `--debug` and `--trace` flags are unchanged.
 
 ### Added
 
@@ -34,6 +36,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * The clang tool is built by the default C++ compiler, not necessarily by the
   `clang++` of the LLVM it links against.
 * GitHub Actions workflow, replacing Travis CI.
+* Ameba as development dependency with a baseline `.ameba.yml`, run in CI.
+  Installing the development dependencies needs Crystal 1.19 or newer.
 
 ### Fixed
 
@@ -48,3 +52,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Containers without instantiations, and containers in an implementation
   namespace like `std::__1::vector`, broke the container modules.
 * The top-level `CMakeLists.txt` builds the parser and `bin/bindgen` again.
+* Aggregate constructors no longer require the type to be movable.  Aggregates
+  are allocated as themselves and initialized in place.
+* The destructor of a garbage collected C++ union is run.
+* Bit-fields are reported by the clang tool.  Copying a structure with a
+  bit-field is refused, as Crystal can't describe its layout.
+* GNU-style variadic macros (`args...`) are no longer dropped.
