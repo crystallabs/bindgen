@@ -17,6 +17,7 @@ private def copy_structures(*names) : {Int32, String}
     end
 
     b << "\ntypes:\n"
+    b << "  flag_t: { alias_for: bool }\n"
     b << "  Point: { copy_structure: true, generate_binding: false, generate_wrapper: false }\n"
     names.each do |type|
       b << "  #{type}: { copy_structure: true, generate_binding: false, generate_wrapper: false }\n"
@@ -50,6 +51,15 @@ describe "copied structure validation" do
     output.should contain("point : Point\n")
     output.should contain("wrapped_ptr : Wrapped*\n")
     output.should contain("c_string : UInt8*\n")
+  end
+
+  it "accepts a member of an aliased built-in type" do
+    code, errors = copy_structures("AliasMember")
+    errors.should eq("")
+    code.should eq(0)
+
+    output = File.read("#{__DIR__}/tmp/copy_structs_invalid.cr")
+    output.should contain("flag : Bool\n")
   end
 
   it "rejects a std::string member" do

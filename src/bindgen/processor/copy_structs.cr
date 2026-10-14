@@ -129,8 +129,9 @@ module Bindgen
 
       # Do the *rules* of *type* pass it as another type to Crystal?
       private def converted_type?(type, rules) : Bool
+        # The rules may be those of the type *type* is an alias for.
         cpp_type = rules.cpp_type
-        return true if cpp_type && cpp_type != type.base_name
+        return true if cpp_type && cpp_type != @db.resolve_aliases(type).base_name
 
         !rules.to_cpp.no_op? || !rules.from_cpp.no_op?
       end

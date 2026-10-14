@@ -68,3 +68,10 @@ union ContainerUnion {
   ContainerUnion() : id(0) { }
   ~ContainerUnion() { }
 };
+
+// An alias of a built-in type, configured as such.
+typedef bool flag_t;
+
+struct AliasMember {
+  flag_t flag;
+};
