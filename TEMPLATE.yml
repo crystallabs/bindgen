@@ -288,6 +288,10 @@ functions:
   # methods, the qualified name includes the complete namespace path: The
   # qualified name of `namespace foo { void bar(); }` is thus `foo::bar`.
   #
+  # If the qualified name of a namespaced function doesn't match, its bare name
+  # is tried: `bar` matches `foo::bar` too.  A key matching both, like `(.*)`,
+  # uses the qualified name, also for its capture groups.
+  #
   # Just like macros, the first capture group defaults to be the resulting
   # function name.  Without a capture group, the function name is copied.
   "net_(.*)": Util::Net # Equal to: `"net_(.*)": { destination: "Util::Net" }`
@@ -319,7 +323,8 @@ functions:
       # base class, put the name here.  Else, leave this out.
       inherit_from: Crystal::Type::Name
       # Name of constructor functions.  They're expected to *return* a pointer
-      # to a new `structure:`.
+      # to a new `structure:`.  Namespaced functions can be given by their
+      # qualified or bare name, here and in `destructor:`.
       constructors:
         - string_new_empty
         - string_new_from_string

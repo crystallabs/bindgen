@@ -49,6 +49,13 @@ functions:
   "mycalc_(.*)": Funcs::Calc
   "thing_([^_]+)_(.*)": { destination: "Funcs", name: "\\1::\\2" }
 
+  # Functions in a namespace
+  "storage::read_(.*)": Storage::Read # Qualified name
+  "storage::deep::(.*)": Storage::Deep # Nested namespace
+  "write_(.*)": Storage::Write # Bare name of a namespaced function
+  # Matches both names, the qualified one wins: `\\1` is `storage::`.
+  "(.*)raw_(.*)": { destination: "Storage", name: "\\1\\2" }
+
   # Name rewriting
   "^dont_crystalize_(.*)": DontCrystalize
   "^crystalize_(.*)":
@@ -64,6 +71,13 @@ functions:
         - buffer_new
         - buffer_new_string
       destructor: buffer_free
+  "counting::counter_(.*)": # Class of functions in a namespace
+    destination: Counter
+    class:
+      structure: counter
+      constructors:
+        - "counting::counter_new" # Qualified name
+      destructor: counter_free # Bare name
   "my_int_(.*)": # Class without crystalized names
     destination: MyInt
     crystalize_names: false

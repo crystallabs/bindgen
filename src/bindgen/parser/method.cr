@@ -76,6 +76,16 @@ module Bindgen
       @[JSON::Field(key: "className")]
       getter class_name : String
 
+      # Fully qualified name of the method: `class_name::name`.  For a function
+      # in the global scope, it's the `name` itself.
+      def qualified_name : String
+        if @class_name.empty? || @class_name == "::"
+          @name
+        else
+          "#{@class_name}::#{@name}"
+        end
+      end
+
       # Arguments of the method.
       property arguments : Array(Argument)
 

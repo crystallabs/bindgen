@@ -76,6 +76,36 @@ int thing_increment_one(int v) { return v + 1; }
 int thing_decrement_one(int v) { return v - 1; }
 } // extern "C"
 
+// Functions in a namespace.  Their qualified name is `storage::read_one`.
+namespace storage {
+int read_one() { return 1; } // Key is the qualified name
+int read_two() { return 2; }
+int write_one() { return 10; } // Key is the bare name
+int raw_get() { return 20; } // Key matches the qualified and the bare name
+
+namespace deep {
+int read_three() { return 3; } // Nested namespace
+} // namespace deep
+} // namespace storage
+
+// C-with-classes wrapper of functions in a namespace.
+struct counter {
+  int value;
+};
+
+namespace counting {
+counter *counter_new() { // Constructor
+  counter *c = static_cast<counter *>(malloc(sizeof(counter)));
+  c->value = 0;
+  return c;
+}
+
+void counter_free(counter *c) { free(c); } // Destructor
+void counter_add(counter *c, int by) { c->value += by; } // Member
+int counter_get_value(counter *c) { return c->value; } // Getter member
+int counter_limit() { return 99; } // Static
+} // namespace counting
+
 // C-with-classes wrapper test.  `crystalize_names: UNSET` should default to true.
 struct string_buffer {
   char *ptr;

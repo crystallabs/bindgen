@@ -119,6 +119,25 @@ describe "C-specific functionality" do
         end
       end
 
+      context "functions in a namespace" do
+        it "maps by qualified name" do
+          Test::Storage::Read.one.should eq(1)
+          Test::Storage::Read.two.should eq(2)
+        end
+
+        it "maps by qualified name in a nested namespace" do
+          Test::Storage::Deep.read_three.should eq(3)
+        end
+
+        it "maps by bare name" do
+          Test::Storage::Write.one.should eq(10)
+        end
+
+        it "prefers the qualified name" do
+          Test::Storage::Storage.get.should eq(20)
+        end
+      end
+
       context "functions with crystalized names" do
         it "defaults to false" do
           Test::DontCrystalize.set_foo(5)
@@ -188,6 +207,21 @@ describe "C-specific functionality" do
           buffer.empty?.should be_true # Question getter
           buffer.size = 32             # Setter
           buffer.size.should eq(32)    # Getter
+        end
+      end
+
+      context "function class of functions in a namespace" do
+        it "maps constructor, members and static methods" do
+          counter = Test::Counter.new
+          counter.add(4)
+          counter.add(3)
+          counter.value.should eq(7)
+          Test::Counter.limit.should eq(99)
+        end
+
+        it "doesn't map the destructor as method" do
+          {{ Test::Counter.has_method?("free") }}.should be_false
+          {{ Test::Counter.has_method?("finalize") }}.should be_true
         end
       end
 

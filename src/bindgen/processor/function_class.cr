@@ -69,9 +69,9 @@ module Bindgen
       end
 
       private def detect_method_type(wrapper, method) : Parser::Method::Type
-        if wrapper.constructors.includes? method.name
+        if named_in?(wrapper.constructors, method)
           Parser::Method::Type::Constructor
-        elsif wrapper.destructor == method.name
+        elsif (destructor = wrapper.destructor) && named_in?({destructor}, method)
           Parser::Method::Type::Destructor
         else
           if this_arg = method.arguments.first?
@@ -86,9 +86,14 @@ module Bindgen
         end
       end
 
+      # Is *method* listed in *names*, by its qualified or its bare name?
+      private def named_in?(names, method) : Bool
+        names.includes?(method.qualified_name) || names.includes?(method.name)
+      end
+
       private def has_default_constructor?(constructors, list)
         list.any? do |method, _|
-          next unless constructors.includes? method.name
+          next unless named_in?(constructors, method)
           method.arguments.size == 0 # C doesn't support default values.
         end
       end

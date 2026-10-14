@@ -17,6 +17,12 @@ extern "C" int extern_sum(int count, ...) {
   return sum;
 }
 
+namespace scope {
+  extern "C" int scope_five() {
+    return 5;
+  }
+}
+
 struct class_t { };
 
 extern "C" {
