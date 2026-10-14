@@ -85,11 +85,11 @@ describe "clang tool classes feature" do
 
   it "exports the offsets of base classes" do
     clang_tool(
-      %[
+      <<-CPP,
         struct A { int a; };
         struct B { int b; };
         struct C : A, B { virtual void f(); };
-      ],
+        CPP
       "-c C",
       classes: {
         C: {bases: [{name: "A", offset: 8}, {name: "B", offset: 12}]},
