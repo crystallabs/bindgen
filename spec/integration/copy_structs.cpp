@@ -134,6 +134,7 @@ public:
   Point position_val {13, 35};
 
   int v[4] = { };
+  bool flags[2] = { false, true };
   int v2[5][6][7] = { };
   const int v_c[8] = {2003};
   int *v_ptr[9] = { };

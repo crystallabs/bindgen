@@ -91,6 +91,10 @@ describe "C++ instance properties" do
           v2.read_only?.should be_false
           v2[4][3][2].should eq(2002)
 
+          flags = props.flags
+          flags.should be_a(Slice(Bool))
+          flags.should eq(Slice[false, true])
+
           v_c = props.v_c
           v_c.read_only?.should be_true
           v_c[0].should eq(2003)

@@ -153,7 +153,7 @@ module Bindgen
           is_ref = false
           ptr = 1
           pass_by = TypeDatabase::PassBy::Pointer
-        elsif type.c_array?
+        elsif array = type.c_array?
           type = type.remove_all_extents
           is_ref = false
           ptr = 0
@@ -161,7 +161,9 @@ module Bindgen
           template = Template::Basic.new("bindgen_array_to_slice(%)", simple: true)
         end
 
-        if rules = @db[type]?
+        # The rules of an array's element type don't apply to the slice.
+        rules = @db[type]? unless array
+        if rules
           template = rules.from_cpp if template.no_op?
           type_name = rules.cpp_type || type_name
           pass_by = rules.pass_by unless rules.pass_by.original?
