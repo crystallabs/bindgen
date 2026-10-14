@@ -177,7 +177,10 @@ static void readDefaultValue(Field &f, const clang::ValueDecl *decl, const clang
 bool RecordMatchHandler::runOnField(Field &f, const clang::FieldDecl *field) {
 	f.name = field->getNameAsString();
 	f.access = field->getAccess();
-	// f.bitField = TODO
+
+	if (field->isBitField()) {
+		f.bitField = field->getBitWidth()->EvaluateKnownConstInt(field->getASTContext()).getZExtValue();
+	}
 
 	clang::QualType qt = field->getType();
 	clang::ASTContext &ctx = field->getASTContext();

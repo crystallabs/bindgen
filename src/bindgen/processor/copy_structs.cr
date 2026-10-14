@@ -79,6 +79,12 @@ module Bindgen
 
         klass.fields.each do |field|
           next if field.static?
+
+          # Crystal has no means to describe these in a `lib struct`.
+          if field.bit_field?
+            raise "Can't copy structure of class #{klass.name.inspect}: #{field.name.inspect} is a bit-field"
+          end
+
           field_klass, inlinable = get_field_type(klass, field)
 
           if field_klass && inlinable

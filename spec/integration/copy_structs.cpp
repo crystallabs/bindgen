@@ -116,6 +116,7 @@ public:
 
   int x_pub;
   const int y_pub;
+  unsigned bits : 3;
   Point *position_ptr = new Point(12, 34);
   Point position_val {13, 35};
 

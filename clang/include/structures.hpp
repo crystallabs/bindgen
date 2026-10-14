@@ -140,7 +140,7 @@ struct Field : public Type {
 	bool isStatic = false;
 	bool hasDefault = false; // Does this field have a default value?
 	LiteralData value; // Default value of the field
-	int bitField = -1;
+	int bitField = -1; // Width in bits if this is a bit-field, else -1
 };
 
 JsonStream &operator<<(JsonStream &s, const Field &value);

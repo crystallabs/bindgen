@@ -173,8 +173,8 @@ JsonStream &operator<<(JsonStream &s, const Field &value) {
 		s << std::make_pair("value", value.value) << c;
 	}
 
-	if (value.bitField > 0)
-		s << std::make_pair("bitField", value.name);
+	if (value.bitField >= 0)
+		s << std::make_pair("bitField", value.bitField);
 	else
 		s << std::make_pair("bitField", JsonStream::Null);
 

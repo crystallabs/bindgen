@@ -64,6 +64,16 @@ describe "C++ instance properties" do
           position.y.should eq(35)
         end
 
+        it "supports bit-field members" do
+          props = Test::Props.new(5, 8)
+          props.bits = 5u32
+          props.bits.should eq(5u32)
+
+          # Only three bits wide
+          props.bits = 9u32
+          props.bits.should eq(1u32)
+        end
+
         it "supports array members" do
           props = Test::Props.new(5, 8)
 
