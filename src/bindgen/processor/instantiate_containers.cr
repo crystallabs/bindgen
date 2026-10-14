@@ -17,6 +17,8 @@ module Bindgen
       def process(graph : Graph::Node, _doc : Parser::Document)
         root = graph.as(Graph::Container)
 
+        @config.containers.each { |container| resolve_instantiations(container) }
+
         # Containers like `std::vector` and `std::__1::vector` share a module.
         used = @config.containers.reject(&.instantiations.empty?)
         used.group_by { |container| module_name(container.class) }.each_value do |containers|
@@ -73,19 +75,23 @@ module Bindgen
 
       # Adds all instances of the sequential *container* into *root*.
       private def add_sequential_containers(container, root)
-        resolve_instantiations(container).each do |instance|
+        container.instantiations.each do |instance|
           check_sequential_instance! container, instance
           add_sequential_container(container, instance, root)
         end
       end
 
-      # Resolves aliases in the type arguments of *container*'s instantiations.
-      # This is required because aliases from the config files are not resolved
-      # prior to this point.
+      # Resolves aliases in the type arguments of *container*'s instantiations,
+      # as those from the config files are not resolved prior to this point.
+      # Instantiations which only differ in the spelling of their arguments,
+      # like `std::vector<rgb>` and `std::vector<unsigned int>`, are merged
+      # into one.
       private def resolve_instantiations(container)
-        container.instantiations.map do |inst|
+        resolved = container.instantiations.map do |inst|
           inst.map { |t| @db.resolve_aliases(t).full_name }
-        end.uniq
+        end
+
+        container.instantiations = resolved.to_set
       end
 
       # Instantiates a single *container* *instance* into *root*.

@@ -40,12 +40,12 @@ module Bindgen
           cpp_typer = Cpp::Typename.new
 
           # Maps the Crystal type arguments to the wrapper class.  If several
-          # containers offer the same instantiation, the first one wins.
+          # containers offer the same instantiation, the first one wins.  Type
+          # aliases were resolved by `Processor::InstantiateContainers`.
           wrappers = {} of String => String
 
           @containers.each do |container|
             container.instantiations.each do |inst|
-              inst = inst.map { |t| @db.resolve_aliases(t).full_name }
               type_name = cpp_typer.template_class(container.class, inst)
               templ_type = Parser::Type.parse(type_name)
               templ_args = templ_type.template.not_nil!.arguments

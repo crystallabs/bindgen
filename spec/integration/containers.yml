@@ -21,6 +21,8 @@ containers:
       - [ "double" ]
       - [ "std::string" ]
       - [ "std::vector<int>" ]
+      - [ "rgb" ]
+      - [ "unsigned int" ]
   - class: std::__1::vector
     type: Sequential
 

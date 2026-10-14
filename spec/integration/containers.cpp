@@ -26,6 +26,25 @@ public:
     return { 0xFF0000, 0x00FF00, 0x0000FF };
   }
 
+  // Same container as `std::vector<rgb>`.
+  std::vector<unsigned int> numbers() {
+    return { 1u, 2u, 3u };
+  }
+
+  unsigned int brightest(const std::vector<rgb> &colors) {
+    unsigned int max = 0;
+
+    for (rgb c : colors) {
+      if (c > max) max = c;
+    }
+
+    return max;
+  }
+
+  std::vector<std::vector<rgb>> palettes() {
+    return { { 0xFF0000 }, { 0x00FF00, 0x0000FF } };
+  }
+
   double sum(std::vector<double> list) {
     double d = 0;
 
