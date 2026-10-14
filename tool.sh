@@ -2,11 +2,8 @@
 
 # Helper script to invoke `bindgen.cr`
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  BASE="$(dirname "$(greadlink -f "$0")")"
-else
-  BASE="$(dirname "$(readlink -f "$0")")"
-fi
+# macOS before 12.3 has no `readlink -f`, but coreutils' greadlink
+BASE="$(dirname "$(readlink -f "$0" 2>/dev/null || greadlink -f "$0")")"
 
 CLANG_DIR="$BASE/clang/"
 SOURCE_FILE="$BASE/src/bindgen.cr"
