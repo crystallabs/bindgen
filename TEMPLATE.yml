@@ -385,9 +385,24 @@ types:
     # Useful to quickly get started.
     ignore: true | false
 
-    # Override the kind of this type.  Changes passing-behaviour.
-    # Defaults to `Class`.
-    kind: Class | Struct | Value | Enum
+    # Override the kind of this type.  Changes how the type is wrapped and
+    # passed around in Crystal.  Defaults to `Class`; types listed in `enums:`
+    # default to `Enum` instead, unless they're also configured in here.
+    #
+    # * `Class`: The wrapper is a Crystal `class`, a reference to the C++
+    #   object.  Hence one level of indirection is removed in the wrapper: A
+    #   `T*` in C++ is a `T` in Crystal.
+    # * `Struct`: The wrapper is a Crystal `struct`, which is passed by value.
+    #   No indirection is removed: A `T*` in C++ is a `T*` in Crystal too.
+    #   Methods are called with a pointer to the value stored in the wrapper.
+    #   This is also the kind of all built-in types, like `int`.
+    # * `Enum`: The type is a Crystal `enum`, which is passed by value and used
+    #   as-is in the wrapper and in `lib Binding`.
+    #
+    # There's a fourth kind, `Function`.  It's used internally for callbacks
+    # (`CrystalProc`) and has no use in here: Setting it doesn't turn the type
+    # into a callback.
+    kind: Class | Struct | Enum
 
     # Name of this type in the wrapper.
     crystal_type: CrystalTypeName
