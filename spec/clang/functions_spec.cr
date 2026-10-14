@@ -89,4 +89,39 @@ describe "clang tool functions feature" do
       ]
     )
   end
+
+  it "omits tag keywords from type names" do
+    clang_tool(
+      %[
+        struct Plain { };
+        union Both { int i; float f; };
+        enum Kind { One };
+        struct substruct { }; // Ends in a keyword
+        template<typename T> struct Box { };
+
+        struct Plain *tagged(struct Plain value, const union Both &both, enum Kind kind);
+        substruct *tricky(Box<struct Plain> box, class Box<union Both *> *boxes);
+      ],
+      "-f 'tagged|tricky'",
+      functions: [
+        {
+          name:      "tagged",
+          arguments: [
+            {fullName: "Plain", baseName: "Plain"},
+            {fullName: "const Both &", baseName: "Both"},
+            {fullName: "Kind", baseName: "Kind"},
+          ],
+          returnType: {fullName: "Plain *", baseName: "Plain"},
+        },
+        {
+          name:      "tricky",
+          arguments: [
+            {fullName: "Box<Plain>", baseName: "Box<Plain>"},
+            {fullName: "Box<Both *> *", baseName: "Box<Both *>"},
+          ],
+          returnType: {fullName: "substruct *", baseName: "substruct"},
+        },
+      ],
+    )
+  end
 end

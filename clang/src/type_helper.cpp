@@ -16,6 +16,12 @@ static bool isIdentifierChar(char c) {
 
 // Removes tag keywords like `struct` from the type *name*.  Clang keeps those
 // if they were written in the source, regardless of the printing policy.
+//
+// This is done on the printed name on purpose:  Dropping the keyword from the
+// type itself means rebuilding it, with different code for Clang up to 16
+// (`ElaboratedType`), 17 to 21 (`PrintingPolicy::SuppressElaboration`) and 22
+// (keyword stored in `TagType`).  A tag keyword can't appear in a type name
+// in any other role, so the textual removal is exact.
 static void removeTagKeywords(std::string &name) {
 	for (const std::string keyword : { "struct ", "class ", "union ", "enum " }) {
 		size_t pos = 0;
