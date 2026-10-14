@@ -223,6 +223,19 @@ describe "C++ instance properties" do
         end
       end
 
+      context "name clashes" do
+        it "prefers methods over property methods" do
+          clashing = Test::Clashing.new
+          clashing.drop_action = 3
+          clashing.drop_action.should eq(7)
+
+          {% begin %}
+            {% method = Test::Clashing.methods.find &.name.== "drop_action" %}
+            {{ method.visibility }}.should eq(:public)
+          {% end %}
+        end
+      end
+
       context "C++ unions" do
         it "works" do
           u = Test::PlainUnion.new

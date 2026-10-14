@@ -172,6 +172,16 @@ private:
 Point Props::corner = Point(800, 600);
 const Point Props::origin = Point(0, 0);
 
+// The methods win over the property methods of `drop_action`.
+class Clashing {
+public:
+  int dropAction() const { return drop_action + 1; }
+  void setDropAction(int a) { drop_action = a * 2; }
+
+protected:
+  int drop_action = 0;
+};
+
 class NestedProtected {
 protected:
   struct {

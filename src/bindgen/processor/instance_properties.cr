@@ -20,6 +20,7 @@ module Bindgen
         return if @db.try_or(klass.origin.name, false) { |rules| rules.copy_structure? && !structure_hosted?(rules) }
 
         var_config = @db.try_or(klass.name, VarConfig.new, &.instance_variables)
+        taken = method_signatures(klass)
 
         each_direct_field(klass) do |field, nested_access|
           # Ignore all reference fields for now.
@@ -44,12 +45,24 @@ module Bindgen
           if static && field.const? && field.has_default? && (init = field.value)
             add_static_constant(klass, field, init)
           else
-            add_getter(klass, access, field_type, field.name, static, method_name)
-            add_setter(klass, access, field_type, field.name, static, method_name) unless field.const? || field.c_array?
+            # Methods win over property methods with the same Crystal name.
+            add_getter(klass, access, field_type, field.name, static, method_name) unless taken.includes?({method_name, 0})
+            unless field.const? || field.c_array? || taken.includes?({method_name + "=", 1})
+              add_setter(klass, access, field_type, field.name, static, method_name)
+            end
           end
         end
 
         super
+      end
+
+      # Returns the Crystal names and argument counts of the methods of *klass*.
+      private def method_signatures(klass)
+        klass.nodes.compact_map do |node|
+          if method = node.as?(Graph::Method)
+            {method.origin.crystal_name, method.origin.arguments.size} unless method.origin.private?
+          end
+        end.to_set
       end
 
       # Looks up the configuration used for a data member.

@@ -119,3 +119,5 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   which failed to compile.
 * Inherited virtual methods of a second base class were called with an
   unadjusted `this` pointer.  Its non-virtual methods are wrapped too.
+* A property method of a data member clashing with a method of the same
+  Crystal name, like `drop_action` and `dropAction()`, is no longer generated.

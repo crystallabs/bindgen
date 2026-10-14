@@ -19,6 +19,7 @@ classes:
   ConfigIgnore: ConfigIgnore
   ConfigRename: ConfigRename
   ConfigNilable: ConfigNilable
+  Clashing: Clashing
   NestedProtected: NestedProtected
   NestedPrivate: NestedPrivate
 
