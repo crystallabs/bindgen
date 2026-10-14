@@ -17,7 +17,7 @@ module Bindgen
 
         list.map_with_index do |arg, idx|
           if idx == list.size - 1 && arg.variadic?
-            self.variadic_argument
+            variadic_argument
           else
             to_binding(arg).to_argument(argument.name(arg, idx))
           end
@@ -31,7 +31,7 @@ module Bindgen
         list.map_with_index do |arg, idx|
           is_last = (idx == list.size - 1)
           if is_last && arg.variadic? # Support variadic argument
-            next self.variadic_argument
+            next variadic_argument
           end
 
           result = to_wrapper(arg)

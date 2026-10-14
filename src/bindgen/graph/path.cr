@@ -52,7 +52,7 @@ module Bindgen
         if other.global?
           other
         else
-          Path.new(@parts + other.parts, self.global?)
+          Path.new(@parts + other.parts, global?)
         end
       end
 
@@ -252,7 +252,7 @@ module Bindgen
       private def try_lookup_at(node) : Node?
         @parts.each(within: 1..) do |local_name|
           # Lookup is only supported on container nodes
-          return nil unless node.is_a?(Container)
+          return unless node.is_a?(Container)
 
           # Manually traverse to also search in `PlatformSpecific` nodes
           node = find_in_container(node, local_name)

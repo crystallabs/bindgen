@@ -27,14 +27,14 @@ describe "copied structure functionality" do
       context "core functionality" do
         it "supports structs" do
           subject = Test::Binding::Point.new
-          instance_var_names(subject).should eq(%w{x y}) # ignores `dimensions`
+          instance_var_names(subject).should eq(%w[x y]) # ignores `dimensions`
           subject.x.should be_a(Int32)
           subject.y.should be_a(Int32)
         end
 
         it "supports members of other copied structs" do
           subject = Test::Binding::Line.new
-          instance_var_names(subject).should eq(%w{v1 v2})
+          instance_var_names(subject).should eq(%w[v1 v2])
           subject.v1.should be_a(Test::Binding::Point)
           subject.v2.should be_a(Test::Binding::Point)
         end
@@ -54,7 +54,7 @@ describe "copied structure functionality" do
 
         it "supports unions" do
           subject = Test::Binding::PlainUnion.new
-          instance_var_names(subject).should eq(%w{x y})
+          instance_var_names(subject).should eq(%w[x y])
           union_like?(subject).should be_true
         end
       end
@@ -63,26 +63,26 @@ describe "copied structure functionality" do
         it "supports nested structs" do
           subject = Test::Binding::Nested.new
           subject.c.should be_a(Test::Binding::Nested_Inner2)
-          instance_var_names(subject.c).should eq(%w{b})
+          instance_var_names(subject.c).should eq(%w[b])
 
           subject = Test::Binding::Nested_Inner.new
-          instance_var_names(subject).should eq(%w{a})
+          instance_var_names(subject).should eq(%w[a])
         end
 
         it "supports nested unions" do
           subject = Test::Binding::NestedUnion.new
-          instance_var_names(subject).should eq(%w{u c d})
+          instance_var_names(subject).should eq(%w[u c d])
           union_like?(subject).should be_true
-          instance_var_names(subject.u).should eq(%w{a b})
+          instance_var_names(subject.u).should eq(%w[a b])
           union_like?(subject.u).should be_true
         end
 
         it "supports nested anonymous structs" do
           subject = Test::Binding::Anonymous.new
-          instance_var_names(subject).should eq(%w{x0 p0 p2})
-          instance_var_names(subject.p0).should eq(%w{x1})
-          instance_var_names(subject.p2).should eq(%w{x2 p1})
-          instance_var_names(subject.p2.p1).should eq(%w{x3})
+          instance_var_names(subject).should eq(%w[x0 p0 p2])
+          instance_var_names(subject.p0).should eq(%w[x1])
+          instance_var_names(subject.p2).should eq(%w[x2 p1])
+          instance_var_names(subject.p2.p1).should eq(%w[x3])
         end
 
         it "ignores inlined anonymous structs" do

@@ -6,10 +6,10 @@ end
 
 describe Bindgen::Processor::ExternC do
   config = Bindgen::Configuration.from_yaml <<-YAML
-  module: Foo
-  generators: { }
-  parser: { files: [ "foo.h" ] }
-  YAML
+    module: Foo
+    generators: { }
+    parser: { files: [ "foo.h" ] }
+    YAML
 
   doc = Bindgen::Parser::Document.new
   db = Bindgen::TypeDatabase.new(Bindgen::TypeDatabase::Configuration.new, "boehmgc-cpp")

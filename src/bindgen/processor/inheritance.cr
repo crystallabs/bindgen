@@ -122,7 +122,7 @@ module Bindgen
           candidates = base.origin.wrappable_methods + ancestor_virtuals(base.origin)
           methods = candidates.select do |method|
             if method.virtual?
-              known_virtuals.none? { |known| known.equals_virtually?(method) }
+              known_virtuals.none?(&.equals_virtually?(method))
             else
               moved && method.member_method? &&
                 klass.methods.none? { |m| m.name == method.name }
@@ -429,7 +429,7 @@ module Bindgen
             if base_method = base.origin.wrappable_methods
                  .each
                  .select(&.virtual?)
-                 .find { |base_method| base_method.equals_virtually?(method) }
+                 .find(&.equals_virtually?(method))
               # Found, so unify the arguments ...
               method.merge_args!(base_method)
               # ... and stop (no need to go further up the inheritance tree)

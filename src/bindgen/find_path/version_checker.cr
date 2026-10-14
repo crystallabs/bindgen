@@ -107,7 +107,7 @@ module Bindgen
         command = Util.template(command, replacement: path)
         output = `#{command}`
 
-        return nil unless $?.success?
+        return unless $?.success?
         capture_match(regex, output)
       end
 

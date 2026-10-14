@@ -64,9 +64,7 @@ module Bindgen
                               reference_to_value(base_name)
                             elsif is_pointer # Pointer -> Value
                               pointer_to_value(base_name)
-                            else # Value -> Value
-                              nil
-                            end
+                            end # Value -> Value needs no conversion
                           end
 
         Template.from_string(template_string, simple: true)

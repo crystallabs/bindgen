@@ -8,11 +8,11 @@ module Bindgen
       getter parts : Array(String)
 
       def initialize(parts : Array(String | Int32))
-        @parts = parts.map { |x| x.to_s }
+        @parts = parts.map(&.to_s)
       end
 
       def initialize(*parts)
-        @parts = parts.to_a.map { |x| x.to_s }
+        @parts = parts.to_a.map(&.to_s)
       end
 
       def to_s(io : IO)
@@ -22,7 +22,7 @@ module Bindgen
       def <=>(other : self) : Int32
         res = 0
         invert = false
-        parts1 = self.parts
+        parts1 = parts
         parts2 = other.parts
         if parts2.size > parts1.size
           parts1, parts2 = parts2, parts1
@@ -52,7 +52,7 @@ module Bindgen
       end
 
       def self.parse(str : String)
-        self.new(str.split('.'))
+        new(str.split('.'))
       end
     end
   end

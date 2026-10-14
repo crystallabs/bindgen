@@ -2,7 +2,7 @@ require "json"
 
 module Bindgen
   module Parser
-    alias DefaultValueTypes = Bool | UInt64 | Int64 | Float64 | String | Nil
+    alias DefaultValueTypes = Bool | UInt64 | Int64 | Float64 | String?
 
     # Reads a `DefaultValueTypes`, while trying to retain as much original
     # information as possible.

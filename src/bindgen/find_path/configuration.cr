@@ -146,8 +146,6 @@ module Bindgen
         if node.is_a?(YAML::Nodes::Scalar) # A bool?
           if Bool.new(ctx, node)
             ListConfig.default
-          else
-            nil
           end
         else # A full config
           ListConfig.new(ctx, node)

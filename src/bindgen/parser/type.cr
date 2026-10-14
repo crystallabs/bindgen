@@ -202,7 +202,7 @@ module Bindgen
         elsif ptr > 0 # 5.
           ptr -= 1
         else # 6.
-          return nil
+          return
         end
 
         typer = Cpp::Typename.new

@@ -95,7 +95,7 @@ module Bindgen
 
       # Creates the `Superclass` Crystal struct for the given *klass*.
       private def create_superclass(klass) : Graph::Class?
-        return nil unless @db.try_or(klass.origin.name, true, &.generate_superclass?)
+        return unless @db.try_or(klass.origin.name, true, &.generate_superclass?)
 
         node = Parser::Class.new(
           name: SUPERCLASS_NAME,

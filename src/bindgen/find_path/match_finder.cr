@@ -60,7 +60,7 @@ module Bindgen
         command = Util.template(shell.shell, @parent.root, env: @parent.variables)
 
         output = `#{command}`
-        return nil unless $?.success?
+        return unless $?.success?
 
         if rx = shell.regex
           regex_capture(rx, output)

@@ -17,8 +17,8 @@ describe Bindgen::FindPath::VersionChecker do
   context "if none match" do
     it "finds nothing due to broken regex" do
       subject = run_check(<<-YAML
-      regex: "-failing-"
-      YAML
+        regex: "-failing-"
+        YAML
       )
 
       subject.best_candidate.should eq(nil)
@@ -27,8 +27,8 @@ describe Bindgen::FindPath::VersionChecker do
 
     it "finds nothing due to min version" do
       subject = run_check(<<-YAML
-      min: "3.0"
-      YAML
+        min: "3.0"
+        YAML
       )
 
       subject.best_candidate.should eq(nil)
@@ -37,8 +37,8 @@ describe Bindgen::FindPath::VersionChecker do
 
     it "finds nothing due to max version" do
       subject = run_check(<<-YAML
-      max: "0.5"
-      YAML
+        max: "0.5"
+        YAML
       )
 
       subject.best_candidate.should eq(nil)
@@ -49,8 +49,8 @@ describe Bindgen::FindPath::VersionChecker do
   context "prefer: Highest (implicit)" do
     it "returns the highest versioned match" do
       subject = run_check(<<-YAML
-      min: 1.0
-      YAML
+        min: 1.0
+        YAML
       )
 
       subject.best_candidate.should eq("tool-2.0")
@@ -60,8 +60,8 @@ describe Bindgen::FindPath::VersionChecker do
   context "prefer: Lowest" do
     it "returns the lowest versioned match" do
       subject = run_check(<<-YAML
-      prefer: lowest
-      YAML
+        prefer: lowest
+        YAML
       )
 
       subject.best_candidate.should eq("tool-1.0")
@@ -83,8 +83,8 @@ describe Bindgen::FindPath::VersionChecker do
   context "fallback: Accept" do
     it "adds the candidate as lowest priority" do
       subject = run_check(<<-YAML
-      fallback: Accept
-      YAML
+        fallback: Accept
+        YAML
       )
 
       subject.best_candidate.should eq("tool-2.0")
@@ -97,9 +97,9 @@ describe Bindgen::FindPath::VersionChecker do
 
     it "adds the candidate as highest priority" do
       subject = run_check(<<-YAML
-      fallback: Accept
-      prefer: Lowest
-      YAML
+        fallback: Accept
+        prefer: Lowest
+        YAML
       )
 
       subject.best_candidate.should eq("tool-1.0")
@@ -114,8 +114,8 @@ describe Bindgen::FindPath::VersionChecker do
   context "fallback: Prefer" do
     it "adds the candidate as highest priority" do
       subject = run_check(<<-YAML
-      fallback: Prefer
-      YAML
+        fallback: Prefer
+        YAML
       )
 
       subject.best_candidate.should eq("tool")
@@ -128,9 +128,9 @@ describe Bindgen::FindPath::VersionChecker do
 
     it "adds the candidate as lowest priority" do
       subject = run_check(<<-YAML
-      prefer: Lowest
-      fallback: Prefer
-      YAML
+        prefer: Lowest
+        fallback: Prefer
+        YAML
       )
 
       subject.best_candidate.should eq("tool")
@@ -145,9 +145,9 @@ describe Bindgen::FindPath::VersionChecker do
   context "command: String" do
     it "calls the command for each candidate" do
       subject = run_check(<<-YAML
-      command: "cat '%'"
-      regex: "^VERSION=(.*)"
-      YAML
+        command: "cat '%'"
+        regex: "^VERSION=(.*)"
+        YAML
       )
 
       subject.best_candidate.should eq("tool")

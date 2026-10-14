@@ -13,9 +13,9 @@ module Bindgen
     # getter my_option = Util::Tribool.unset
     # ```
     struct Tribool
-      @value : Bool | Nil
+      @value : Bool?
 
-      def initialize(@value : Bool | Nil)
+      def initialize(@value : Bool?)
       end
 
       def initialize(ctx : YAML::ParseContext, node : YAML::Nodes::Node)

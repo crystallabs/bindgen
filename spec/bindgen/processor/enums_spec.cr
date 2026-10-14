@@ -6,45 +6,45 @@ end
 
 describe Bindgen::Processor::Enums do
   config = Bindgen::Configuration.from_yaml <<-YAML
-  module: Foo
-  generators: { }
-  parser: { files: [ "foo.h" ] }
+    module: Foo
+    generators: { }
+    parser: { files: [ "foo.h" ] }
 
-  enums:
-    base_module: Normal
-    sub_module:
-      destination: "Outer::Flags"
-    flags_unset_true: FlagsUnsetTrue
-    flags_unset_false: FlagsUnsetFalse
-    flags_true:
-      destination: FlagsTrue
-      flags: true
-    flags_false:
-      destination: FlagsFalse
-      flags: false
-    prefix_true:
-      destination: PrefixTrue
-      prefix: true
-    prefix_false:
-      destination: PrefixFalse
-      prefix: false
-    prefix_string:
-      destination: PrefixString
-      prefix: "Flags_"
-    prefix_uppercased_true:
-      destination: PrefixUppercasedTrue
-      prefix: true
-    prefix_uppercased_false:
-      destination: PrefixUppercasedFalse
-      prefix: false
-    prefix_uppercased_string:
-      destination: PrefixUppercasedString
-      prefix: "UPPER_"
-    prefix_fixable:
-      destination: PrefixFixable
-      prefix: "Prefix"
-    fixable: Fixable
-  YAML
+    enums:
+      base_module: Normal
+      sub_module:
+        destination: "Outer::Flags"
+      flags_unset_true: FlagsUnsetTrue
+      flags_unset_false: FlagsUnsetFalse
+      flags_true:
+        destination: FlagsTrue
+        flags: true
+      flags_false:
+        destination: FlagsFalse
+        flags: false
+      prefix_true:
+        destination: PrefixTrue
+        prefix: true
+      prefix_false:
+        destination: PrefixFalse
+        prefix: false
+      prefix_string:
+        destination: PrefixString
+        prefix: "Flags_"
+      prefix_uppercased_true:
+        destination: PrefixUppercasedTrue
+        prefix: true
+      prefix_uppercased_false:
+        destination: PrefixUppercasedFalse
+        prefix: false
+      prefix_uppercased_string:
+        destination: PrefixUppercasedString
+        prefix: "UPPER_"
+      prefix_fixable:
+        destination: PrefixFixable
+        prefix: "Prefix"
+      fixable: Fixable
+    YAML
 
   flags_enum = Bindgen::Parser::Enum.new(
     name: "flags_enum",

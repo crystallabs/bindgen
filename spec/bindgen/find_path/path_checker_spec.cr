@@ -20,9 +20,9 @@ describe Bindgen::FindPath::PathChecker do
         run_check(
           true,
           <<-YAML
-          path: This/Is/Ignored.cr
-          contains: "ABSOLUTELY\\\\dCONTAINS\\\\dTHIS"
-          YAML
+            path: This/Is/Ignored.cr
+            contains: "ABSOLUTELY\\\\dCONTAINS\\\\dTHIS"
+            YAML
         ).should be_true
       end
     end
@@ -33,19 +33,19 @@ describe Bindgen::FindPath::PathChecker do
         run_check(
           true,
           <<-YAML
-          path: This/Is/Ignored.cr
-          contains: "Find This Number: \\\\d+"
-          regex: true
-          YAML
+            path: This/Is/Ignored.cr
+            contains: "Find This Number: \\\\d+"
+            regex: true
+            YAML
         ).should be_true
 
         run_check(
           true,
           <<-YAML
-          path: This/Is/Ignored.cr
-          contains: "Totally doesn't contain this \\\\d+"
-          regex: true
-          YAML
+            path: This/Is/Ignored.cr
+            contains: "Totally doesn't contain this \\\\d+"
+            regex: true
+            YAML
         ).should be_false
       end
     end
@@ -58,15 +58,15 @@ describe Bindgen::FindPath::PathChecker do
           run_check(
             false,
             <<-YAML
-            path: bindgen/find_path/path_checker_spec.cr
-            YAML
+              path: bindgen/find_path/path_checker_spec.cr
+              YAML
           ).should be_true
 
           run_check(
             false,
             <<-YAML
-            path: bindgen/find_path/doesnt_exist.cr
-            YAML
+              path: bindgen/find_path/doesnt_exist.cr
+              YAML
           ).should be_false
         end
       end
@@ -77,17 +77,17 @@ describe Bindgen::FindPath::PathChecker do
           run_check(
             false,
             <<-YAML
-            path: bindgen/find_path/path_checker_spec.cr
-            contains: "ABSOLUTELY\\\\dCONTAINS\\\\dTHIS"
-            YAML
+              path: bindgen/find_path/path_checker_spec.cr
+              contains: "ABSOLUTELY\\\\dCONTAINS\\\\dTHIS"
+              YAML
           ).should be_true
 
           run_check(
             false,
             <<-YAML
-            path: spec_helper.cr
-            contains: "Totally doesn't contain this string!!"
-            YAML
+              path: spec_helper.cr
+              contains: "Totally doesn't contain this string!!"
+              YAML
           ).should be_false
         end
       end
@@ -98,19 +98,19 @@ describe Bindgen::FindPath::PathChecker do
           run_check(
             false,
             <<-YAML
-            path: bindgen/find_path/path_checker_spec.cr
-            contains: "Find This Number: \\\\d+"
-            regex: true
-            YAML
+              path: bindgen/find_path/path_checker_spec.cr
+              contains: "Find This Number: \\\\d+"
+              regex: true
+              YAML
           ).should be_true
 
           run_check(
             false,
             <<-YAML
-            path: spec_helper.cr
-            contains: "Totally doesn't contain this \\\\d+"
-            regex: true
-            YAML
+              path: spec_helper.cr
+              contains: "Totally doesn't contain this \\\\d+"
+              regex: true
+              YAML
           ).should be_false
         end
       end
@@ -121,17 +121,17 @@ describe Bindgen::FindPath::PathChecker do
         run_check(
           false,
           <<-YAML
-          path: bindgen/find_path
-          kind: Directory
-          YAML
+            path: bindgen/find_path
+            kind: Directory
+            YAML
         ).should be_true
 
         run_check(
           false,
           <<-YAML
-          path: doesnt_exist
-          kind: Directory
-          YAML
+            path: doesnt_exist
+            kind: Directory
+            YAML
         ).should be_false
       end
     end

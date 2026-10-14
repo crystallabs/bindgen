@@ -74,8 +74,6 @@ module Bindgen
           Verb::Elsif
         elsif text == "else"
           Verb::Else
-        else
-          nil
         end
       end
 

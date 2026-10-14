@@ -18,7 +18,7 @@ require "../src/bindgen/find_path"
 
 # Parse command line options. Each of these options has an accessor
 # function of the same name, defined at the end of file.
-OPTIONS = Hash(Symbol, Bool | String | Nil | Array(String)).new
+OPTIONS = Hash(Symbol, Bool | String | Array(String)?).new
 OPTIONS[:clang] = nil
 OPTIONS[:llvm_config] = nil
 OPTIONS[:print_llvm_libs] = false
@@ -199,9 +199,9 @@ spec_base_content = {
              " -c -o {SPEC_NAME}.o {SPEC_NAME}.cpp -I.. -Wall -Werror -Wno-unused-function" \
              "#{dynamic ? "" : " -fPIC"}",
       preamble: <<-PREAMBLE
-      #include <gc/gc_cpp.h>
-      #include "bindgen_helper.hpp"
-      PREAMBLE
+        #include <gc/gc_cpp.h>
+        #include "bindgen_helper.hpp"
+        PREAMBLE
     },
     crystal: {
       output: "tmp/{SPEC_NAME}.cr",
@@ -257,17 +257,17 @@ end
 def find_llvm_config_binary(paths = nil, min_version = "14.0.0") : String?
   log %(Searching for binary `llvm-config` or `llvm-config-*` in PATH. Minimum version #{min_version})
   llvm_config_find_config = <<-YAML
-  kind: Executable
-  try:
-    - llvm-config
-    - llvm-config-*
-  search_paths:
-    #{paths.try(&.map { |p| "- \"" + p + "\"" }.join("\n  ")) || ENV["PATH"].split(/:+/).map { |p| "- \"" + p + "\"" }.join("\n  ")}
-  version:
-    min: "#{min_version}"
-    command: "% --version"
-    regex: "([0-9.]+)"
-  YAML
+    kind: Executable
+    try:
+      - llvm-config
+      - llvm-config-*
+    search_paths:
+      #{paths.try(&.map { |p| "- \"" + p + "\"" }.join("\n  ")) || ENV["PATH"].split(/:+/).map { |p| "- \"" + p + "\"" }.join("\n  ")}
+    version:
+      min: "#{min_version}"
+      command: "% --version"
+      regex: "([0-9.]+)"
+    YAML
   llvm_config_find_config = Bindgen::FindPath::PathConfig.from_yaml llvm_config_find_config
 
   path_finder = Bindgen::FindPath.new(__DIR__)
@@ -277,25 +277,25 @@ end
 # Prints help and exits.
 def print_help_and_exit
   STDERR.puts <<-END
-  You're missing the LLVM and/or Clang executables or development libraries.
+    You're missing the LLVM and/or Clang executables or development libraries.
 
-  If you've installed the binaries in a non-standard location:
-    1) Make sure that `llvm-config` or `llvm-config-*` is set with --llvm_config FILE or is in PATH. The first binary found which satisfies version will be used.
-    2) In rare cases if clang++ isn't found or is incorrect, you can also specify it with --clang FILE.
+    If you've installed the binaries in a non-standard location:
+      1) Make sure that `llvm-config` or `llvm-config-*` is set with --llvm_config FILE or is in PATH. The first binary found which satisfies version will be used.
+      2) In rare cases if clang++ isn't found or is incorrect, you can also specify it with --clang FILE.
 
-  Static libraries are used if available, shared ones otherwise.  Set env var
-  BINDGEN_DYNAMIC=1 or BINDGEN_DYNAMIC=0 to force shared or static linking.
+    Static libraries are used if available, shared ones otherwise.  Set env var
+    BINDGEN_DYNAMIC=1 or BINDGEN_DYNAMIC=0 to force shared or static linking.
 
-  Set env var BINDGEN_CLANG_FLAGS to pass extra flags to clang++, for example
-  -stdlib=libc++ to use that C++ standard library instead of the default one.
+    Set env var BINDGEN_CLANG_FLAGS to pass extra flags to clang++, for example
+    -stdlib=libc++ to use that C++ standard library instead of the default one.
 
-  If you are missing the packages, please install them:
-    ArchLinux: pacman -S llvm clang gc libyaml
-    Ubuntu: apt install clang-18 libclang-18-dev llvm-18-dev zlib1g-dev libzstd-dev libgc-dev libpcre2-dev
-    CentOS: yum install crystal libyaml-devel gc-devel pcre2-devel zlib-devel clang-devel
-    openSUSE: zypper install llvm clang libyaml-devel gc-devel pcre2-devel zlib-devel clang-devel ncurses-devel
-    Mac OS: brew install crystal bdw-gc gmp libevent libxml2 libyaml llvm
-  END
+    If you are missing the packages, please install them:
+      ArchLinux: pacman -S llvm clang gc libyaml
+      Ubuntu: apt install clang-18 libclang-18-dev llvm-18-dev zlib1g-dev libzstd-dev libgc-dev libpcre2-dev
+      CentOS: yum install crystal libyaml-devel gc-devel pcre2-devel zlib-devel clang-devel
+      openSUSE: zypper install llvm clang libyaml-devel gc-devel pcre2-devel zlib-devel clang-devel ncurses-devel
+      Mac OS: brew install crystal bdw-gc gmp libevent libxml2 libyaml llvm
+    END
 
   exit 1
 end
@@ -322,7 +322,7 @@ def find_system_include_dirs
   # driver passes these directories to the compiler proper as
   # `-internal-isystem` and `-internal-externc-isystem`, in search order.
   output = log_and_run("#{clang} #{clang_flags} -### -fsyntax-only #{__DIR__}/src/bindgen.cpp 2>&1")
-  unless cc1 = output.lines.reverse.find(&.includes?(%("-cc1")))
+  unless cc1 = output.lines.reverse!.find(&.includes?(%("-cc1")))
     STDERR.puts %(Unexpected output from "#{clang}": Found no compiler invocation.)
     exit 1
   end
@@ -342,7 +342,7 @@ def find_system_include_dirs
 
   dirs
     .map { |path| File.expand_path(path.rchop('/')) }
-    .uniq
+    .uniq!
     .select { |path| File.directory? path }
 end
 

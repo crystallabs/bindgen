@@ -11,7 +11,7 @@ describe "enumeration types functionality" do
 
       context "core functionality" do
         it "supports top-level enums" do
-          Test::TopLevel.names.should eq(%w{A B CC})
+          Test::TopLevel.names.should eq(%w[A B CC])
           Test::TopLevel.values.map(&.to_i).should eq([0, 0, -1])
           enum_type(Test::TopLevel).should eq(Int32)
         end
@@ -22,7 +22,7 @@ describe "enumeration types functionality" do
         end
 
         it "supports enums with explicit types" do
-          Test::U8Enum.names.should eq(%w{D E})
+          Test::U8Enum.names.should eq(%w[D E])
           Test::U8Enum.values.map(&.to_i).should eq([0, 255])
           enum_type(Test::U8Enum).should eq(UInt8)
         end
@@ -31,7 +31,7 @@ describe "enumeration types functionality" do
       context "Qt-specific functionality" do
         it "recognizes `QFlags<T>`" do
           {{ Test::Flags.annotation(Flags) ? true : false }}.should be_true
-          Test::Flags.names.should eq(%w{P Q R})
+          Test::Flags.names.should eq(%w[P Q R])
           Test::Flags.values.map(&.to_i).should eq([1, 4, 12])
           Test::Flags::None.value.should eq(0)
           Test::Flags::All.value.should eq(13)

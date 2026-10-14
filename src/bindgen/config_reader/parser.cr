@@ -231,7 +231,7 @@ module Bindgen
       protected def add_to_mapping(mapping, key, value)
         if value.is_a?(Hash)
           mapping.merge!(value)
-        elsif value.is_a?(Array) && value.all?(&.is_a?(Hash))
+        elsif value.is_a?(Array) && value.all?(Hash)
           value.each do |elem|
             mapping.merge!(elem.as(Hash))
           end

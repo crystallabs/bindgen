@@ -77,8 +77,6 @@ module Bindgen
           else # Special case: This is an Object with a null-pointer.
             "nil"
           end
-        else
-          nil
         end
       end
 
@@ -102,10 +100,10 @@ module Bindgen
       # Builds a `.flags(...)` list if the enum turns out to be a `@[Flags]`.
       def qualified_enum_name(type : Parser::Type, value : Int) : String?
         rules = @db[type]?
-        return nil if rules.nil?
+        return if rules.nil?
 
         enum_node = rules.graph_node.as?(Graph::Enum)
-        return nil if enum_node.nil?
+        return if enum_node.nil?
 
         enumeration = enum_node.origin
 
@@ -161,8 +159,6 @@ module Bindgen
         when "Int64"   then "i64"
         when "Float32" then "f32"
         when "Float64" then "f64"
-        else
-          nil
         end
       end
     end
