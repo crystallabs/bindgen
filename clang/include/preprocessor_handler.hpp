@@ -7,6 +7,9 @@ class PreprocessorHandler : public clang::PPCallbacks {
 public:
 	PreprocessorHandler(Document &doc, clang::Preprocessor &preprocessor);
 
+	// Is a macro regex given?
+	static bool isActive();
+
 	void MacroDefined(const clang::Token &token, const clang::MacroDirective *md) override;
 
 private:

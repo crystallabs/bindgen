@@ -16,6 +16,7 @@ public:
 
 private:
 	Document &m_document;
+	size_t m_firstMacro; // Index of the first macro of this translation unit
 };
 
 #endif // BINDGEN_FRONTEND_ACTION_HPP

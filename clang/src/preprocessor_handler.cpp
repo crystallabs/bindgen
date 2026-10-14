@@ -11,6 +11,10 @@ PreprocessorHandler::PreprocessorHandler(Document &doc, clang::Preprocessor &pre
 {
 }
 
+bool PreprocessorHandler::isActive() {
+	return MacroChecker.empty() == false;
+}
+
 bool PreprocessorHandler::isMacroInteresting(const std::string &name) {
 	return this->m_regex.isMatch(name);
 }

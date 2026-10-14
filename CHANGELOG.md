@@ -119,7 +119,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * The clang tool crashed when a class template was listed in `classes` (#117).
   It now reports an error.
 * The clang tool no longer leaves through `exit()` to avoid a crash in Clang's
-  destructors (#37).  Macros are evaluated in a second parsing pass.
+  destructors (#37).  Macros are evaluated at the end of the same parse, and one
+  with unbalanced brackets no longer breaks evaluating the following ones.
 * Containers without instantiations, and containers in an implementation
   namespace like `std::__1::vector`, broke the container modules.
 * The top-level `CMakeLists.txt` builds the parser and `bin/bindgen` again.
