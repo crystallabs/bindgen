@@ -8,6 +8,7 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 * LLVM and Clang 14 or newer are required.  Tested with 14 to 23.
 * Crystal 1.8 or newer is required.
+* CMake 3.12 or newer is required.
 * `assets/bindgen_helper.hpp` changed.  Projects which copied it into their
   `ext/` directory have to copy it again.
 * The clang tool links against PCRE2 instead of PCRE.
@@ -84,7 +85,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   keeping a build directory per LLVM version.
 * Logging uses Crystal's `Log` directly, the `spoved` dependency is gone.
   The output and the `--debug` and `--trace` flags are unchanged.
-* GitHub Actions workflow, replacing Travis CI.
+* GitHub Actions workflow, replacing Travis CI.  It tests LLVM 14 to 23 on
+  Ubuntu, shared LLVM on Arch Linux, and Homebrew's LLVM on macOS, linked
+  statically and dynamically.
 * Ameba as development dependency with a baseline `.ameba.yml`, run in CI.
   Installing the development dependencies needs Crystal 1.19 or newer.
 
@@ -96,8 +99,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * Pointers to converted types, like `std::string *`, in copied structures
   become `Void*` instead of being rejected.
 * Building and running on macOS with Homebrew: LLVM, PCRE2 and the libraries
-  LLVM depends on are found, the SDK's C headers are searched, and `tool.sh`
-  no longer requires coreutils.
+  LLVM depends on are found, the SDK's C headers are searched, `libxcselect`
+  is linked for newer Clang drivers, and `tool.sh` no longer requires
+  coreutils.
 * Static linking against LLVM 23.
 * Constructors of aggregates, unions and of types with a `from_cpp` converter
   generated C++ code which didn't compile.
