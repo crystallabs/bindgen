@@ -1,4 +1,5 @@
 #include "common.hpp"
+#include "clang/AST/RecordLayout.h"
 #include "record_match_handler.hpp"
 #include "enum_match_handler.hpp"
 #include "type_helper.hpp"
@@ -124,7 +125,15 @@ bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *r
 	klass.byteSize = bitSize / 8;
 
 	for (clang::CXXBaseSpecifier base : record->bases()) {
-		klass.bases.push_back(handleBaseClass(base));
+		BaseClass b = handleBaseClass(base);
+
+		// A base may not be at offset 0, then a pointer to it differs.
+		if (!b.isVirtual && !record->isDependentType() && !record->isInvalidDecl()) {
+			const clang::ASTRecordLayout &layout = record->getASTContext().getASTRecordLayout(record);
+			b.offset = layout.getBaseClassOffset(base.getType()->getAsCXXRecordDecl()).getQuantity();
+		}
+
+		klass.bases.push_back(b);
 	}
 
 	bool isPublic = record->isStruct(); // Default public for structs!

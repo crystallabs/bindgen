@@ -18,7 +18,11 @@ module Bindgen
       # Visibility of the base class.
       getter access = Bindgen::Parser::AccessSpecifier::Public
 
-      def initialize(@name, @access = AccessSpecifier::Public, @virtual = false, @inherited_constructor = false)
+      # Offset of the base in the derived class.  A pointer to the derived
+      # class can only be used as pointer to the base if it's `0`.
+      getter offset = 0
+
+      def initialize(@name, @access = AccessSpecifier::Public, @virtual = false, @inherited_constructor = false, @offset = 0)
       end
 
       delegate public?, protected?, private?, to: @access

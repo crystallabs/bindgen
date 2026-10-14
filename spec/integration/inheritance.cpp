@@ -220,3 +220,15 @@ struct OnlyFilteredVirtuals {
   virtual void take(IgnoredByConfig *) { }
   int value() { return 8; }
 };
+
+// The vtable pointer of `Polymorphic` comes first, so `NonPolymorphic` isn't at
+// offset 0, and can't be the Crystal superclass.
+struct NonPolymorphic {
+  int x = 11;
+  int read() { return x; }
+};
+
+struct Polymorphic : NonPolymorphic {
+  virtual ~Polymorphic() { }
+  virtual int f() { return 1; }
+};

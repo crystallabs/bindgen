@@ -13,6 +13,8 @@ classes:
   Base: Base
   AbstractThing: AbstractThing
   Subclass: Subclass
+  NonPolymorphic: NonPolymorphic
+  Polymorphic: Polymorphic
   Super1: Super1
   Module::Derived1: Module::Derived1
   Module::Super2: Module::Super2

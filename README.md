@@ -425,8 +425,10 @@ through configuration in the `functions:` map.
 * **Run before**: `FilterMethods` and `VirtualOverride`
 
 Implements Crystal wrapper inheritance and adds `#as_X` conversion methods.
-Also handles abstract classes in that it adds an `Impl` class, so code can
-return instances to the (otherwise) abstract class.
+The Crystal superclass is the first wrapped base at offset 0 in the C++ class,
+the other bases are reached through `#as_X`, and their methods are wrapped in
+the derived class too.  Also handles abstract classes in that it adds an `Impl`
+class, so code can return instances to the (otherwise) abstract class.
 
 Adds `#to?(T.class)` casting methods, which also cast down between polymorphic
 classes through a `dynamic_cast`, returning `nil` if the object isn't a `T`:

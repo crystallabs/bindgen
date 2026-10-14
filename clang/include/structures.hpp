@@ -130,6 +130,7 @@ struct BaseClass {
 	bool inheritedConstructor; // Do we inherit a constructor from this class?
 	std::string name; // Name of the class
 	clang::AccessSpecifier access; // Access level
+	int offset = 0; // Offset of the base in the derived class, if not virtual
 };
 
 JsonStream &operator<<(JsonStream &s, clang::AccessSpecifier value);
@@ -199,7 +200,7 @@ struct TypeInfoResult {
 
 // Version of the output format.  Increase it together with
 // `Bindgen::Parser::Document::FORMAT_VERSION` whenever the output changes.
-static const int BG_FORMAT_VERSION = 6;
+static const int BG_FORMAT_VERSION = 7;
 
 struct Document {
 	JsonMap<std::string, Enum> enums;

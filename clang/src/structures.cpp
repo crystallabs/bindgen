@@ -158,7 +158,8 @@ JsonStream &operator<<(JsonStream &s, const BaseClass &value) {
 		<< std::make_pair("name", value.name) << c
 		<< std::make_pair("isVirtual", value.isVirtual) << c
 		<< std::make_pair("inheritedConstructor", value.inheritedConstructor) << c
-		<< std::make_pair("access", value.access)
+		<< std::make_pair("access", value.access) << c
+		<< std::make_pair("offset", value.offset)
 		<< JsonStream::ObjectEnd;
 }
 

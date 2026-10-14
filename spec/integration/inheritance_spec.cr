@@ -39,6 +39,13 @@ describe "single and multiple inheritance feature" do
         Test::Subclass.new.const_overload.should eq(3)
       end
 
+      it "doesn't inherit in Crystal from a base not at offset 0" do
+        subject = Test::Polymorphic.new
+        subject.is_a?(Test::NonPolymorphic).should be_false
+        subject.read.should eq(11)
+        subject.as_non_polymorphic.read.should eq(11)
+      end
+
       it "doesn't wrap private overrides of methods of second base" do
         {{ Test::Subclass.has_method?("privately_overridden") }}.should be_false
         Test::Subclass.new.as_abstract_thing.privately_overridden.should eq(6)

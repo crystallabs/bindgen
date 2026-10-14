@@ -154,3 +154,7 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `QWidget::resizeEvent` for `QLabel`, couldn't be overridden in Crystal.
 * Overrides of virtual methods name their arguments like the overridden method,
   which Crystal warned about.
+* A class inherited in Crystal from its first wrapped base even if that base
+  isn't at offset 0, like a non-polymorphic base of a polymorphic class.  Its
+  methods then got the wrong pointer.  The Crystal superclass is now the first
+  wrapped base at offset 0.

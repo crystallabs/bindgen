@@ -59,19 +59,18 @@ module Bindgen
         klass.abstract = klass.origin.abstract?
 
         # Find all non-private, wrapped bases.
-        bases = klass.origin.bases.reject { |b| b.private? || b.virtual? }
-        wrapped = wrapped_classes(bases)
+        superclass, others = split_bases(klass.origin)
 
-        unless wrapped.empty?
-          # We inherit the first wrapped base-class in Crystal.
-          klass.base_class = Graph::Path.local(from: klass, to: wrapped.first).to_s
-
-          # For all other base-classes, we provide `#as_X` methods.
-          if wrapped.size > 1
-            add_conversion_methods(klass, wrapped[1..-1])
+        if superclass || others.present?
+          # We inherit one wrapped base-class in Crystal.
+          if superclass
+            klass.base_class = Graph::Path.local(from: klass, to: superclass).to_s
           end
 
-          copy_base_methods(klass, wrapped)
+          # For all other base-classes, we provide `#as_X` methods.
+          add_conversion_methods(klass, others)
+
+          copy_base_methods(klass, superclass, others)
 
           # Unify the argument types for all virtual methods
           unify_virtual_methods(klass)
@@ -88,8 +87,8 @@ module Bindgen
       # and allows us to generate a proper abstract `Impl` class.  Also copies
       # the non-virtual methods of all but the first base, as these are not
       # inherited in Crystal.
-      private def copy_base_methods(klass : Graph::Class, wrapped)
-        additional_methods = base_methods(klass.origin, wrapped)
+      private def copy_base_methods(klass : Graph::Class, superclass, others)
+        additional_methods = base_methods(klass.origin, superclass, others)
 
         # An `Impl` class already has the pure methods, see `#add_abstract_impl_class`
         existing = klass.nodes.compact_map(&.as?(Graph::Method).try(&.origin))
@@ -108,27 +107,30 @@ module Bindgen
         end
       end
 
-      # Finds all virtual methods in the *wrapped* bases of *klass*, which are
-      # not implemented in *klass*, and all non-virtual methods of the other
-      # bases not hidden by *klass*.  Methods of the other bases are moved into
+      # Finds all virtual methods in the wrapped bases of *klass*, which are
+      # not implemented in *klass*, and all non-virtual methods of the *others*
+      # bases not hidden by *klass*.  Methods of the *others* are moved into
       # *klass*, so their wrappers get the `this` pointer adjusted by C++.
-      private def base_methods(klass, wrapped) : Array(Parser::Method)
+      private def base_methods(klass, superclass, others) : Array(Parser::Method)
         # Private overrides count too: C++ can't call those through *klass*.
         known_virtuals = klass.methods.select(&.virtual?)
 
-        list = wrapped.each_with_index.flat_map do |base, index|
+        bases = others.map { |base| {base, true} }
+        bases.unshift({superclass, false}) if superclass
+
+        list = bases.flat_map do |base, moved|
           candidates = base.origin.wrappable_methods + ancestor_virtuals(base.origin)
           methods = candidates.select do |method|
             if method.virtual?
               known_virtuals.none? { |known| known.equals_virtually?(method) }
             else
-              index > 0 && method.member_method? &&
+              moved && method.member_method? &&
                 klass.methods.none? { |m| m.name == method.name }
             end
           end
 
-          index > 0 ? methods.map { |m| move_method(m, klass.name) } : methods
-        end.to_a
+          moved ? methods.map { |m| move_method(m, klass.name) } : methods
+        end
 
         # Like `Parser::Class#wrap_methods`, wrap const-overloads only once.
         Util.uniq_by(list) { |a, b| a.equals_except_const?(b) || a.equals_virtually?(b) }
@@ -139,8 +141,7 @@ module Bindgen
       # those declared further up too.  The other bases' methods are moved into
       # the class which has them as direct base, see `#base_methods`.
       private def ancestor_virtuals(klass : Parser::Class) : Array(Parser::Method)
-        bases = klass.bases.reject { |b| b.private? || b.virtual? }
-        return [] of Parser::Method unless base = wrapped_classes(bases).first?
+        return [] of Parser::Method unless base = split_bases(klass)[0]
 
         base.origin.wrappable_methods.select(&.virtual?) + ancestor_virtuals(base.origin)
       end
@@ -206,8 +207,19 @@ module Bindgen
 
       # The wrapped base class *klass* inherits from in Crystal.
       private def crystal_superclass(klass) : Graph::Class?
-        bases = klass.origin.bases.reject { |b| b.private? || b.virtual? }
-        wrapped_classes(bases).first?
+        split_bases(klass.origin)[0]
+      end
+
+      # Splits the non-private, non-virtual wrapped bases of *klass* into the
+      # one it inherits from in Crystal, if any, and the others.  A pointer to
+      # *klass* is passed unchanged to the methods of its Crystal superclass, so
+      # that one must be at offset 0: The first such wrapped base.
+      private def split_bases(klass : Parser::Class) : {Graph::Class?, Array(Graph::Class)}
+        bases = klass.bases.reject { |b| b.private? || b.virtual? }
+        primary = bases.find { |b| b.offset == 0 && wrapped_classes([b]).present? }
+
+        superclass = primary.try { |b| wrapped_classes([b]).first? }
+        {superclass, wrapped_classes(bases.reject(&.same?(primary)))}
       end
 
       private def wrapper_generated?(klass)
@@ -412,11 +424,7 @@ module Bindgen
         klass.origin.wrappable_methods.select(&.virtual?).each do |method|
           # Find the same virtual method in some parent class
           current = klass
-          while base = current.origin
-                  .bases
-                  .reject(&.private?)
-                  .reject(&.virtual?)
-                  .compact_map { |b| @db[b.name]?.try(&.graph_node).as?(Graph::Class) }.first?
+          while base = split_bases(current.origin)[0]
             # Search more equivalent method in base class
             if base_method = base.origin.wrappable_methods
                  .each

@@ -83,6 +83,20 @@ describe "clang tool classes feature" do
     )
   end
 
+  it "exports the offsets of base classes" do
+    clang_tool(
+      %[
+        struct A { int a; };
+        struct B { int b; };
+        struct C : A, B { virtual void f(); };
+      ],
+      "-c C",
+      classes: {
+        C: {bases: [{name: "A", offset: 8}, {name: "B", offset: 12}]},
+      },
+    )
+  end
+
   it "exports if a class is final" do
     clang_tool(
       %[
