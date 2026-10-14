@@ -3,7 +3,7 @@ module Bindgen
     # Functionality to get typenames of a `Parser::Type` in Crystal wrapper and
     # binding code.
     struct Typename
-      spoved_logger
+      Log = ::Log.for(self)
 
       def initialize(@db : TypeDatabase)
       end
@@ -68,7 +68,7 @@ module Bindgen
         rules = @db[type]?
 
         if rules.nil?
-          logger.trace { "no rules found for: #{type.full_name}" }
+          Log.trace { "no rules found for: #{type.full_name}" }
           return {type.base_name, !type.builtin?}
         end
 

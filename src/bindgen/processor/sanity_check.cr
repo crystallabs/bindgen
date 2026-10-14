@@ -74,7 +74,7 @@ module Bindgen
         # end
         # STDERR.puts "Found #{@errors.size} errors.  Aborting.".colorize.mode(:bold)
 
-        logger.error { "Found #{@errors.size} errors.  Aborting." }
+        Log.error { "Found #{@errors.size} errors.  Aborting." }
 
         raise Tool::ExitError.new
       end
@@ -109,7 +109,7 @@ module Bindgen
         # 1. Check for existence of any constant
         if e.values.empty?
           err = "Enum #{e.name} doesn't have any constants"
-          logger.error { err }
+          Log.error { err }
           add_error(enumeration, err)
         end
 
@@ -187,7 +187,7 @@ module Bindgen
         call.arguments.each_with_index do |arg, idx|
           unless type_reachable?(arg, namespace)
             err = "Argument #{idx + 1} has unreachable type #{arg.type_name}"
-            logger.error { err }
+            Log.error { err }
             add_error(method, err)
           end
         end
@@ -195,14 +195,14 @@ module Bindgen
         unless method.origin.any_constructor?
           unless type_reachable?(call.result, namespace)
             err = "Result type #{call.result.type_name} is unreachable"
-            logger.error { err }
+            Log.error { err }
             add_error(method, err)
           end
         end
 
         if method.origin.variadic? && method.tag?(Graph::Method::EXPLICIT_BIND_TAG).nil?
           err = "Variadic function must be directly bound"
-          logger.error { err }
+          Log.error { err }
           add_error(method, err)
         end
       end
@@ -253,7 +253,7 @@ module Bindgen
       private def check_valid_camel_case_name!(node)
         unless CAMEL_CASE_RX.match(node.name)
           err = "Invalid #{node.kind_name.downcase} camel case name #{node.name.inspect}"
-          logger.error { err }
+          Log.error { err }
           add_error(node, err)
         end
       end
@@ -269,7 +269,7 @@ module Bindgen
       private def check_valid_constant_name!(node)
         unless CONSTANT_RX.match(node.name)
           err = "Invalid #{node.kind_name.downcase} constant name #{node.name.inspect}"
-          logger.error { err }
+          Log.error { err }
           add_error(node, err)
         end
       end
@@ -278,18 +278,18 @@ module Bindgen
       private def check_method_name!(node)
         return if node.name.empty? # Accept initializers
 
-        logger.trace { "checking method name: #{node.origin.crystal_name} for #{node.name.inspect}" }
+        Log.trace { "checking method name: #{node.origin.crystal_name} for #{node.name.inspect}" }
 
         if node.origin.type.operator?
           unless Regex.union(OPERATOR_METHOD_NAME_RX, METHOD_NAME_RX).match(node.origin.crystal_name)
             err = "Invalid operator method name #{node.origin.crystal_name} for #{node.name.inspect}"
-            logger.error { err }
+            Log.error { err }
             add_error(node, err)
           end
         else
           unless METHOD_NAME_RX.match(node.origin.crystal_name)
             err = "Invalid method name #{node.origin.crystal_name} for #{node.name.inspect}"
-            logger.error { err }
+            Log.error { err }
             add_error(node, err)
           end
         end

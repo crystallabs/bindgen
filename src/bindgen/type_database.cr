@@ -2,7 +2,7 @@ module Bindgen
   # Database of type mapping data for wrapper-code generation.  Configuration
   # for common (and built-in) C/C++ types is automatically loaded and added.
   class TypeDatabase
-    spoved_logger
+    Log = ::Log.for(self)
 
     # Describes different styles of argument passing.
     enum PassBy
@@ -237,7 +237,7 @@ module Bindgen
     getter cookbook : Cpp::Cookbook
 
     def initialize(config : Configuration, cookbook : String | Cpp::Cookbook, with_builtins = true)
-      logger.info { "creating new database" }
+      Log.info { "creating new database" }
 
       if with_builtins
         builtins = self.class.load_builtins
@@ -317,7 +317,7 @@ module Bindgen
     #
     # Also see `#get_or_add` to add rules from processors.
     def add(name : String, rules : TypeConfig)
-      logger.trace &.emit "adding alias", name: name
+      Log.trace &.emit "adding alias", name: name
 
       raise "#{name} is already an alias" if @aliases.has_key?(name)
       @types[name] = rules
@@ -403,7 +403,7 @@ module Bindgen
     # Adds a type configuration to the type database.  If a configuration for
     # this type was set by the user, it's updated - *not* replaced!
     def add_sparse_type(cpp_name : String, crystal_name : String?, kind)
-      logger.trace &.emit "adding sparse type", cpp_name: cpp_name, crystal_name: crystal_name
+      Log.trace &.emit "adding sparse type", cpp_name: cpp_name, crystal_name: crystal_name
 
       config = @types[cpp_name]?
       new_config = config.nil?

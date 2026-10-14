@@ -4,7 +4,7 @@ module Bindgen
     #
     # This is a helper struct: Cheap to create and to pass around.
     struct Pass
-      spoved_logger
+      Log = ::Log.for(self)
 
       include TypeHelper
 
@@ -37,7 +37,7 @@ module Bindgen
           result = to_wrapper(arg)
           name = argument.name(arg, idx)
 
-          logger.trace { "arg to wrapper name: #{name}" }
+          Log.trace { "arg to wrapper name: #{name}" }
           if result.is_a?(Call::ProcResult)
             # Treat as block if it's the last argument.
             result.to_argument(name, block: is_last)
@@ -53,13 +53,13 @@ module Bindgen
       # be wrapped in a call to `to_unsafe` - Except if a user-defined
       # conversion is set.
       def to_binding(type : Parser::Type, to_unsafe = false, qualified = false) : Call::Result
-        logger.trace &.emit "convert to binding", type: type.full_name, to_unsafe: to_unsafe, qualified: qualified
+        Log.trace &.emit "convert to binding", type: type.full_name, to_unsafe: to_unsafe, qualified: qualified
 
         to(type) do |is_ref, ptr, _nilable|
           typer = Typename.new(@db)
           type_name, in_lib = typer.binding(type)
 
-          logger.trace &.emit("binding type_name",
+          Log.trace &.emit("binding type_name",
             type: type.full_name,
             type_name: type_name,
             in_lib: in_lib,
@@ -68,7 +68,7 @@ module Bindgen
 
           if qualified
             type_name = typer.qualified(type_name, in_lib) if qualified
-            logger.trace &.emit("qualified type_name",
+            Log.trace &.emit("qualified type_name",
               type: type.full_name,
               type_name: type_name
             )
@@ -94,7 +94,7 @@ module Bindgen
           ptr += 1 if is_ref # Translate reference to pointer
           is_ref = false
 
-          logger.trace &.emit("determined type_name",
+          Log.trace &.emit("determined type_name",
             type: type.full_name,
             type_name: type_name
           )
@@ -177,7 +177,7 @@ module Bindgen
       # If *qualified* is `true`, the type is assumed to be used outside the
       # `lib Binding`, and will be qualified if required.
       def from_binding(type : Parser::Type, qualified = false, is_constructor = false, no_slice = false) : Call::Result
-        logger.trace &.emit "from binding", type: type.base_name, qualified: qualified, is_constructor: is_constructor
+        Log.trace &.emit "from binding", type: type.base_name, qualified: qualified, is_constructor: is_constructor
 
         from(type, no_slice: no_slice) do |is_ref, ptr, _nilable|
           typer = Typename.new(@db)
@@ -188,7 +188,7 @@ module Bindgen
             type_name, _ = typer.binding(type)
           end
 
-          logger.trace { "type_name: #{type_name}" }
+          Log.trace { "type_name: #{type_name}" }
           template = Template::None.new
 
           if type.c_array? && !no_slice
@@ -213,7 +213,7 @@ module Bindgen
 
       # Computes a result for passing *type* from the wrapper to the user.
       def from_wrapper(type : Parser::Type, is_constructor = false, no_slice = false) : Call::Result
-        logger.trace &.emit "from wrapper", type: type.base_name, is_constructor: is_constructor
+        Log.trace &.emit "from wrapper", type: type.base_name, is_constructor: is_constructor
 
         from(type, no_slice: no_slice) do |is_ref, ptr, nilable|
           typer = Typename.new(@db)

@@ -3,7 +3,7 @@ module Bindgen
     # Builder for calls made from Crystal to C++.  This is used for common
     # bindings of normal methods.
     class CrystalBinding
-      spoved_logger
+      Log = ::Log.for(self)
 
       def initialize(@db : TypeDatabase)
       end
@@ -17,12 +17,12 @@ module Bindgen
         method : Parser::Method, klass_type : Parser::Type?, body = FunBody,
         explicit_binding : String? = nil, myself_type : Parser::Type? = nil,
       ) : Call
-        logger.trace { "build for method #{method.name}" }
+        Log.trace { "build for method #{method.name}" }
 
         pass = Crystal::Pass.new(@db)
         argument = Crystal::Argument.new(@db)
 
-        logger.trace &.emit "converting arguments to binding", method: method.name, arguments: method.arguments.map &.base_name
+        Log.trace &.emit "converting arguments to binding", method: method.name, arguments: method.arguments.map &.base_name
         arguments = pass.arguments_to_binding(method.arguments)
 
         # Add self argument if required

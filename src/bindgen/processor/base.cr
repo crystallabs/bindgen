@@ -13,7 +13,7 @@ module Bindgen
     # for an example of this.
     abstract class Base
       macro inherited
-        spoved_logger
+        Log = ::Log.for(self)
       end
 
       include Graph::Visitor

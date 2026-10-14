@@ -11,9 +11,6 @@ dependencies:
   toka:
     github: Papierkorb/toka
     commit: b2044c8410bd82a905db75f1ab23e895760544c7
-  spoved:
-    github: spoved/spoved.cr
-    version: ">= 0.5.5"
 targets:
   bindgen:
     main: src/bindgen.cr

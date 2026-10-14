@@ -2,7 +2,7 @@ module Bindgen
   module Parser
     # Describes a method as found by the clang tool.
     class Method
-      spoved_logger
+      Log = ::Log.for(self)
 
       include JSON::Serializable
 
@@ -498,7 +498,7 @@ module Bindgen
       # Converts *name* to an operator method in Crystal wrappers.
       private def to_crystal_operator_name(name)
         return "call" if name == "operator()"
-        logger.trace { "generating crystal operator name for: #{name}" }
+        Log.trace { "generating crystal operator name for: #{name}" }
         case @arguments.size
         when 0
           to_crystal_unary_operator_name(name)

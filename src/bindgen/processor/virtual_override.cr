@@ -22,7 +22,7 @@ module Bindgen
       end
 
       def process(graph : Graph::Container, doc : Parser::Document)
-        logger.trace { "process #{graph.diagnostics_path}" }
+        Log.trace { "process #{graph.diagnostics_path}" }
 
         @binding = graph.by_name(Graph::LIB_BINDING).as(Graph::Library)
         @all_classes = doc.classes
@@ -32,7 +32,7 @@ module Bindgen
       def visit_class(klass : Graph::Class)
         return if klass.wrapped_class # Don't change `Impl` classes.
 
-        logger.trace { "visting class #{klass.diagnostics_path}" }
+        Log.trace { "visting class #{klass.diagnostics_path}" }
 
         if subclass?(klass.origin) && @db.try_or(klass.origin.name, true, &.sub_class?)
           superclass = create_superclass(klass)

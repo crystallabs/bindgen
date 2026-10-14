@@ -13,7 +13,7 @@ module Bindgen
 
       def visit_class(klass)
         return unless @db.try_or(klass.origin.name, true, &.generate_wrapper?)
-        logger.trace { "visiting class #{klass.diagnostics_path}" }
+        Log.trace { "visiting class #{klass.diagnostics_path}" }
 
         # The parent class already has the `@unwrap`
         if klass.base_class.nil? || klass.tag?(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
@@ -27,7 +27,7 @@ module Bindgen
       end
 
       private def add_unwrap_variable(klass) : Call::Result
-        logger.trace { "add_unwrap_variable #{klass.diagnostics_path}" }
+        Log.trace { "add_unwrap_variable #{klass.diagnostics_path}" }
 
         typer = Crystal::Typename.new(@db)
 
@@ -48,7 +48,7 @@ module Bindgen
       end
 
       private def add_to_unsafe_method(klass, unwrap)
-        logger.trace { "add_to_unsafe_method #{klass.diagnostics_path}" }
+        Log.trace { "add_to_unsafe_method #{klass.diagnostics_path}" }
 
         to_unsafe = CallBuilder::CrystalToUnsafe.new(@db)
         isstruct = @db.try_or(klass.origin.name, false, &.kind.struct?)
@@ -58,13 +58,13 @@ module Bindgen
 
         graph = Graph::Method.new(origin: call.origin, name: call.name, parent: host)
 
-        logger.trace &.emit "add to unsafe method", diagnostics_path: graph.diagnostics_path, origin: call.origin.name, name: call.name
+        Log.trace &.emit "add to unsafe method", diagnostics_path: graph.diagnostics_path, origin: call.origin.name, name: call.name
 
         graph.calls[PLATFORM] = call
       end
 
       private def add_unwrap_initialize(klass)
-        logger.trace { "add_unwrap_initialize #{klass.diagnostics_path}" }
+        Log.trace { "add_unwrap_initialize #{klass.diagnostics_path}" }
 
         unwrap_init = CallBuilder::CrystalUnwrapInitialize.new(@db)
         origin = klass.origin
@@ -84,7 +84,7 @@ module Bindgen
           arguments: [unwrap_arg],
         )
 
-        logger.trace &.emit "add unwrap_initialize", class_name: klass.name, crystal_name: method.crystal_name
+        Log.trace &.emit "add unwrap_initialize", class_name: klass.name, crystal_name: method.crystal_name
 
         host = klass.platform_specific(PLATFORM)
         graph = Graph::Method.new(origin: method, name: method.name, parent: host)
@@ -95,7 +95,7 @@ module Bindgen
       def visit_method(method)
         return if method.calls[PLATFORM]?
 
-        logger.trace { "visiting method #{method.diagnostics_path}" }
+        Log.trace { "visiting method #{method.diagnostics_path}" }
 
         if method.origin.pure?
           call = build_abstract_call(method)
@@ -107,7 +107,7 @@ module Bindgen
       end
 
       def build_method_call(method)
-        logger.trace { "build method call for #{method.diagnostics_path}" }
+        Log.trace { "build method call for #{method.diagnostics_path}" }
 
         klass_type = nil
         if (klass = method.parent).is_a?(Graph::Class)
@@ -122,7 +122,7 @@ module Bindgen
       end
 
       def build_abstract_call(method)
-        logger.trace { "build abstract call for #{method.diagnostics_path}" }
+        Log.trace { "build abstract call for #{method.diagnostics_path}" }
 
         builder = CallBuilder::CrystalAbstractDef.new(@db)
         builder.build(method.origin)

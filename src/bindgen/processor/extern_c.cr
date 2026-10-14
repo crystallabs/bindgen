@@ -26,7 +26,7 @@ module Bindgen
       def visit_method(method)
         return unless method.origin.extern_c? # Rule 1
 
-        logger.trace { "visiting method #{method.diagnostics_path}" }
+        Log.trace { "visiting method #{method.diagnostics_path}" }
 
         return if method.tag?(Graph::Method::EXPLICIT_BIND_TAG)  # Rule 5
         unless method.tag?(Graph::Method::REMOVABLE_BINDING_TAG) # Rule 4
@@ -43,7 +43,7 @@ module Bindgen
         return if !pass.to_crystal(method.origin.return_type).conversion.no_op? # Rule 3
         return if any_arg_uses_conversion                                       # Rule 2
 
-        logger.trace { "binding method directly #{method.diagnostics_path}" }
+        Log.trace { "binding method directly #{method.diagnostics_path}" }
 
         # If we end up here, the method can be bound to directly.
         method.set_tag(Graph::Method::EXPLICIT_BIND_TAG, method.origin.name)

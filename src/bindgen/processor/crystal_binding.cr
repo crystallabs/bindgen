@@ -54,7 +54,7 @@ module Bindgen
       def visit_class(klass)
         return unless @db.try_or(klass.origin.name, true, &.generate_binding?)
 
-        logger.trace { "visiting class #{klass.diagnostics_path}" }
+        Log.trace { "visiting class #{klass.diagnostics_path}" }
 
         # We want a Void alias for *all* classes.
         pass = Crystal::Pass.new(@db)
@@ -64,7 +64,7 @@ module Bindgen
       end
 
       def visit_method(method)
-        logger.trace { "visiting method #{method.diagnostics_path}" }
+        Log.trace { "visiting method #{method.diagnostics_path}" }
 
         # Allow previous processors to supply custom calls instead.
         call = method.calls[PLATFORM]?
@@ -81,7 +81,7 @@ module Bindgen
           origin: method.origin,
         )
 
-        logger.trace &.emit "adding binding method", method: method.diagnostics_path, binding: binding_method.diagnostics_path
+        Log.trace &.emit "adding binding method", method: method.diagnostics_path, binding: binding_method.diagnostics_path
 
         binding_method.calls[PLATFORM] = call
         binding_method.tags.merge!(method.tags)
@@ -91,7 +91,7 @@ module Bindgen
 
       # Creates a `fun` `Call` of *method* to automatically bind to C++ methods.
       private def add_and_get_call(method)
-        logger.trace { "create fun call for method #{method.diagnostics_path}" }
+        Log.trace { "create fun call for method #{method.diagnostics_path}" }
 
         if klass = method.parent_class
           klass_type = klass.origin.as_type
@@ -108,7 +108,7 @@ module Bindgen
 
       # Makes sure all types in *call* are have an alias to `Void`.
       private def add_type_aliases(call)
-        logger.trace &.emit "add type aliases for call", name: call.name, origin: call.origin.class_name
+        Log.trace &.emit "add type aliases for call", name: call.name, origin: call.origin.class_name
 
         add_type_alias call.result
         call.arguments.each { |arg| add_type_alias(arg) }
@@ -116,7 +116,7 @@ module Bindgen
 
       # Adds an `alias` for *expr* into the known aliases list.
       private def add_type_alias(expr : Call::Expression)
-        logger.trace &.emit "add type alias", type_name: expr.type_name, base_name: expr.type.base_name, full_name: expr.type.full_name
+        Log.trace &.emit "add type alias", type_name: expr.type_name, base_name: expr.type.base_name, full_name: expr.type.full_name
 
         type = expr.type
 
@@ -147,7 +147,7 @@ module Bindgen
 
       # Method to recursivly search for existing aliases
       private def check_sub_nodes(type_name : String, node : Bindgen::Graph::Container)
-        logger.trace &.emit "check subnodes", type_name: type_name, node: node.diagnostics_path
+        Log.trace &.emit "check subnodes", type_name: type_name, node: node.diagnostics_path
 
         node.nodes.each do |sub_node|
           if sub_node.is_a?(Bindgen::Graph::Alias)

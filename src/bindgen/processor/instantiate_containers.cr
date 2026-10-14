@@ -61,7 +61,7 @@ module Bindgen
       # Instantiates the *container* (Of any type), placing the built classes
       # into *root*.
       private def instantiate_container(container, root)
-        logger.trace { "instantiate container #{container.class}" }
+        Log.trace { "instantiate container #{container.class}" }
 
         case container.type
         when .sequential?

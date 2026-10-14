@@ -47,13 +47,36 @@ elsif opts.positional_options.size > 1
   exit 1
 end
 
-if opts.trace
-  spoved_logger :trace, bind: true, clear: true, dispatcher: :sync
-elsif opts.debug
-  spoved_logger :debug, bind: true, clear: true, dispatcher: :sync
-else
-  spoved_logger :error, bind: true, clear: true, dispatcher: :sync
+# Log to standard output, one colored line per entry.
+Log.define_formatter LogFormat,
+  "#{timestamp} #{severity} - #{source(after: ": ")}#{message}" \
+  "#{data(before: " -- ")}#{context(before: " -- ")}#{exception}"
+
+LOG_COLORS = {
+  Log::Severity::Trace  => :cyan,
+  Log::Severity::Debug  => :blue,
+  Log::Severity::Info   => :green,
+  Log::Severity::Notice => :magenta,
+  Log::Severity::Warn   => :yellow,
+  Log::Severity::Error  => :light_red,
+  Log::Severity::Fatal  => :red,
+}
+
+log_level = if opts.trace
+              Log::Severity::Trace
+            elsif opts.debug
+              Log::Severity::Debug
+            else
+              Log::Severity::Error
+            end
+
+log_formatter = Log::Formatter.new do |entry, io|
+  Colorize.with.colorize(LOG_COLORS[entry.severity]? || :default).surround(io) do
+    LogFormat.format(entry, io)
+  end
 end
+
+Log.setup(log_level, Log::IOBackend.new(STDOUT, formatter: log_formatter, dispatcher: :sync))
 
 # Merge additional --var's
 Bindgen::Variables.builtin.merge!(opts.var)

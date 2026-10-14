@@ -1,9 +1,9 @@
 module Bindgen
-  spoved_logger
+  Log = ::Log.for(self)
 
   # Front-end tool class
   class Tool
-    spoved_logger
+    Log = ::Log.for(self)
 
     # Dummy error that can be thrown by a class to exit out of the tool.
     class ExitError < Exception
@@ -22,7 +22,7 @@ module Bindgen
     getter root_path : String
 
     def initialize(@root_path : String, @config : Configuration, @show_stats = false)
-      logger.info &.emit "new bindgen tool", root_path: @root_path, show_stats: @show_stats
+      Log.info &.emit "new bindgen tool", root_path: @root_path, show_stats: @show_stats
 
       @database = TypeDatabase.new(@config.types, @config.cookbook)
 
@@ -45,13 +45,13 @@ module Bindgen
     def run! : Int32
       stats = run_steps
       print_stats(stats) if @show_stats
-      logger.info { "success!" }
+      Log.info { "success!" }
       0 # Success!
     rescue err : ExitError
-      logger.error(exception: err) { err.message }
+      Log.error(exception: err) { err.message }
       err.code # Failure
     rescue ex
-      logger.error(exception: ex) { ex.message }
+      Log.error(exception: ex) { ex.message }
       1
     end
 
@@ -67,21 +67,21 @@ module Bindgen
     private def run_steps : Statistics
       stats = Statistics.new
 
-      logger.info { "find paths" }
+      Log.info { "find paths" }
       if path_config = @config.find_paths
         stats.measure("Find paths") { find_paths(path_config) }
       end
 
-      logger.info { "Parse C++" }
+      Log.info { "Parse C++" }
       document = stats.measure("Parse C++") { parse_cpp_sources }
 
-      logger.info { "Build graph" }
+      Log.info { "Build graph" }
       graph = stats.measure("Build graph") { build_graph(document) }
 
-      logger.info { "Processors" }
+      Log.info { "Processors" }
       stats.measure("Processors") { @processors.process(graph, document) }
 
-      logger.info { "Generators" }
+      Log.info { "Generators" }
       stats.measure("Generators") { @generators.process(graph) }
 
       stats.finish!

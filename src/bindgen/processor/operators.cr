@@ -6,12 +6,10 @@ module Bindgen
     # 1. Removing the integer arguments of overloaded post-increment and
     #    post-decrement operators.
     class Operators < Base
-      spoved_logger
-
       include Graph::Visitor::MayDelete
 
       def visit_method(method : Graph::Method)
-        logger.trace { "visiting method #{method.diagnostics_path} : #{method.origin.operator?}" }
+        Log.trace { "visiting method #{method.diagnostics_path} : #{method.origin.operator?}" }
 
         if fixed = method.origin.fix_post_succ_or_pred?
           new_node = Graph::Method.new(
@@ -20,7 +18,7 @@ module Bindgen
             parent: method.parent,
           )
 
-          logger.warn { "replacing method #{method.diagnostics_path} origin with #{fixed.binding_method_name}" }
+          Log.warn { "replacing method #{method.diagnostics_path} origin with #{fixed.binding_method_name}" }
 
           replace_node(method, with: new_node)
         end

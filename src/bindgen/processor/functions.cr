@@ -5,7 +5,7 @@ module Bindgen
       include Util::FindMatching(Parser::Method)
 
       def process(graph : Graph::Node, doc : Parser::Document)
-        logger.trace { "process node #{graph.diagnostics_path}" }
+        Log.trace { "process node #{graph.diagnostics_path}" }
 
         @config.functions.each do |regex, config|
           next if config.wrapper # Leave C-class functions alone
@@ -29,7 +29,7 @@ module Bindgen
       private def add_function(parent, config, method, match)
         sub_path, name = function_path_and_name(parent, config.name, match)
 
-        logger.trace &.emit "add function", name: name, sub_path: sub_path.to_s
+        Log.trace &.emit "add function", name: name, sub_path: sub_path.to_s
 
         if sub_path
           builder = Graph::Builder.new(@db)
