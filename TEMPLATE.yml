@@ -1,4 +1,6 @@
 # Configuration template - Base your bindgen configuration on this!
+#
+# Every key is described in `CONFIGURATION.md`.
 
 # A note on templates: Some values are "templated".  This means they're of type
 # `String`.  All occurences of the percent-sign ("%") will be replaced by a
@@ -31,7 +33,7 @@ cookbook: boehmgc-cpp # Default!
 library: "%/ext/binding.a -lgccpp"
 
 # Processors pipeline.  See `README.md` for details on each.
-# Defaults to the following:
+# Defaults to the following, without `block_overloads`:
 processors:
   # Graph-refining processors:
   - default_constructor # Create default constructors where possible
@@ -63,15 +65,10 @@ generators:
     # Output file preamble  (Optional)
     preamble: |-
       #include "bindgen_helper.hpp"
-    # Command to run after the generator.  (Optional!)
-    # Will be executed as-written in the output directory.
-    # If the command signals failure, bindgen will halt too.
-    build: make
-    # Small-ish bindings may get away without a custom Makefile:
-    # build: "{CXX|c++} -std=c++11 -c -o binding.o -lMyLib my_bindings.cpp"
-    # Do you have complex dependencies?  Use a conditional!
-    # if_os_is_windows: # Read the `YAML configuration` section in README.md
-    #   build: mingw-make
+    # Command to build the output.  (Optional!)
+    # NOTE: Not run by the current version of bindgen.  Build the generated
+    # C++ code yourself, e.g. with a Makefile.
+    # build: make
   # Crystal generator.  Configuration style is exactly the same.
   crystal:
     # You'll most likely only need the `output` option.
@@ -145,9 +142,6 @@ find_paths:
         # This is optional:  If not given, the first line of output from the
         # program is taken as-is, and tried as path.
         regex: "^INCLUDE_DIR=([^ ]+)"
-        # By default, the `regex` is matched once.  To match multiple times,
-        # set this to `true`.  Also see the `list` option above!
-        multiple: true | false
 
     # Optional: Search paths for relative try paths.  Most useful to find
     # executables.  Entries are split on semi-colons (`;`) on Windows and
@@ -256,6 +250,10 @@ enums:
     # enum, if it's used in a `QFlags<E>` template.
     # Defaults to being unset.
     flags: true | false | unset
+    # Camel-case the constant names which aren't already: `COLOR_RED` turns
+    # into `ColorRed`.  If `false`, they're only capitalized.
+    # Defaults to `true`.
+    camelcase: true | false
 
 # Map of macros (`#define`s) to copy.  Requires the `macros` processor.
 macros:
