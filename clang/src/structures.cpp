@@ -227,6 +227,7 @@ JsonStream &operator<<(JsonStream &s, const Class &value) {
 		<< JsonStream::ObjectBegin
 		<< std::make_pair("name", value.name) << c
 		<< std::make_pair("byteSize", value.byteSize) << c
+		<< std::make_pair("packAlignment", value.packAlignment) << c
 		<< std::make_pair("typeKind", value.typeKind) << c
 		<< std::make_pair("isAbstract", value.isAbstract) << c
 		<< std::make_pair("isFinal", value.isFinal) << c

@@ -19,6 +19,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Fixed
 
+* A copied structure packed by `__attribute__((packed))` or `#pragma pack(1)`
+  becomes a `@[Packed]` `lib struct`.  It was laid out unpacked, with the wrong
+  member offsets.  Other packing which moves a member, like `#pragma pack(2)`
+  or a packed union, is refused.
 * `TEMPLATE.yml` documents the `camelcase:` option of `enums:`, no longer
   documents the non-existent `multiple:` option of `find_paths:` shell tries,
   says that `block_overloads` isn't in the default `processors:`, and that

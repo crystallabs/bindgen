@@ -64,6 +64,12 @@ module Bindgen
       @[JSON::Field(key: "byteSize")]
       getter byte_size : Int32
 
+      # The alignment limit in bytes of packing that moves a member: 1 for
+      # `__attribute__((packed))`, or N for `#pragma pack(N)`.  0 if the class
+      # isn't packed, or the packing doesn't change its layout.
+      @[JSON::Field(key: "packAlignment")]
+      getter pack_alignment : Int32 = 0
+
       # Direct bases of the class.
       getter bases : Array(BaseClass)
 
@@ -77,7 +83,7 @@ module Bindgen
       getter doc : String?
 
       def initialize(
-        @name, @byte_size = 0, @has_default_constructor = false,
+        @name, @byte_size = 0, @pack_alignment = 0, @has_default_constructor = false,
         @has_copy_constructor = false, @has_user_declared_constructor = false,
         @type_kind = TypeKind::Class,
         @abstract = false, @final = false, @polymorphic = false, @trivially_copyable = true,
@@ -88,6 +94,11 @@ module Bindgen
       end
 
       delegate public?, protected?, private?, to: @access
+
+      # Are the members of this class packed without alignment?
+      def packed? : Bool
+        @pack_alignment == 1
+      end
 
       # Is this a `class`, `struct`, or C `union`?
       delegate class?, struct?, cpp_union?, to: @type_kind

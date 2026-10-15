@@ -22,6 +22,9 @@ module Bindgen
       # Bit-fields of a `lib struct`, which get getter and setter methods.
       getter bit_fields = [] of BitField
 
+      # Are the fields packed without alignment, as in a `@[Packed]` struct?
+      getter? packed : Bool
+
       # A bit-field of a `lib struct` or `lib union`.  It is stored in the integer member
       # *storage* of type *storage_type*, which is *unit_bits* wide, at the bit
       # *shift* counted from its least significant bit.  A signed bit-field has
@@ -45,7 +48,7 @@ module Bindgen
         getter_fun : String? = nil,
         setter_fun : String? = nil
 
-      def initialize(@fields, name, parent, @base_class = nil)
+      def initialize(@fields, name, parent, @base_class = nil, @packed = false)
         super(name, parent)
       end
     end

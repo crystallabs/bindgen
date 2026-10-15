@@ -167,6 +167,7 @@ struct Class {
 	bool isStandardLayout; // Is the class laid out like a C structure?
 	bool isAnonymous; // Is this class anonymous?
 	int byteSize; // Size of an instance in memory.
+	int packAlignment = 0; // Alignment limit by packing which moves a member, in bytes, or 0
 	std::string name; // Fully::qualified::class::name (anonymous classes also receive one for identification)
 	std::vector<BaseClass> bases; // Names of base classes
 	std::vector<Method> methods; // Methods
@@ -206,7 +207,7 @@ struct TypeInfoResult {
 
 // Version of the output format.  Increase it together with
 // `Bindgen::Parser::Document::FORMAT_VERSION` whenever the output changes.
-static const int BG_FORMAT_VERSION = 10;
+static const int BG_FORMAT_VERSION = 11;
 
 struct Document {
 	JsonMap<std::string, Enum> enums;

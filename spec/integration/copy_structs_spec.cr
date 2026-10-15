@@ -108,6 +108,28 @@ describe "copied structure functionality" do
           instance_var_names(subject).includes?("d").should be_false
         end
       end
+
+      context "packed structures" do
+        it "lays them out like C++" do
+          sizeof(Test::Binding::Packed).should eq(Test::Funcs.packed_size)
+          offsetof(Test::Binding::Packed, @i).should eq(Test::Funcs.packed_offset_i)
+          offsetof(Test::Binding::Packed, @p).should eq(Test::Funcs.packed_offset_p)
+          sizeof(Test::Binding::PackedMember).should eq(Test::Funcs.packed_member_size)
+        end
+
+        it "passes them by value" do
+          subject = Test::Binding::Packed.new
+          subject.c = 1u8
+          subject.i = 20
+          subject.p = Test::Binding::Point.new(x: 300, y: 4000)
+          Test::Funcs.packed_sum(subject).should eq(4321)
+        end
+
+        it "does not inline anonymous members of another packing" do
+          subject = Test::Binding::PackedMember.new
+          instance_var_names(subject).includes?("d").should be_false
+        end
+      end
     end
   end
 end

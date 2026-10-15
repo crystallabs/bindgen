@@ -78,6 +78,26 @@ describe "clang tool classes feature" do
     )
   end
 
+  it "exports packing which moves a member" do
+    clang_tool(
+      <<-CPP,
+        struct Plain { char c; int i; };
+        struct __attribute__((packed)) Packed { char c; int i; };
+        #pragma pack(push, 2)
+        struct PackedTwo { char c; int i; };
+        struct NoEffect { char c; short s; };
+        #pragma pack(pop)
+        CPP
+      "-c Plain -c Packed -c PackedTwo -c NoEffect",
+      classes: {
+        Plain:     {packAlignment: 0, byteSize: 8},
+        Packed:    {packAlignment: 1, byteSize: 5},
+        PackedTwo: {packAlignment: 2, byteSize: 6},
+        NoEffect:  {packAlignment: 0, byteSize: 4},
+      },
+    )
+  end
+
   it "exports if a constructor is declared" do
     clang_tool(
       <<-CPP,

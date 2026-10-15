@@ -115,6 +115,30 @@ bool RecordMatchHandler::runOnMethod(Method &m, Class &klass, const clang::CXXMe
 	return true;
 }
 
+// Returns the alignment limit in bytes the packing of *record* sets, if it
+// moves any of its members: 1 for `__attribute__((packed))`, or N for
+// `#pragma pack(N)`.  Returns 0 if the record isn't packed, or the packing
+// doesn't change its layout.
+static int packAlignment(const clang::CXXRecordDecl *record) {
+	clang::ASTContext &ctx = record->getASTContext();
+	int64_t limit;
+
+	if (record->hasAttr<clang::PackedAttr>()) {
+		limit = 1;
+	} else if (auto *pack = record->getAttr<clang::MaxFieldAlignmentAttr>()) {
+		limit = pack->getAlignment() / ctx.getCharWidth();
+	} else {
+		return 0;
+	}
+
+	for (const clang::FieldDecl *field : record->fields()) {
+		if (ctx.getTypeAlignInChars(field->getType()).getQuantity() > limit)
+			return limit;
+	}
+
+	return 0;
+}
+
 bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *record) {
 	const auto *typeInfoResult = m_document.findTypeInfoResult(klass.name);
 
@@ -135,6 +159,8 @@ bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *r
 	uint64_t bitSize = typeInfo.Width;
 	if (typeInfo.isAlignRequired()) bitSize += typeInfo.Align;
 	klass.byteSize = bitSize / 8;
+	if (!record->isDependentType() && !record->isInvalidDecl())
+		klass.packAlignment = packAlignment(record);
 
 	for (clang::CXXBaseSpecifier base : record->bases()) {
 		BaseClass b = handleBaseClass(base);

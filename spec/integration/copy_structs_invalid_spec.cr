@@ -149,10 +149,26 @@ describe "copied structure validation" do
     errors.should contain(%(Can't copy structure of class "WideCharBitField": The bit-field "c" has the unsupported type wchar_t))
   end
 
-  it "rejects a packed structure smaller than the storage of its bit-fields" do
+  it "rejects bit-fields in a packed structure" do
     code, errors = copy_structures("PackedBitFields")
     code.should eq(1)
-    errors.should contain(%(Can't copy structure of class "PackedBitFields": The storage of its last bit-fields exceeds the structure))
+    errors.should contain(%(Can't copy structure of class "PackedBitFields": The bit-field "bits" is in a packed structure))
+  end
+
+  it "rejects packing Crystal can't express" do
+    code, errors = copy_structures("PackedTwo")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "PackedTwo": It is packed by `#pragma pack(2)`, which Crystal can't express))
+
+    code, errors = copy_structures("PackedUnion")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "PackedUnion": It is a packed union, which Crystal can't express))
+  end
+
+  it "accepts packing which doesn't move a member" do
+    code, errors = copy_structures("PackedNoEffect")
+    errors.should eq("")
+    code.should eq(0)
   end
 
   it "rejects C++ accessors of bit-fields of an anonymous type" do

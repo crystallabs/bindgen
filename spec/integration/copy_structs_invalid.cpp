@@ -136,7 +136,28 @@ struct WideCharBitField {
   wchar_t c : 8;
 };
 
-// A packed structure is smaller than the storage of its bit-fields.
+// Packed bit-fields are packed with the members after them bit by bit.
 struct __attribute__((packed)) PackedBitFields {
   unsigned bits : 3;
 };
+
+// Crystal has no packing other than `@[Packed]` of structures.
+#pragma pack(push, 2)
+struct PackedTwo {
+  char c;
+  int i;
+};
+#pragma pack(pop)
+
+union __attribute__((packed)) PackedUnion {
+  char c[5];
+  int i;
+};
+
+// A packing which doesn't move any member is fine.
+#pragma pack(push, 2)
+struct PackedNoEffect {
+  char c;
+  short s;
+};
+#pragma pack(pop)
