@@ -34,6 +34,7 @@ The configuration keys are described in [CONFIGURATION.md](CONFIGURATION.md).
       * [AutoContainerInstantiation](#autocontainerinstantiation)
       * [BlockOverloads](#blockoverloads)
       * [CopyStructs](#copystructs)
+         * [Bit-fields](#bit-fields)
       * [CppWrapper](#cppwrapper)
       * [CrystalBinding](#crystalbinding)
       * [CrystalWrapper](#crystalwrapper)
@@ -143,7 +144,7 @@ The following rules are automatically applied to all bindings:
 | Copying structures                               | **YES** |
 |  +- C array members of built-in types            | **YES** |
 |  +- C array members of wrapped types             |   TBD   |
-|  +- Bit-fields                                   |   TBD   |
+|  +- Bit-fields                                   | **YES** |
 | Custom type conversions between C/++ and Crystal | **YES** |
 | Automatic type wrapping and conversion           | **YES** |
 | Integration with Crystals GC                     | **YES** |
@@ -325,6 +326,48 @@ A wrapper class of a `copy_structure` type will host the structure directly
 
 Set `generate_wrapper: false` and `generate_binding: false` to only get the
 `lib struct`.
+
+### Bit-fields
+
+Crystal has no bit-fields, so each run of consecutive bit-fields is stored in
+unsigned integer members named `_bits0`, `_bits1` and so on, one for each unit
+of storage the bit-fields occupy.  The `lib struct` gets a getter and a setter
+for each named bit-field:
+
+```c++
+struct Flags {
+  unsigned narrow : 3;
+  int wide : 12;
+};
+```
+
+```crystal
+flags = Binding::Flags.new
+flags.wide = -7
+flags.wide # => -7
+```
+
+The type option `bit_fields` sets how these methods access the bits:
+
+* `Accessors` (the default) calls C++ getter and setter functions, generated
+  for each bit-field.  This works on any platform the C++ wrapper is compiled
+  for, at the cost of a function call for each access.
+* `Inline` shifts and masks the bits in Crystal, without calling C++.  The
+  generated code uses the bit layout of the platform it was generated on, and
+  is only correct on platforms laying out bit-fields the same way.  The common
+  Unix platforms on x86_64 and arm64 share it, Windows doesn't.
+
+The `lib struct` follows the layout of the Itanium C++ ABI, used by GCC and
+Clang outside of Windows: A run of bit-fields is stored in units of its largest
+type, which also hold the smaller ones.  A structure is refused if its layout
+can't be represented this way: When a bit-field shares a unit with a member
+before or after the run, as in `char c; unsigned bits : 3;`, or for bit-fields
+in a union or of an enumeration type.
+
+A wrapper class hosting the structure accesses all members through C++,
+bit-fields included, regardless of `bit_fields`.  The methods of a structure of
+an anonymous type can't call C++, as C++ can't name the type, and need
+`bit_fields: Inline`.
 
 ## `CppWrapper`
 

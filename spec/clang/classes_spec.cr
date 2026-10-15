@@ -56,7 +56,7 @@ describe "clang tool classes feature" do
     )
   end
 
-  it "exports the width of bit-fields" do
+  it "exports the width and layout of bit-fields" do
     clang_tool(
       <<-CPP,
         struct Flags {
@@ -69,9 +69,9 @@ describe "clang tool classes feature" do
       classes: {
         Flags: {
           fields: [
-            {name: "plain", bitField: nil},
-            {name: "narrow", bitField: 3},
-            {name: "wide", bitField: 12},
+            {name: "plain", bitField: nil, bitOffset: 0, bitSize: 32},
+            {name: "narrow", bitField: 3, bitOffset: 32, bitSize: 32},
+            {name: "wide", bitField: 12, bitOffset: 35, bitSize: 32},
           ],
         },
       },

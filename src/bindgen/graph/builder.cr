@@ -20,6 +20,7 @@ module Bindgen
               crystal_type: target_name,
               binding_type: klass.name,
               copy_structure: @db.try_or(enclosing_type, false, &.copy_structure?),
+              bit_fields: @db.try_or(enclosing_type, TypeDatabase::BitFields::Accessors, &.bit_fields),
               generate_binding: false,
               generate_wrapper: false,
             )

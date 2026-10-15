@@ -123,6 +123,34 @@ describe "copied structure validation" do
     errors.should contain(%(field "numbers"))
   end
 
+  it "rejects bit-fields sharing their storage with another member" do
+    code, errors = copy_structures("BitFieldAfterMember")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "BitFieldAfterMember": The bit-field "bits" shares the storage of the member before it))
+
+    code, errors = copy_structures("MemberAfterBitField")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "MemberAfterBitField": The field "c" shares the storage of the bit-fields before it))
+  end
+
+  it "rejects bit-fields in a union" do
+    code, errors = copy_structures("BitFieldUnion")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "BitFieldUnion": The bit-field "bits" is in a union))
+  end
+
+  it "rejects a bit-field of an enumeration" do
+    code, errors = copy_structures("EnumBitField")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "EnumBitField": The bit-field "color" has the unsupported type Color))
+  end
+
+  it "rejects C++ accessors of bit-fields of an anonymous type" do
+    code, errors = copy_structures("AnonymousBitFields")
+    code.should eq(1)
+    errors.should contain(%(Its bit-fields need `bit_fields: Inline`, as it is anonymous))
+  end
+
   it "rejects a class which isn't trivially copyable" do
     %w[CopyConstructor Destructor VirtualMethod].each do |type|
       code, errors = copy_structures(type)

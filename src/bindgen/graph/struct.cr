@@ -19,6 +19,32 @@ module Bindgen
       # generate the jump-table.
       property base_class : String?
 
+      # Bit-fields of a `lib struct`, which get getter and setter methods.
+      getter bit_fields = [] of BitField
+
+      # A bit-field of a `lib struct`.  It is stored in the integer member
+      # *storage* of type *storage_type*, which is *unit_bits* wide, at the bit
+      # *shift* counted from its least significant bit.  A signed bit-field has
+      # the signed counterpart of the storage type as *signed_type*.
+      #
+      # The *getter_fun* and *setter_fun* are the `lib` functions accessing it
+      # through C++.  Without them, the methods shift and mask *storage*
+      # instead.
+      record BitField,
+        name : String,
+        type_name : String,
+        storage : String,
+        storage_type : String,
+        unit_bits : Int64,
+        shift : Int64,
+        width : Int32,
+        signed_type : String?,
+        bool : Bool,
+        const : Bool,
+        doc : String?,
+        getter_fun : String? = nil,
+        setter_fun : String? = nil
+
       def initialize(@fields, name, parent, @base_class = nil)
         super(name, parent)
       end

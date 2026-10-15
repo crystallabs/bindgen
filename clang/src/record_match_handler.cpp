@@ -223,6 +223,14 @@ bool RecordMatchHandler::runOnField(Field &f, const clang::FieldDecl *field) {
 	TypeHelper::qualTypeToType(f, qt, ctx);
 	readDefaultValue(f, field, field->getInClassInitializer());
 
+	// The layout, used to copy bit-fields into a `lib struct`.
+	const clang::RecordDecl *record = field->getParent();
+	if (!record->isDependentType() && !record->isInvalidDecl() && !qt->isIncompleteType()) {
+		const clang::ASTRecordLayout &layout = ctx.getASTRecordLayout(record);
+		f.bitOffset = layout.getFieldOffset(field->getFieldIndex());
+		f.bitSize = ctx.getTypeSize(qt);
+	}
+
 	return true;
 }
 

@@ -191,6 +191,14 @@ JsonStream &operator<<(JsonStream &s, const Field &value) {
 	else
 		s << std::make_pair("bitField", JsonStream::Null) << c;
 
+	if (value.bitOffset >= 0) {
+		s << std::make_pair("bitOffset", value.bitOffset) << c
+		  << std::make_pair("bitSize", value.bitSize) << c;
+	} else {
+		s << std::make_pair("bitOffset", JsonStream::Null) << c
+		  << std::make_pair("bitSize", JsonStream::Null) << c;
+	}
+
 	writeDoc(s, value.doc);
 	return s << JsonStream::ObjectEnd;
 }

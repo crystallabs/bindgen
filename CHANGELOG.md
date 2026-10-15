@@ -6,10 +6,13 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Added
 
+* Copied structures support bit-fields, through getter and setter methods of
+  their `lib struct`.  The type option `bit_fields` chooses between calling
+  C++ accessors (`Accessors`, the default) and shifting and masking the bits in
+  Crystal (`Inline`).  The clang tool's output format changed, rebuild it.
 * Documentation comments of classes, methods, fields, enums and functions are
   copied into the Crystal wrappers.  `all_comments: true` under `parser:`
-  copies plain comments too.  The clang tool's output format changed, rebuild
-  it.
+  copies plain comments too.
 * `CONFIGURATION.md` describes every key of the configuration file (#55).  A
   spec fails if a configuration key or a key of `TEMPLATE.yml` is missing in
   it.

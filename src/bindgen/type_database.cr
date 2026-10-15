@@ -12,6 +12,12 @@ module Bindgen
       Value     # Force a C++ pass-by-value
     end
 
+    # How the methods of a copied structure access its bit-fields.
+    enum BitFields
+      Accessors # Through C++ getter and setter functions
+      Inline    # By shifting and masking the bits in Crystal
+    end
+
     # YAML converter for building a regex from an array of strings.  The regex
     # is the union of the individual string patterns.
     module ArrayRegexConverter
@@ -144,6 +150,9 @@ module Bindgen
       # This doesn't support inheritance!
       property? copy_structure = false
 
+      # How the `lib struct` of a copied structure accesses its bit-fields.
+      property bit_fields = Bindgen::TypeDatabase::BitFields::Accessors
+
       # Treat this type as built-in type in C++ and Crystal.
       property? builtin = false
 
@@ -190,7 +199,8 @@ module Bindgen
         @from_crystal = Template::None.new, @to_crystal = Template::None.new,
         @kind = Parser::Type::Kind::Class, @ignore = false,
         @pass_by = PassBy::Original, @wrapper_pass_by : PassBy? = nil,
-        @sub_class = true, @copy_structure = false, @generate_wrapper = true,
+        @sub_class = true, @copy_structure = false,
+        @bit_fields = BitFields::Accessors, @generate_wrapper = true,
         @generate_binding = true, @generate_superclass = true,
         @builtin = false, @ignore_methods = [] of String,
         @superclass_ignore_methods = Util::FAIL_RX, @keep_alive = KeepAlive.new,

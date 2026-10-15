@@ -104,3 +104,30 @@ struct VirtualMethod {
 struct Derived : Point {
   int z;
 };
+
+// Bit-fields sharing their storage unit with another member.
+struct BitFieldAfterMember {
+  char c;
+  unsigned bits : 3;
+};
+
+struct MemberAfterBitField {
+  unsigned bits : 3;
+  char c;
+};
+
+union BitFieldUnion {
+  unsigned bits : 3;
+  int value;
+};
+
+struct EnumBitField {
+  Color color : 2;
+};
+
+// C++ functions can't name the anonymous type of `member`.
+struct AnonymousBitFields {
+  struct {
+    unsigned bits : 3;
+  } member;
+};

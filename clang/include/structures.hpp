@@ -145,6 +145,8 @@ struct Field : public Type {
 	bool hasDefault = false; // Does this field have a default value?
 	LiteralData value; // Default value of the field
 	int bitField = -1; // Width in bits if this is a bit-field, else -1
+	int64_t bitOffset = -1; // Offset in bits in the record, -1 if unknown or static
+	int64_t bitSize = -1; // Size of the type in bits, -1 if unknown or static
 	std::string doc; // Documentation comment, if any
 };
 
@@ -204,7 +206,7 @@ struct TypeInfoResult {
 
 // Version of the output format.  Increase it together with
 // `Bindgen::Parser::Document::FORMAT_VERSION` whenever the output changes.
-static const int BG_FORMAT_VERSION = 9;
+static const int BG_FORMAT_VERSION = 10;
 
 struct Document {
 	JsonMap<std::string, Enum> enums;
