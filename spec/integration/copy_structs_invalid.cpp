@@ -128,10 +128,6 @@ struct AnonymousBitFields {
 };
 
 // Only bit-fields of integer types and `bool` are supported.
-struct SizeBitField {
-  size_t size : 3;
-};
-
 struct WideCharBitField {
   wchar_t c : 8;
 };

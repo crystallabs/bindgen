@@ -23,10 +23,14 @@ module Bindgen
         "LibC::ULong"     => {"LibC::ULong", "unsigned long int"},
         "LibC::LongLong"  => {"LibC::ULongLong", "unsigned long long int"},
         "LibC::ULongLong" => {"LibC::ULongLong", "unsigned long long int"},
+        "LibC::SizeT"     => {"LibC::SizeT", "size_t"},
+        "LibC::SSizeT"    => {"LibC::SizeT", "size_t"},
       }
 
       # Binding types of signed bit-fields.
-      SIGNED_BIT_FIELDS = {"Int8", "Int16", "Int32", "Int64", "LibC::Long", "LibC::LongLong"}
+      SIGNED_BIT_FIELDS = {
+        "Int8", "Int16", "Int32", "Int64", "LibC::Long", "LibC::LongLong", "LibC::SSizeT",
+      }
 
       # The signed counterpart of each storage type, to extend the sign of
       # signed bit-fields.
@@ -37,6 +41,7 @@ module Bindgen
         "UInt64"          => "Int64",
         "LibC::ULong"     => "LibC::Long",
         "LibC::ULongLong" => "LibC::LongLong",
+        "LibC::SizeT"     => "LibC::SSizeT",
       }
 
       # The layout of a `lib struct` while its members are added: The end of

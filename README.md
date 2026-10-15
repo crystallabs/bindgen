@@ -380,9 +380,9 @@ These structures are refused, with an error saying why:
 * A member sharing the last storage unit of the run, as in
   `unsigned bits : 3; char c;`, for the same reason.
 * A bit-field of another type than an integer type or `bool`, like an
-  enumeration, `size_t` or `wchar_t`.  Integer types are `char`, `short`,
-  `int`, `long` and `long long`, signed or unsigned, and the fixed-size types
-  like `uint32_t`.
+  enumeration or `wchar_t`.  Integer types are `char`, `short`, `int`, `long`
+  and `long long`, signed or unsigned, the fixed-size types like `uint32_t`,
+  and `size_t` and `ssize_t`.
 * A bit-field in a packed structure, as these are packed together with the
   members after them bit by bit.
 * With `bit_fields: Accessors`, a structure of an anonymous type, like the type

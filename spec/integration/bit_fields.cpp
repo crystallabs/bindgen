@@ -1,6 +1,8 @@
 /* Note: Used by `bit_fields_spec.cr` and `bit_fields_inline_spec.cr`. */
 
 #include <stdint.h>
+#include <stddef.h>
+#include <sys/types.h>
 
 /// Settings packed into bit-fields.
 struct Flags {
@@ -14,6 +16,23 @@ struct Flags {
   int64_t big : 40;
   int64_t negative : 20;
 };
+
+// Bit-fields of the size types.
+struct Sizes {
+  size_t size : 20;
+  ssize_t delta : 12;
+};
+
+Sizes sizes_make() {
+  Sizes sizes;
+  sizes.size = 1000;
+  sizes.delta = -100;
+  return sizes;
+}
+
+long sizes_sum(Sizes sizes) {
+  return sizes.size + sizes.delta;
+}
 
 // A structure with constant bit-fields, which have no setter.
 struct Constants {

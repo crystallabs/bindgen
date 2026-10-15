@@ -140,10 +140,6 @@ describe "copied structure validation" do
   end
 
   it "rejects bit-fields of types other than integers and bool" do
-    code, errors = copy_structures("SizeBitField")
-    code.should eq(1)
-    errors.should contain(%(Can't copy structure of class "SizeBitField": The bit-field "size" has the unsupported type size_t))
-
     code, errors = copy_structures("WideCharBitField")
     code.should eq(1)
     errors.should contain(%(Can't copy structure of class "WideCharBitField": The bit-field "c" has the unsupported type wchar_t))
