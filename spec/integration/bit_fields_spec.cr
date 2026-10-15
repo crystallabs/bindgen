@@ -65,6 +65,15 @@ describe "bit-fields of copied structures" do
         offsetof(Test::Binding::ZeroWidth, @e).should eq(20)
       end
 
+      it "supports bit-fields of the size types" do
+        sizes = Test::Funcs.sizes_make
+        sizes.size.should eq(1000)
+        sizes.delta.should eq(-100)
+        sizes.delta = -5
+        sizes.size = 2000
+        Test::Funcs.sizes_sum(sizes).should eq(1995)
+      end
+
       it "has no setter for a constant bit-field" do
         constants = Test::Funcs.constants_make
         constants.fixed.should eq(9u32)
