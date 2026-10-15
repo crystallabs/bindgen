@@ -116,6 +116,7 @@ module Bindgen
             name: name,
             fields: fields,
             parent: root,
+            packed: klass.packed?,
           )
 
           structure.bit_fields.concat layout.bit_fields
@@ -131,6 +132,10 @@ module Bindgen
                    "It isn't trivially copyable"
                  elsif !klass.standard_layout?
                    "It isn't standard-layout"
+                 elsif klass.pack_alignment > 1
+                   "It is packed by `#pragma pack(#{klass.pack_alignment})`, which Crystal can't express"
+                 elsif klass.packed? && klass.cpp_union?
+                   "It is a packed union, which Crystal can't express"
                  end
 
         if reason
@@ -221,6 +226,11 @@ module Bindgen
       # a unit.  In a union, each bit-field has its own storage.
       private def add_bit_fields(root_klass, klass, run, calls, layout, base)
         error = "Can't copy structure of class #{root_klass.name.inspect}"
+
+        # These pack bit-fields and the members after them bit by bit.
+        if klass.packed?
+          raise "#{error}: The bit-field #{run.first.name.inspect} is in a packed structure"
+        end
 
         run.each do |f|
           next if bit_field_storage(f)
@@ -507,6 +517,8 @@ module Bindgen
                       false # named types are never inlined
                     when klass.cpp_union? != node.try(&.origin.cpp_union?)
                       false # a C union cannot be inlined inside a struct, and vice-versa
+                    when klass.packed? != node.try(&.origin.packed?)
+                      false # members of a packed structure can't be inlined into an unpacked one
                     else
                       true
                     end

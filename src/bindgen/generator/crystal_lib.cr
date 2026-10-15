@@ -39,6 +39,7 @@ module Bindgen
       end
 
       private def write_structure(structure, cpp_union : Bool)
+        puts "@[::Packed]" if structure.is_a?(Graph::Struct) && structure.packed?
         puts "#{cpp_union ? "union" : "struct"} #{structure.name}"
         indented do
           structure.fields.each do |name, result|

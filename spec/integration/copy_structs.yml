@@ -16,6 +16,11 @@ classes:
   UnionInStruct: UnionInStruct
   StructInUnion: StructInUnion
   NestedUnion: NestedUnion
+  Packed: Packed
+  PackedMember: PackedMember
+
+functions:
+  "packed_(.*)": { destination: "Funcs", name: "packed_\\1" }
 
 types:
   Point: { copy_structure: true, generate_binding: false, generate_wrapper: false }
@@ -30,3 +35,5 @@ types:
   UnionInStruct: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   StructInUnion: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   NestedUnion: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  Packed: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  PackedMember: { copy_structure: true, generate_binding: false, generate_wrapper: false }

@@ -316,6 +316,12 @@ a structure with a member it can't represent, like a `std::string`, a container
 or a class which isn't copied itself, and one whose C++ type isn't trivially
 copyable and standard-layout.
 
+A structure packed by `__attribute__((packed))` or `#pragma pack(1)` becomes a
+`@[Packed]` `lib struct`.  Other packing is refused, as Crystal can't express
+it: `#pragma pack(N)` with N above 1, and a packed union.  Packing that doesn't
+move any member, like `#pragma pack(4)` around `char` and `short` members, is
+ignored.
+
 A wrapper class of a `copy_structure` type will host the structure directly
 (instead of a pointer) to it:
 
@@ -377,10 +383,8 @@ These structures are refused, with an error saying why:
   enumeration, `size_t` or `wchar_t`.  Integer types are `char`, `short`,
   `int`, `long` and `long long`, signed or unsigned, and the fixed-size types
   like `uint32_t`.
-* A packed structure (`__attribute__((packed))`, `#pragma pack`) smaller than
-  the storage of its bit-fields.  Packed structures aren't supported in
-  general: The `lib struct` isn't packed, so its layout may differ even when
-  this isn't detected.
+* A bit-field in a packed structure, as these are packed together with the
+  members after them bit by bit.
 * With `bit_fields: Accessors`, a structure of an anonymous type, like the type
   of `member` in `struct { unsigned bits : 3; } member;`.  The C++ accessors
   can't name the type.  Use `bit_fields: Inline` instead.

@@ -1,6 +1,7 @@
 /* Note: Used by `copy_structs_spec.cr` and `instance_properties_spec.cr`. */
 
 #include <string>
+#include <cstddef>
 
 struct Point {
   Point(int x, int y) : x(x), y(y) { }
@@ -131,6 +132,28 @@ union NestedUnion {
 };
 
 
+// A packed structure, whose members aren't aligned.
+struct __attribute__((packed)) Packed {
+  char c;
+  int i;
+  Point p;
+};
+
+// A structure with a packed anonymous member, which isn't inlined.
+struct PackedMember {
+  char c;
+  struct __attribute__((packed)) {
+    char d;
+    int i;
+  };
+};
+
+// The C++ layout, to compare with the `lib struct`s.
+int packed_size() { return sizeof(Packed); }
+int packed_offset_i() { return offsetof(Packed, i); }
+int packed_offset_p() { return offsetof(Packed, p); }
+int packed_member_size() { return sizeof(PackedMember); }
+int packed_sum(Packed value) { return value.c + value.i + value.p.x + value.p.y; }
 
 class Props {
 public:
