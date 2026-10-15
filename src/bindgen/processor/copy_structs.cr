@@ -103,11 +103,14 @@ module Bindgen
 
         # Add the struct or union into the graph
         if klass.cpp_union?
-          Graph::CppUnion.new(
+          union = Graph::CppUnion.new(
             name: name,
             fields: fields,
             parent: root,
           )
+
+          union.bit_fields.concat layout.bit_fields
+          union
         else
           structure = Graph::Struct.new(
             name: name,
@@ -209,29 +212,46 @@ module Bindgen
       # Adds the storage of the *run* of consecutive bit-fields of *klass* to
       # the *calls*.  Adds the named ones to the bit-fields of the *layout*.
       #
-      # The storage is a member for each unit the bit-fields occupy in C++, of
-      # the unsigned type as large as their largest type.  This mirrors the
-      # layout of the Itanium C++ ABI, which packs bit-fields of smaller types
-      # into the unit of a larger one.  Raises if a member before or after the
-      # *run* shares its storage, or if a bit-field crosses a unit.
+      # In a structure, the storage is a member for each unit the bit-fields
+      # occupy in C++, of the unsigned type as large as their largest type.
+      # Padding before it mirrors zero-width bit-fields.
+      # This mirrors the layout of the Itanium C++ ABI, which packs bit-fields
+      # of smaller types into the unit of a larger one.  Raises if a member
+      # before or after the *run* shares its storage, or if a bit-field crosses
+      # a unit.  In a union, each bit-field has its own storage.
       private def add_bit_fields(root_klass, klass, run, calls, layout, base)
         error = "Can't copy structure of class #{root_klass.name.inspect}"
-        raise "#{error}: The bit-field #{run.first.name.inspect} is in a union" if klass.cpp_union?
 
         run.each do |f|
           next if bit_field_storage(f)
           raise "#{error}: The bit-field #{f.name.inspect} has the unsupported type #{f.full_name}"
         end
 
-        largest = run.max_by { |f| f.bit_size || raise "BUG: Bit-field #{f.name} has no size" }
-        storage_type, storage_cpp = bit_field_storage(largest).not_nil!
-        unit_bits = largest.bit_size.not_nil!
         offsets = run.map { |f| base + (f.bit_offset || raise "BUG: Bit-field #{f.name} has no offset") }
         placed = run.zip(offsets).reject { |f, _| f.bit_field == 0 }
 
-        if placed.empty?
-          raise "#{error}: The zero-width bit-field #{run.first.name.inspect} doesn't follow other bit-fields"
+        if klass.cpp_union?
+          placed.each do |f, _|
+            storage_type, storage_cpp = bit_field_storage(f).not_nil!
+            unit_bits = f.bit_size || raise "BUG: Bit-field #{f.name} has no size"
+            storage = add_storage(calls, "_bits", Parser::Type.builtin_type(storage_cpp), storage_type)
+            add_bit_field(root_klass, f, storage, storage_type, unit_bits, 0_i64, layout)
+          end
+
+          return
         end
+
+        # A zero-width bit-field moves the next member to the next unit of its
+        # type: Pad up to it.
+        if placed.empty?
+          pad_to(root_klass, run.first, offsets.max, 8, calls, layout)
+          return
+        end
+
+        # Zero-width bit-fields don't take storage, but may move it.
+        largest = placed.max_by { |f, _| f.bit_size || raise "BUG: Bit-field #{f.name} has no size" }[0]
+        storage_type, storage_cpp = bit_field_storage(largest).not_nil!
+        unit_bits = largest.bit_size.not_nil!
 
         placed.each do |f, offset|
           if offset // unit_bits != (offset + f.bit_field - 1) // unit_bits
@@ -239,62 +259,98 @@ module Bindgen
           end
         end
 
-        # A zero-width bit-field moves the next member to the next unit of its
-        # type, so the storage extends to it.
+        # The storage extends to a trailing zero-width bit-field too.
         end_bits = placed.max_of { |f, offset| offset + f.bit_field }
         end_bits = {end_bits, offsets.max}.max
         first_unit = placed.first[1] // unit_bits
         units = (end_bits + unit_bits - 1) // unit_bits - first_unit
 
-        if (previous_end = layout.end_bits).nil? || first_unit * unit_bits < previous_end
-          raise "#{error}: The bit-field #{placed.first[0].name.inspect} shares the storage of the member before it"
-        end
+        # A leading zero-width bit-field may move the storage further.
+        pad_to(root_klass, placed.first[0], first_unit * unit_bits, unit_bits, calls, layout)
 
         storage_names = Array.new(units) do
-          index = 0
-          while calls.has_key?("_bits#{index}")
-            index += 1
-          end
-
-          name = "_bits#{index}"
-
-          calls[name] = Call::Result.new(
-            type: Parser::Type.builtin_type(storage_cpp),
-            type_name: storage_type,
-            reference: false,
-            pointer: 0,
-          )
-          name
+          add_storage(calls, "_bits", Parser::Type.builtin_type(storage_cpp), storage_type)
         end
 
         placed.each do |f, offset|
-          next if f.name.empty?
-
           unit = offset // unit_bits
-          position = offset - unit * unit_bits
-          shift = big_endian? ? unit_bits - position - f.bit_field : position
-          type_name = Crystal::Pass.new(@db).to_binding(f).type_name
-          getter_fun, setter_fun = bit_field_accessors(root_klass, f) if accessors?(root_klass)
-
-          layout.bit_fields << Graph::Struct::BitField.new(
-            name: f.crystal_name,
-            type_name: type_name,
-            storage: storage_names[unit - first_unit],
-            storage_type: storage_type,
-            unit_bits: unit_bits,
-            shift: shift,
-            width: f.bit_field,
-            signed_type: (SIGNED_STORAGE[storage_type] if SIGNED_BIT_FIELDS.includes?(type_name)),
-            bool: type_name == "Bool",
-            const: f.const?,
-            doc: f.doc,
-            getter_fun: getter_fun,
-            setter_fun: setter_fun,
-          )
+          storage = storage_names[unit - first_unit]
+          add_bit_field(root_klass, f, storage, storage_type, unit_bits, offset - unit * unit_bits, layout)
         end
 
         layout.end_bits = (first_unit + units) * unit_bits
         layout.after_bit_fields = true
+      end
+
+      # Adds the getter and setter of the bit-*field* of *klass* to the
+      # *layout*, unless it's unnamed.  It's at bit *position* in the member
+      # *storage*, which is *unit_bits* wide.
+      private def add_bit_field(klass, field, storage, storage_type, unit_bits, position, layout)
+        return if field.name.empty?
+
+        shift = big_endian? ? unit_bits - position - field.bit_field : position
+        type_name = Crystal::Pass.new(@db).to_binding(field).type_name
+        getter_fun, setter_fun = bit_field_accessors(klass, field) if accessors?(klass)
+
+        layout.bit_fields << Graph::Struct::BitField.new(
+          name: field.crystal_name,
+          type_name: type_name,
+          storage: storage,
+          storage_type: storage_type,
+          unit_bits: unit_bits,
+          shift: shift,
+          width: field.bit_field,
+          signed_type: (SIGNED_STORAGE[storage_type] if SIGNED_BIT_FIELDS.includes?(type_name)),
+          bool: type_name == "Bool",
+          const: field.const?,
+          doc: field.doc,
+          getter_fun: getter_fun,
+          setter_fun: setter_fun,
+        )
+      end
+
+      # Adds a storage member of the *type* to the *calls*, named *prefix* and
+      # the first free number.  Returns its name.
+      private def add_storage(calls, prefix, type, type_name) : String
+        index = 0
+        while calls.has_key?("#{prefix}#{index}")
+          index += 1
+        end
+
+        name = "#{prefix}#{index}"
+        calls[name] = Call::Result.new(
+          type: type,
+          type_name: type_name,
+          reference: false,
+          pointer: 0,
+        )
+
+        name
+      end
+
+      # Moves the storage of the bit-*field*, at the bit *start*, there.  Pads
+      # the `lib struct` if Crystal would place storage aligned to
+      # *align_bits* before it.  Raises if a member before is in the way, as
+      # the bit-field shares its storage.
+      private def pad_to(klass, field, start, align_bits, calls, layout)
+        previous_end = layout.end_bits
+
+        if previous_end.nil? || start < previous_end
+          raise "Can't copy structure of class #{klass.name.inspect}: " \
+                "The bit-field #{field.name.inspect} shares the storage of the member before it"
+        end
+
+        aligned = (previous_end + align_bits - 1) // align_bits * align_bits
+        return if start == aligned
+
+        bytes = (start - previous_end) // 8
+        type = Parser::Type.new(
+          base_name: "uint8_t", full_name: "uint8_t", const: false, reference: false,
+          pointer: 0, builtin: true, extents: [bytes.to_u64],
+        )
+
+        add_storage(calls, "_pad", type, "UInt8")
+        layout.end_bits = start
       end
 
       # Does this platform store bit-fields from the most significant bit on?

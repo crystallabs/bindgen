@@ -133,16 +133,26 @@ describe "copied structure validation" do
     errors.should contain(%(Can't copy structure of class "MemberAfterBitField": The field "c" shares the storage of the bit-fields before it))
   end
 
-  it "rejects bit-fields in a union" do
-    code, errors = copy_structures("BitFieldUnion")
-    code.should eq(1)
-    errors.should contain(%(Can't copy structure of class "BitFieldUnion": The bit-field "bits" is in a union))
-  end
-
   it "rejects a bit-field of an enumeration" do
     code, errors = copy_structures("EnumBitField")
     code.should eq(1)
     errors.should contain(%(Can't copy structure of class "EnumBitField": The bit-field "color" has the unsupported type Color))
+  end
+
+  it "rejects bit-fields of types other than integers and bool" do
+    code, errors = copy_structures("SizeBitField")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "SizeBitField": The bit-field "size" has the unsupported type size_t))
+
+    code, errors = copy_structures("WideCharBitField")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "WideCharBitField": The bit-field "c" has the unsupported type wchar_t))
+  end
+
+  it "rejects a packed structure smaller than the storage of its bit-fields" do
+    code, errors = copy_structures("PackedBitFields")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "PackedBitFields": The storage of its last bit-fields exceeds the structure))
   end
 
   it "rejects C++ accessors of bit-fields of an anonymous type" do

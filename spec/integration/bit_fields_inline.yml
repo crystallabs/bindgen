@@ -7,6 +7,8 @@ classes:
   Flags: Flags
   Constants: Constants
   Hosted: Hosted
+  Variant: Variant
+  ZeroWidth: ZeroWidth
   AnonymousMember: AnonymousMember
 
 functions:
@@ -16,5 +18,7 @@ functions:
 types:
   Flags: { copy_structure: true, generate_binding: false, generate_wrapper: false, bit_fields: Inline }
   Constants: { copy_structure: true, generate_binding: false, generate_wrapper: false, bit_fields: Inline }
+  Variant: { copy_structure: true, generate_binding: false, generate_wrapper: false, bit_fields: Inline }
+  ZeroWidth: { copy_structure: true, generate_binding: false, generate_wrapper: false, bit_fields: Inline }
   Hosted: { copy_structure: true, bit_fields: Inline }
   AnonymousMember: { copy_structure: true, generate_binding: false, generate_wrapper: false, bit_fields: Inline }

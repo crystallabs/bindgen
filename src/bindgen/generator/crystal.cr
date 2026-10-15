@@ -46,10 +46,11 @@ module Bindgen
         write_bit_field_methods(library)
       end
 
-      # Reopens the `lib struct`s with bit-fields to add their methods.
+      # Reopens the `lib struct`s and `lib union`s with bit-fields to add
+      # their methods.
       private def write_bit_field_methods(library)
         library.nodes.each do |node|
-          next unless node.is_a?(Graph::Struct) && !node.bit_fields.empty?
+          next unless node.is_a?(Graph::Struct | Graph::CppUnion) && !node.bit_fields.empty?
 
           path = "#{library.name}::#{node.name}"
           # The first member is at the address of the structure.

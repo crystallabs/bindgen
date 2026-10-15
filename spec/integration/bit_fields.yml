@@ -7,6 +7,8 @@ classes:
   Flags: Flags
   Constants: Constants
   Hosted: Hosted
+  Variant: Variant
+  ZeroWidth: ZeroWidth
 
 functions:
   "(.*)_(make|sum)": { destination: "Funcs", name: "\\1_\\2" }
@@ -14,4 +16,6 @@ functions:
 types:
   Flags: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   Constants: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  Variant: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  ZeroWidth: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   Hosted: { copy_structure: true }
