@@ -2,7 +2,11 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
-## Unreleased
+## 0.9.0 (2026-10-15)
+
+### Breaking changes
+
+* `BindgenHelper.keep_alive` only accepts objects responding to `#to_unsafe`.
 
 ### Changed
 
