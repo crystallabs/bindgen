@@ -17,6 +17,8 @@ dependencies:
 
 # Table of Contents
 
+The configuration keys are described in [CONFIGURATION.md](CONFIGURATION.md).
+
 <!--ts-->
    * [How To](#how-to)
    * [Projects using bindgen](#projects-using-bindgen)
@@ -71,7 +73,7 @@ with the help of `bindgen`, do as follows:
 
 1. Add bindgen to your project's `shard.yml` as instructed above under "Installation" and then run `shards`
 2. Copy `lib/bindgen/assets/bindgen_helper.hpp` into your `ext/` subdirectory, creating it if missing. Copy it again whenever you upgrade bindgen, as the generated code relies on the matching version
-3. Copy `lib/bindgen/TEMPLATE.yml` into `your_template.yml` (adjust the name to your liking) and customize it for the library you want to bind to
+3. Copy `lib/bindgen/TEMPLATE.yml` into `your_template.yml` (adjust the name to your liking) and customize it for the library you want to bind to. Every key is described in [CONFIGURATION.md](CONFIGURATION.md)
 4. Run `lib/bindgen/tool.sh your_template.yml`. This will generate the bindings, and by default place the outputs in the `ext/` subdirectory
 5. Develop your Crystal application as usual
 
@@ -83,7 +85,8 @@ The `.yml` file that you copy from `TEMPLATE.yml` will contain the complete
 configuration template along with accompanying documentation embedded in
 the comments.
 If you prefer working with shorter files, you can simply remove all the
-comments.
+comments.  [CONFIGURATION.md](CONFIGURATION.md) describes the same keys as a
+reference.
 
 # Projects using bindgen
 

@@ -2,6 +2,21 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## Unreleased
+
+### Added
+
+* `CONFIGURATION.md` describes every key of the configuration file (#55).  A
+  spec fails if a configuration key or a key of `TEMPLATE.yml` is missing in
+  it.
+
+### Fixed
+
+* `TEMPLATE.yml` documents the `camelcase:` option of `enums:`, no longer
+  documents the non-existent `multiple:` option of `find_paths:` shell tries,
+  says that `block_overloads` isn't in the default `processors:`, and that
+  `build:` of `generators:` isn't run.
+
 ## 0.9.0 (2026-10-15)
 
 ### Breaking changes
