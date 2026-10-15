@@ -206,6 +206,19 @@ module Bindgen
         BIT_FIELD_STORAGE[Crystal::Pass.new(@db).to_binding(field).type_name]?
       end
 
+      # Like `#bit_field_storage`, but raises if the type of the bit-*field* of
+      # *klass* isn't supported.
+      private def bit_field_storage!(klass, field) : {String, String}
+        bit_field_storage(field) ||
+          raise "Can't copy structure of class #{klass.name.inspect}: " \
+                "The bit-field #{field.name.inspect} has the unsupported type #{field.full_name}"
+      end
+
+      # The size of the type of the bit-*field*, in bits.
+      private def bit_size!(field) : Int64
+        field.bit_size || raise "BUG: Bit-field #{field.name} has no size"
+      end
+
       # Raises if the *field* at the bit *offset* shares the storage of the
       # bit-fields before it, as a C++ compiler may put it there.
       private def check_after_bit_fields!(klass, field, offset, layout)
@@ -224,11 +237,11 @@ module Bindgen
       #
       # In a structure, the storage is a member for each unit the bit-fields
       # occupy in C++, of the unsigned type as large as their largest type.
-      # Padding before it mirrors zero-width bit-fields.
       # This mirrors the layout of the Itanium C++ ABI, which packs bit-fields
-      # of smaller types into the unit of a larger one.  Raises if a member
-      # before or after the *run* shares its storage, or if a bit-field crosses
-      # a unit.  In a union, each bit-field has its own storage.
+      # of smaller types into the unit of a larger one.  Padding before it
+      # mirrors zero-width bit-fields.  Raises if a member before or after the
+      # *run* shares its storage, or if a bit-field crosses a unit.  In a
+      # union, each bit-field has its own storage.
       private def add_bit_fields(root_klass, klass, run, calls, layout, base)
         error = "Can't copy structure of class #{root_klass.name.inspect}"
 
@@ -237,18 +250,15 @@ module Bindgen
           raise "#{error}: The bit-field #{run.first.name.inspect} is in a packed structure"
         end
 
-        run.each do |f|
-          next if bit_field_storage(f)
-          raise "#{error}: The bit-field #{f.name.inspect} has the unsupported type #{f.full_name}"
-        end
+        run.each { |f| bit_field_storage!(root_klass, f) }
 
         offsets = run.map { |f| base + (f.bit_offset || raise "BUG: Bit-field #{f.name} has no offset") }
         placed = run.zip(offsets).reject { |f, _| f.bit_field == 0 }
 
         if klass.cpp_union?
           placed.each do |f, _|
-            storage_type, storage_cpp = bit_field_storage(f).not_nil!
-            unit_bits = f.bit_size || raise "BUG: Bit-field #{f.name} has no size"
+            storage_type, storage_cpp = bit_field_storage!(root_klass, f)
+            unit_bits = bit_size!(f)
             storage = add_storage(calls, "_bits", Parser::Type.builtin_type(storage_cpp), storage_type)
             add_bit_field(root_klass, f, storage, storage_type, unit_bits, 0_i64, layout)
           end
@@ -264,9 +274,9 @@ module Bindgen
         end
 
         # Zero-width bit-fields don't take storage, but may move it.
-        largest = placed.max_by { |f, _| f.bit_size || raise "BUG: Bit-field #{f.name} has no size" }[0]
-        storage_type, storage_cpp = bit_field_storage(largest).not_nil!
-        unit_bits = largest.bit_size.not_nil!
+        largest = placed.max_by { |f, _| bit_size!(f) }[0]
+        storage_type, storage_cpp = bit_field_storage!(root_klass, largest)
+        unit_bits = bit_size!(largest)
 
         placed.each do |f, offset|
           if offset // unit_bits != (offset + f.bit_field - 1) // unit_bits

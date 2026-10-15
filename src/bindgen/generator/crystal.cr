@@ -50,7 +50,8 @@ module Bindgen
       # their methods.
       private def write_bit_field_methods(library)
         library.nodes.each do |node|
-          next unless node.is_a?(Graph::Struct | Graph::CppUnion) && !node.bit_fields.empty?
+          next unless node.is_a?(Graph::Struct | Graph::CppUnion)
+          next if node.bit_fields.empty?
 
           path = "#{library.name}::#{node.name}"
           # The first member is at the address of the structure.
