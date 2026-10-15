@@ -8,7 +8,7 @@ module Bindgen
 
       # Version of the format this bindgen understands.  Has to match
       # `BG_FORMAT_VERSION` of the clang tool.
-      FORMAT_VERSION = 8
+      FORMAT_VERSION = 9
 
       # Version of the format the document was written in.
       @[JSON::Field(key: "version")]

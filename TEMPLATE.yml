@@ -384,6 +384,11 @@ parser:
   defines:
     - __STDC_CONSTANT_MACROS
     - __STDC_LIMIT_MACROS
+  # Documentation comments (`///`, `/** */`, `//!`, `/*! */`) in front of
+  # classes, methods, fields, enums and functions are copied into the
+  # generated Crystal wrappers.  `true` copies plain `//` and `/* */` comments
+  # as well.  Defaults to `false`.
+  all_comments: false
 
 # Additional type configuration, of both explicitly wrapped types and all other
 # found types.  All fields are optional.

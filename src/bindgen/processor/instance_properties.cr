@@ -47,15 +47,15 @@ module Bindgen
             next if static || field.const? || field.pointer > 0
 
             next unless field_klass = add_anonymous_typedef(klass, field)
-            add_getter(klass, access, field_klass.as_type, field.name, static, method_name, AddressGetterBody.new)
-            add_setter(klass, access, field_type, field.name, static, method_name)
+            add_getter(klass, access, field_klass.as_type, field, static, method_name, AddressGetterBody.new)
+            add_setter(klass, access, field_type, field, static, method_name)
           elsif static && field.const? && field.has_default? && (init = field.value)
             add_static_constant(klass, field, init)
           else
             # Methods win over property methods with the same Crystal name.
-            add_getter(klass, access, field_type, field.name, static, method_name) unless taken.includes?({method_name, 0})
+            add_getter(klass, access, field_type, field, static, method_name) unless taken.includes?({method_name, 0})
             unless field.const? || field.c_array? || taken.includes?({method_name + "=", 1})
-              add_setter(klass, access, field_type, field.name, static, method_name)
+              add_setter(klass, access, field_type, field, static, method_name)
             end
           end
         end
@@ -154,11 +154,11 @@ module Bindgen
 
       # Builds a C++ wrapper method for a static or instance variable getter.
       # The `lib` binding and the Crystal wrapper method are generated later.
-      private def add_getter(klass, access, field_type, field_name, is_static, method_name, body = GetterBody.new)
+      private def add_getter(klass, access, field_type, field, is_static, method_name, body = GetterBody.new)
         method_type = is_static ? Parser::Method::Type::StaticGetter : Parser::Method::Type::MemberGetter
 
         method_origin = Parser::Method.new(
-          name: field_name,
+          name: field.name,
           crystal_name: method_name,
           class_name: klass.origin.name,
           return_type: field_type,
@@ -166,11 +166,12 @@ module Bindgen
           type: method_type,
           access: access,
           const: true,
+          doc: field.doc,
         )
         return if method_origin.filtered?(@db)
 
         method = Graph::Method.new(
-          name: field_name,
+          name: field.name,
           origin: method_origin,
           parent: klass,
         )
@@ -197,23 +198,24 @@ module Bindgen
 
       # Builds a C++ wrapper method for a static or instance variable setter.
       # The `lib` binding and the Crystal wrapper method are generated later.
-      private def add_setter(klass, access, field_type, field_name, is_static, method_name)
+      private def add_setter(klass, access, field_type, field, is_static, method_name)
         method_type = is_static ? Parser::Method::Type::StaticSetter : Parser::Method::Type::MemberSetter
-        arg = Parser::Argument.new(field_name, field_type)
+        arg = Parser::Argument.new(field.name, field_type)
 
         method_origin = Parser::Method.new(
-          name: field_name,
+          name: field.name,
           crystal_name: method_name + "=",
           class_name: klass.origin.name,
           return_type: Parser::Type::VOID,
           arguments: [arg],
           type: method_type,
           access: access,
+          doc: field.doc,
         )
         return if method_origin.filtered?(@db)
 
         method = Graph::Method.new(
-          name: field_name,
+          name: field.name,
           origin: method_origin,
           parent: klass,
         )

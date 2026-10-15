@@ -6,6 +6,7 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/ExprCXX.h"
+#include "clang/AST/RawCommentList.h"
 #include "llvm/ADT/StringExtras.h"
 
 #include <map>
@@ -359,4 +360,43 @@ void TypeHelper::addFunctionParameters(const clang::FunctionDecl *func, Method &
 		arg.hasDefault = false;
 		m.arguments.push_back(arg);
 	}
+}
+
+// Returns the declaration *decl* was instantiated from, or *decl* itself.
+// Clang doesn't attach comments to implicit template instantiations.
+static const clang::Decl *templatePattern(const clang::Decl *decl) {
+	if (auto *record = llvm::dyn_cast<clang::CXXRecordDecl>(decl)) {
+		if (auto *pattern = record->getTemplateInstantiationPattern())
+			return pattern;
+	} else if (auto *func = llvm::dyn_cast<clang::FunctionDecl>(decl)) {
+		if (auto *pattern = func->getTemplateInstantiationPattern())
+			return pattern;
+	} else if (auto *enumeration = llvm::dyn_cast<clang::EnumDecl>(decl)) {
+		if (auto *pattern = enumeration->getTemplateInstantiationPattern())
+			return pattern;
+	} else if (auto *var = llvm::dyn_cast<clang::VarDecl>(decl)) {
+		if (auto *pattern = var->getTemplateInstantiationPattern())
+			return pattern;
+	} else if (auto *field = llvm::dyn_cast<clang::FieldDecl>(decl)) {
+		// Fields have no link to their pattern, find it by name.
+		auto *record = llvm::dyn_cast<clang::CXXRecordDecl>(field->getParent());
+		auto *pattern = record ? record->getTemplateInstantiationPattern() : nullptr;
+		if (pattern && field->getIdentifier()) {
+			for (auto *candidate : pattern->lookup(field->getDeclName())) {
+				if (llvm::isa<clang::FieldDecl>(candidate))
+					return candidate;
+			}
+		}
+	}
+
+	return decl;
+}
+
+std::string TypeHelper::docComment(const clang::Decl *decl) {
+	decl = templatePattern(decl);
+	clang::ASTContext &ctx = decl->getASTContext();
+	const clang::RawComment *comment = ctx.getRawCommentForAnyRedecl(decl);
+	if (!comment) return std::string();
+
+	return comment->getFormattedText(ctx.getSourceManager(), ctx.getDiagnostics());
 }

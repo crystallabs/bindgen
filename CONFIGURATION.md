@@ -460,6 +460,7 @@ containers:
 | `flags` | Flags passed to Clang.  Templated, with environment variables only.  Defaults to `["-x", "c++", "-std=c++11"]`. |
 | `defines` | Macros defined for the parse.  Defaults to `__STDC_CONSTANT_MACROS` and `__STDC_LIMIT_MACROS`. |
 | `binary` | Path of the parser tool.  Templated, with environment variables only.  Defaults to bindgen's own `clang/parser`. |
+| `all_comments` | `true` copies plain `//` and `/* */` comments into the Crystal wrappers too, not just documentation comments.  Defaults to `false`. |
 
 ```yaml
 parser:
@@ -469,6 +470,10 @@ parser:
 ```
 
 Setting `flags` replaces the default, so keep `-x c++` for C++ headers.
+
+Documentation comments (`///`, `/** */`, `//!` and `/*! */`) in front of
+classes, methods, fields, enums and functions are copied into the generated
+Crystal wrappers.  See [Documentation comments](README.md#documentation-comments).
 
 ## `types`
 

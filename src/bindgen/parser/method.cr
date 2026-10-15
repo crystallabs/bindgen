@@ -101,6 +101,9 @@ module Bindgen
       @[JSON::Field(key: "returnType")]
       getter return_type : Parser::Type
 
+      # Documentation comment from the C++ source, without comment markers.
+      getter doc : String?
+
       # Forces the bindings to use the specified name.
       @[JSON::Field(ignore: true)]
       setter binding_name : String?
@@ -119,6 +122,7 @@ module Bindgen
         @access = AccessSpecifier::Public, @type = Type::MemberMethod,
         @const = false, @virtual = false, @pure = false, @final = false, @extern_c = false,
         @builtin = false, @origin = nil, @crystal_name = nil, @binding_name = nil,
+        @doc = nil,
       )
       end
 
@@ -216,6 +220,7 @@ module Bindgen
             final: @final,
             builtin: @builtin,
             origin: self,
+            doc: @doc,
           )
 
           variant.crystal_name = @crystal_name
@@ -492,6 +497,7 @@ module Bindgen
           return_type: @return_type,
           crystal_name: crystal_name,
           binding_name: binding_method_name,
+          doc: @doc,
         )
       end
 
@@ -695,6 +701,7 @@ module Bindgen
           pure: @pure && other.pure?,
           final: @final,
           builtin: @builtin,
+          doc: @doc || other.doc,
         )
       end
 
@@ -727,6 +734,7 @@ module Bindgen
           virtual: @virtual,
           pure: @pure,
           final: @final,
+          doc: @doc,
         )
       end
 
@@ -750,6 +758,7 @@ module Bindgen
           virtual: @virtual,
           pure: @pure,
           final: @final,
+          doc: @doc,
         )
       end
     end

@@ -119,6 +119,7 @@ struct Method {
 	std::vector<Argument> arguments; // Arguments
 	int firstDefaultArgument = -1;
 	Type returnType; // Return type.  Not filled for a constructor.
+	std::string doc; // Documentation comment, if any
 };
 
 JsonStream &operator<<(JsonStream &s, Method::MethodType value);
@@ -144,6 +145,7 @@ struct Field : public Type {
 	bool hasDefault = false; // Does this field have a default value?
 	LiteralData value; // Default value of the field
 	int bitField = -1; // Width in bits if this is a bit-field, else -1
+	std::string doc; // Documentation comment, if any
 };
 
 JsonStream &operator<<(JsonStream &s, const Field &value);
@@ -167,6 +169,7 @@ struct Class {
 	std::vector<BaseClass> bases; // Names of base classes
 	std::vector<Method> methods; // Methods
 	std::vector<Field> fields; // Accessible fields
+	std::string doc; // Documentation comment, if any
 };
 
 JsonStream &operator<<(JsonStream &s, const Class &value);
@@ -177,6 +180,7 @@ struct Enum {
 	bool isFlags = false;
 	bool isAnonymous = false;
 	JsonMap<std::string, int64_t> values;
+	std::string doc; // Documentation comment, if any
 };
 
 JsonStream &operator<<(JsonStream &s, const Enum &value);
@@ -200,7 +204,7 @@ struct TypeInfoResult {
 
 // Version of the output format.  Increase it together with
 // `Bindgen::Parser::Document::FORMAT_VERSION` whenever the output changes.
-static const int BG_FORMAT_VERSION = 8;
+static const int BG_FORMAT_VERSION = 9;
 
 struct Document {
 	JsonMap<std::string, Enum> enums;

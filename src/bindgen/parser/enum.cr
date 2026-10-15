@@ -24,7 +24,10 @@ module Bindgen
       # Enum fields
       getter values : Hash(String, Int64)
 
-      def initialize(@name, @values, @type = "unsigned int", @flags = false, @anonymous = false)
+      # Documentation comment from the C++ source, without comment markers.
+      getter doc : String?
+
+      def initialize(@name, @values, @type = "unsigned int", @flags = false, @anonymous = false, @doc = nil)
       end
 
       def_equals_and_hash @name, @type, @flags, @values

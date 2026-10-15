@@ -1,0 +1,13 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.
+
+classes:
+  Documented: Documented
+  "Box<int>": BoxInt
+
+enums:
+  Color: Color
+
+functions:
+  increment: Funcs

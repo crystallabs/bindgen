@@ -177,6 +177,7 @@ module Bindgen
         suffix = "< #{klass.base_class}" if klass.base_class
         isstruct = @db.try_or(klass.origin.name, false, &.kind.struct?)
 
+        write_doc klass.origin.doc
         code_block scope, prefix, isstruct ? "struct" : "class", klass.name, suffix do
           write_included_modules(klass.included_modules)
           write_instance_variables(klass.instance_variables)
@@ -228,6 +229,7 @@ module Bindgen
         type = Parser::Type.parse(enumeration.origin.type)
         type_name = typename.qualified(*typename.wrapper(type))
 
+        write_doc enumeration.origin.doc
         puts "@[Flags]" if enumeration.origin.flags?
         code_block "enum", enumeration.name, ":", type_name do
           enumeration.origin.values.each do |name, value|
@@ -238,7 +240,18 @@ module Bindgen
 
       def visit_method(method)
         if call = method.calls[PLATFORM]?
+          write_doc method.origin.doc
           puts call.body.to_code(call, PLATFORM)
+        end
+      end
+
+      # Writes the documentation comment *doc* copied from the C++ source.
+      private def write_doc(doc : String?)
+        return if doc.nil?
+
+        doc.each_line do |line|
+          line = line.rstrip
+          puts line.empty? ? "#" : "# #{line}"
         end
       end
 

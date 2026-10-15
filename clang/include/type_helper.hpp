@@ -43,6 +43,11 @@ namespace TypeHelper {
 	Argument processFunctionParameter(const clang::ParmVarDecl *decl);
 
 	void addFunctionParameters(const clang::FunctionDecl *func, Method &m);
+
+	// Returns the documentation comment of *decl*, without the comment
+	// markers.  Returns the one of the template pattern for a declaration
+	// instantiated from a template.  Empty if there's none.
+	std::string docComment(const clang::Decl *decl);
 };
 
 #endif // RECORD_MATCH_HANDLER_HPP

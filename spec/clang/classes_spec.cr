@@ -1,6 +1,61 @@
 require "./spec_helper"
 
 describe "clang tool classes feature" do
+  it "exports documentation comments" do
+    clang_tool(
+      <<-CPP,
+        #include "#{PARSER_HELPER}"
+
+        /// A class.
+        struct Doc {
+          /** Adds things.
+           *  @param a The first. */
+          int add(int a);
+          // Plain comment.
+          int plain();
+          int field; ///< A field.
+          /// A static field.
+          static int counter;
+        };
+
+        /// A template.
+        template <typename T> struct Box {
+          /// The value.
+          T value;
+          /// Gets the value.
+          T get() { return value; }
+        };
+
+        template struct BindgenInstantiation<1, Box<int> >;
+        CPP
+      "-c Doc -c 'Box<int>'",
+      "classes.Doc.doc": "A class.",
+      "classes.Doc.methods.0": {name: "add", doc: "Adds things.\n@param a The first. "},
+      "classes.Doc.methods.1": {name: "plain", doc: nil},
+      "classes.Doc.fields": [
+        {name: "field", doc: "A field."},
+        {name: "counter", doc: "A static field."},
+      ],
+      "classes.Box<int>.doc": "A template.",
+      "classes.Box<int>.methods.0": {name: "get", doc: "Gets the value."},
+      "classes.Box<int>.fields": [{name: "value", doc: "The value."}],
+    )
+  end
+
+  it "exports plain comments with -fparse-all-comments" do
+    clang_tool(
+      <<-CPP,
+        struct Plain {
+          // Plain comment.
+          int plain();
+        };
+        CPP
+      "-c Plain",
+      flags: "-fparse-all-comments",
+      "classes.Plain.methods.0": {name: "plain", doc: "Plain comment."},
+    )
+  end
+
   it "exports the width of bit-fields" do
     clang_tool(
       <<-CPP,

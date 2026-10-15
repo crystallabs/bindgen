@@ -37,10 +37,11 @@ class ClangValidationError < Exception
   end
 end
 
-# Runs the clang tool on *cpp_code*, passing *arguments* to it.  All given
-# key-word arguments are checked for equality in the returned JSON document.
-# The check allows partial document comparisons.
-def clang_tool(cpp_code, arguments, **checks)
+# Runs the clang tool on *cpp_code*, passing *arguments* to it, and the
+# additional Clang *flags*.  All given key-word arguments are checked for
+# equality in the returned JSON document.  The check allows partial document
+# comparisons.
+def clang_tool(cpp_code, arguments, *, flags = "", **checks)
   file = File.tempfile("bindgen-clang-test")
   file.puts(cpp_code)
   file.flush
@@ -55,7 +56,7 @@ def clang_tool(cpp_code, arguments, **checks)
   end
   command = "#{tool} #{file.path} #{arguments} -- " \
             "-x c++ #{cxx_flags} " \
-            "-Wno-implicitly-unsigned-literal"
+            "-Wno-implicitly-unsigned-literal #{flags}"
 
   puts "Command: #{command}" if ENV["VERBOSE"]?
   json_doc = `#{command}`

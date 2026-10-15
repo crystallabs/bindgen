@@ -53,6 +53,7 @@ module Bindgen
           return_type: method.return_type,
           arguments: arguments,
           extern_c: method.extern_c?,
+          doc: method.doc,
         )
 
         if !type.constructor? && !type.destructor?
