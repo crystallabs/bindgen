@@ -79,6 +79,7 @@ bool RecordMatchHandler::runOnMethod(Method &m, Class &klass, const clang::CXXMe
 	m.isExternC = method->isExternC();
 	m.access = method->getAccess();
 	m.isBuiltin = !method->isUserProvided();
+	m.doc = TypeHelper::docComment(method);
 
 	clang::ASTContext &ctx = method->getASTContext();
 	const clang::CXXConstructorDecl* ctor = llvm::dyn_cast<clang::CXXConstructorDecl>(method);
@@ -127,6 +128,7 @@ bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *r
 	klass.isTriviallyCopyable = record->isTriviallyCopyable();
 	klass.isStandardLayout = record->isStandardLayout();
 	klass.typeKind = record->getTagKind();
+	klass.doc = TypeHelper::docComment(record);
 
 	clang::QualType recordType = TypeHelper::recordType(record);
 	clang::TypeInfo typeInfo = record->getASTContext().getTypeInfo(recordType);
@@ -210,6 +212,7 @@ static void readDefaultValue(Field &f, const clang::ValueDecl *decl, const clang
 bool RecordMatchHandler::runOnField(Field &f, const clang::FieldDecl *field) {
 	f.name = field->getNameAsString();
 	f.access = field->getAccess();
+	f.doc = TypeHelper::docComment(field);
 
 	if (field->isBitField()) {
 		f.bitField = field->getBitWidth()->EvaluateKnownConstInt(field->getASTContext()).getZExtValue();
@@ -228,6 +231,7 @@ bool RecordMatchHandler::runOnStaticField(Field &f, const clang::VarDecl *var) {
 		f.name = var->getNameAsString();
 		f.access = var->getAccess();
 		f.isStatic = true;
+		f.doc = TypeHelper::docComment(var);
 
 		clang::QualType qt = var->getType();
 		clang::ASTContext &ctx = var->getASTContext();

@@ -47,6 +47,7 @@ module Bindgen
           flags: is_flags,
           anonymous: enumeration.anonymous?,
           values: camelcase_fields(config, fields),
+          doc: enumeration.doc,
         )
       end
 

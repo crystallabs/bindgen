@@ -86,6 +86,14 @@ JsonStream &operator<<(JsonStream &s, const LiteralData &value) {
 	return s;
 }
 
+// Writes the documentation comment *doc*, or `null` if there's none.
+static JsonStream &writeDoc(JsonStream &s, const std::string &doc) {
+	if (doc.empty())
+		return s << std::make_pair("doc", JsonStream::Null);
+	else
+		return s << std::make_pair("doc", doc);
+}
+
 JsonStream &operator<<(JsonStream &s, const Argument &value) {
 	auto c = JsonStream::Comma;
 	s << JsonStream::ObjectBegin;
@@ -136,8 +144,10 @@ JsonStream &operator<<(JsonStream &s, const Method &value) {
 	}
 
 	s << std::make_pair("arguments", value.arguments) << c
-	  << std::make_pair("returnType", value.returnType)
-		<< JsonStream::ObjectEnd;
+	  << std::make_pair("returnType", value.returnType) << c;
+	writeDoc(s, value.doc);
+
+	return s << JsonStream::ObjectEnd;
 
 	return s;
 }
@@ -177,10 +187,11 @@ JsonStream &operator<<(JsonStream &s, const Field &value) {
 	}
 
 	if (value.bitField >= 0)
-		s << std::make_pair("bitField", value.bitField);
+		s << std::make_pair("bitField", value.bitField) << c;
 	else
-		s << std::make_pair("bitField", JsonStream::Null);
+		s << std::make_pair("bitField", JsonStream::Null) << c;
 
+	writeDoc(s, value.doc);
 	return s << JsonStream::ObjectEnd;
 }
 
@@ -204,7 +215,7 @@ JsonStream &operator<<(JsonStream &s, clang::TagTypeKind value) {
 
 JsonStream &operator<<(JsonStream &s, const Class &value) {
 	auto c = JsonStream::Comma;
-	return s
+	s
 		<< JsonStream::ObjectBegin
 		<< std::make_pair("name", value.name) << c
 		<< std::make_pair("byteSize", value.byteSize) << c
@@ -221,20 +232,24 @@ JsonStream &operator<<(JsonStream &s, const Class &value) {
 		<< std::make_pair("hasUserDeclaredConstructor", value.hasUserDeclaredConstructor) << c
 		<< std::make_pair("bases", value.bases) << c
 		<< std::make_pair("fields", value.fields) << c
-		<< std::make_pair("methods", value.methods)
-		<< JsonStream::ObjectEnd;
+		<< std::make_pair("methods", value.methods) << c;
+	writeDoc(s, value.doc);
+
+	return s << JsonStream::ObjectEnd;
 }
 
 JsonStream &operator<<(JsonStream &s, const Enum &value) {
 	auto c = JsonStream::Comma;
-	return s
+	s
 		<< JsonStream::ObjectBegin
 		<< std::make_pair("name", value.name) << c
 		<< std::make_pair("type", value.type) << c
 		<< std::make_pair("isFlags", value.isFlags) << c
 		<< std::make_pair("isAnonymous", value.isAnonymous) << c
-		<< std::make_pair("values", value.values)
-		<< JsonStream::ObjectEnd;
+		<< std::make_pair("values", value.values) << c;
+	writeDoc(s, value.doc);
+
+	return s << JsonStream::ObjectEnd;
 }
 
 JsonStream &operator<<(JsonStream &s, const Macro &value) {

@@ -28,6 +28,7 @@ module Bindgen
         classes = @classes.flat_map { |x| ["-c", Process.quote(x)] }
         enums = @enums.flat_map { |x| ["-e", "#{x}"] }
         flags = @config.flags.map { |x| Util.template(x, replacement: nil) }
+        flags << "-fparse-all-comments" if @config.all_comments?
         defines = @config.defines.map { |x| "-D#{x}" }
         includes = template_include_paths.map { |x| "-I#{x}" }
         macros = ["-m", @macros.join('|').inspect]

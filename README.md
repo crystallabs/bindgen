@@ -53,6 +53,7 @@ The configuration keys are described in [CONFIGURATION.md](CONFIGURATION.md).
       * [Qt](#qt)
       * [SanityCheck](#sanitycheck)
       * [VirtualOverride](#virtualoverride)
+   * [Documentation comments](#documentation-comments)
    * [Advanced configuration features](#advanced-configuration-features)
       * [Conditions](#conditions)
          * [Variables](#variables)
@@ -167,7 +168,7 @@ The following rules are automatically applied to all bindings:
 | `#define` macro support                          |         |
 |  +- Mapping as enumeration                       | **YES** |
 |  +- Mapping as constant (Including strings)      | **YES** |
-| Copying in-source docs                           |   TBD   |
+| Copying in-source docs                           | **YES** |
 | Platform specific type binding rules             | **YES** |
 | Portable path finding for headers, libs, etc.    | **YES** |
 
@@ -701,6 +702,45 @@ class MyLogger < Calculator
   end
 end
 ```
+
+# Documentation comments
+
+Documentation comments in the C++ headers are copied into the generated
+Crystal wrapper, in front of the wrapped classes, methods, enums and module
+functions.  The comments of a field are copied to its getter and setter.  For a
+class template instantiation, the comments of the template are used.
+
+```c++
+/// A point on the screen.
+struct Point {
+  /** Moves the point by *dx* and *dy*.
+   *  @param dx Horizontal distance. */
+  void move(int dx, int dy);
+
+  int x; ///< Horizontal position.
+};
+```
+
+```crystal
+# A point on the screen.
+class Point
+  # Moves the point by *dx* and *dy*.
+  # @param dx Horizontal distance.
+  def move(dx : Int32, dy : Int32) : Void
+
+  # Horizontal position.
+  def x() : Int32
+```
+
+By default only documentation comments are copied: `///`, `//!`, `/** */` and
+`/*! */`, plus the trailing `///<` form.  Set `all_comments: true` under
+`parser:` to copy plain `//` and `/* */` comments too.  Clang ignores comments in
+system headers, which includes headers found through `-isystem`.
+
+The comment text is copied as written, without the comment markers.  Doxygen
+commands like `@param` and `\brief` aren't converted, and show up as is in
+the Crystal API documentation.  Comments of enumerators and of `#define` macros
+aren't copied.
 
 # Advanced configuration features
 

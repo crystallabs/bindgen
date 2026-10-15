@@ -26,6 +26,7 @@ bool OperatorMatchHandler::runOnOperator(Method &m, const clang::FunctionDecl *o
 	m.type = Method::Operator;
 	m.name = op->getNameAsString();
 	m.access = clang::AS_public;
+	m.doc = TypeHelper::docComment(op);
 	m.returnType = TypeHelper::qualTypeToType(op->getReturnType(), ctx);
 	TypeHelper::addFunctionParameters(op, m);
 

@@ -73,6 +73,9 @@ module Bindgen
       # Methods defined in the class.
       getter methods : Array(Method)
 
+      # Documentation comment from the C++ source, without comment markers.
+      getter doc : String?
+
       def initialize(
         @name, @byte_size = 0, @has_default_constructor = false,
         @has_copy_constructor = false, @has_user_declared_constructor = false,
@@ -80,7 +83,7 @@ module Bindgen
         @abstract = false, @final = false, @polymorphic = false, @trivially_copyable = true,
         @standard_layout = true, @anonymous = false, @destructible = true,
         @bases = [] of BaseClass, @fields = [] of Field,
-        @methods = [] of Method, @access = AccessSpecifier::Public,
+        @methods = [] of Method, @access = AccessSpecifier::Public, @doc = nil,
       )
       end
 

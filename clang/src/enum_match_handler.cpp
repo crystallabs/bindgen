@@ -1,5 +1,6 @@
 #include "common.hpp"
 #include "enum_match_handler.hpp"
+#include "type_helper.hpp"
 
 EnumMatchHandler::EnumMatchHandler(Document &doc, const std::string &name)
 	: m_document(doc), m_enumName(name)
@@ -22,6 +23,7 @@ void EnumMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResult &
 bool EnumMatchHandler::runOnEnum(Enum &e, const clang::EnumDecl *enumeration) {
 	e.name = this->m_enumName;
 	e.type = enumeration->getIntegerType().getUnqualifiedType().getAsString();
+	e.doc = TypeHelper::docComment(enumeration);
 
 	for (const clang::EnumConstantDecl *field : enumeration->enumerators()) {
 		std::string name = field->getNameAsString();

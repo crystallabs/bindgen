@@ -26,6 +26,9 @@ module Bindgen
       @[JSON::Field(converter: Bindgen::Parser::ValueConverter)]
       getter value : DefaultValueTypes?
 
+      # Documentation comment from the C++ source, without comment markers.
+      getter doc : String?
+
       delegate public?, private?, protected?, to: @access
 
       # Suitable name for Crystal code

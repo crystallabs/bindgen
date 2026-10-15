@@ -41,6 +41,7 @@ static Method buildMethod(const clang::FunctionDecl *func, const std::string &fu
 	m.isPure = false;
 	m.isExternC = func->isExternC() || func->isInExternCContext();
 	m.access = clang::AS_public; // Global functions are always public
+	m.doc = TypeHelper::docComment(func);
 
 	clang::ASTContext &ctx = func->getASTContext();
 	m.returnType = TypeHelper::qualTypeToType(func->getReturnType(), ctx);

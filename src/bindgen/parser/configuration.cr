@@ -18,6 +18,10 @@ module Bindgen
 
       # List of defines (default to allow C99 stuff in C++)
       getter defines = %w[__STDC_CONSTANT_MACROS __STDC_LIMIT_MACROS]
+
+      # Copy all comments in front of declarations, not just documentation
+      # comments like `///` and `/** */`?
+      getter? all_comments = false
     end
   end
 end
