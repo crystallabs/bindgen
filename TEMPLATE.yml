@@ -488,6 +488,14 @@ types:
     # Defaults to `false`.
     copy_structure: true | false
 
+    # How the `lib struct` of a copied structure accesses its bit-fields:
+    # * `Accessors`: Calls C++ getter and setter functions.  Works on any
+    #   platform.
+    # * `Inline`: Shifts and masks the bits in Crystal.  Only correct on
+    #   platforms with the bit-field layout of the one generating the code.
+    # Defaults to `Accessors`.
+    bit_fields: Accessors | Inline
+
     # Whether to generate property methods for static and instance variables.
     # It accepts a boolean or a hash:
     # * `true`: Generate all methods with their default settings.

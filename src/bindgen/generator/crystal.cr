@@ -43,6 +43,66 @@ module Bindgen
       def visit_library(library)
         lib_gen = CrystalLib.new(@user_config, Configuration::Generator.dummy, @db)
         lib_gen.write_all library, @io, @depth
+        write_bit_field_methods(library)
+      end
+
+      # Reopens the `lib struct`s with bit-fields to add their methods.
+      private def write_bit_field_methods(library)
+        library.nodes.each do |node|
+          next unless node.is_a?(Graph::Struct) && !node.bit_fields.empty?
+
+          path = "#{library.name}::#{node.name}"
+          # The first member is at the address of the structure.
+          address = "pointerof(@#{node.fields.first_key}).as(#{path}*)"
+
+          code_block "struct", path do
+            node.bit_fields.each_with_index do |field, index|
+              puts "" if index > 0
+              write_bit_field(field, library.name, address)
+            end
+          end
+        end
+      end
+
+      # Writes the getter and setter of the bit-*field* of a `lib struct`,
+      # which is at *address*.  They call the C++ accessors in the `lib`
+      # *library*, if any, or else shift and mask the storage.
+      private def write_bit_field(field, library, address)
+        storage = "@#{field.storage}"
+        mask = "#{field.storage_type}.new!(0x#{(UInt64::MAX >> (64 - field.width)).to_s(16)}_u64)"
+
+        write_doc field.doc
+        code_block "def", "#{field.name} : #{field.type_name}" do
+          if getter = field.getter_fun
+            puts "#{library}.#{getter}(#{address})"
+          elsif field.bool
+            puts "(#{storage} >> #{field.shift}) & 1 != 0"
+          elsif signed_type = field.signed_type
+            # Shift the sign bit to the top, and back with sign extension.
+            left = field.unit_bits - field.shift - field.width
+            value = "#{signed_type}.new!(#{storage} << #{left}) >> #{field.unit_bits - field.width}"
+            value = "#{field.type_name}.new!(#{value})" if signed_type != field.type_name
+            puts value
+          else
+            puts "#{field.type_name}.new!((#{storage} >> #{field.shift}) & #{mask})"
+          end
+        end
+
+        return if field.const
+
+        puts ""
+        write_doc field.doc
+        code_block "def", "#{field.name}=(value : #{field.type_name}) : #{field.type_name}" do
+          if setter = field.setter_fun
+            puts "#{library}.#{setter}(#{address}, value)"
+          else
+            bits = field.bool ? "value ? 1 : 0" : "value"
+            puts "#{storage} = (#{storage} & ~(#{mask} << #{field.shift})) | " \
+                 "((#{field.storage_type}.new!(#{bits}) & #{mask}) << #{field.shift})"
+          end
+
+          puts "value"
+        end
       end
 
       def visit_class(klass)

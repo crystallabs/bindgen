@@ -18,6 +18,15 @@ module Bindgen
       @[JSON::Field(key: "bitField")]
       getter! bit_field : Int32
 
+      # Offset of this non-static field in its class, in bits.
+      @[JSON::Field(key: "bitOffset")]
+      getter bit_offset : Int64?
+
+      # Size of the type of this non-static field, in bits.  For a bit-field,
+      # this is the size of its declared type.
+      @[JSON::Field(key: "bitSize")]
+      getter bit_size : Int64?
+
       # Does this field have a default value?
       @[JSON::Field(key: "hasDefault")]
       getter? has_default : Bool

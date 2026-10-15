@@ -606,8 +606,25 @@ class, it holds the structure instead of a pointer to it.  Defaults to
 `false`.
 
 Structures which aren't trivially copyable, or with members a `lib struct`
-can't hold, like bit-fields, are refused.  See
+can't hold, like a `std::string`, are refused.  See
 [CopyStructs](README.md#copystructs).
+
+### `bit_fields`
+
+How the getters and setters of the bit-fields of a copied structure access
+them:
+
+| Value | Description |
+|-------|-------------|
+| `Accessors` | Calls C++ getter and setter functions.  Works on any platform.  The default. |
+| `Inline` | Shifts and masks the bits in Crystal.  Faster, but only correct on platforms with the bit-field layout of the one the code was generated on. |
+
+```yaml
+types:
+  Flags: { copy_structure: true, bit_fields: Inline }
+```
+
+See [Bit-fields](README.md#bit-fields).
 
 ### `instance_variables`
 
