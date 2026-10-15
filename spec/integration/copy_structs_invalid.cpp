@@ -116,11 +116,6 @@ struct MemberAfterBitField {
   char c;
 };
 
-union BitFieldUnion {
-  unsigned bits : 3;
-  int value;
-};
-
 struct EnumBitField {
   Color color : 2;
 };
@@ -130,4 +125,18 @@ struct AnonymousBitFields {
   struct {
     unsigned bits : 3;
   } member;
+};
+
+// Only bit-fields of integer types and `bool` are supported.
+struct SizeBitField {
+  size_t size : 3;
+};
+
+struct WideCharBitField {
+  wchar_t c : 8;
+};
+
+// A packed structure is smaller than the storage of its bit-fields.
+struct __attribute__((packed)) PackedBitFields {
+  unsigned bits : 3;
 };

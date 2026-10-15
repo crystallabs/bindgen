@@ -22,7 +22,7 @@ module Bindgen
       # Bit-fields of a `lib struct`, which get getter and setter methods.
       getter bit_fields = [] of BitField
 
-      # A bit-field of a `lib struct`.  It is stored in the integer member
+      # A bit-field of a `lib struct` or `lib union`.  It is stored in the integer member
       # *storage* of type *storage_type*, which is *unit_bits* wide, at the bit
       # *shift* counted from its least significant bit.  A signed bit-field has
       # the signed counterpart of the storage type as *signed_type*.

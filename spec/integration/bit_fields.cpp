@@ -27,6 +27,24 @@ struct Hosted {
   unsigned high : 4;
 };
 
+// A union, in which each bit-field has its own storage.
+union Variant {
+  unsigned low : 4;
+  int wide : 20;
+  uint8_t byte;
+};
+
+// Zero-width bit-fields move the members after them, which needs padding.
+struct ZeroWidth {
+  char a;
+  uint64_t : 0; // Moves `bits` to the next `uint64_t` unit.
+  unsigned bits : 3;
+  int d;
+  char b;
+  unsigned : 0; // Moves `e` to the next `unsigned` unit.
+  char e;
+};
+
 // Bit-fields of an anonymous type.  C++ functions can't name it, so only
 // `bit_fields_inline.yml` copies it.
 struct AnonymousMember {
@@ -57,6 +75,30 @@ Flags flags_make() {
   flags.big = -100000000000;
   flags.negative = -2;
   return flags;
+}
+
+Variant variant_make() {
+  Variant variant;
+  variant.wide = -5;
+  return variant;
+}
+
+int variant_sum(Variant variant) {
+  return variant.low;
+}
+
+ZeroWidth zero_width_make() {
+  ZeroWidth value;
+  value.a = 1;
+  value.b = 2;
+  value.bits = 5;
+  value.d = 7;
+  value.e = 3;
+  return value;
+}
+
+int zero_width_sum(ZeroWidth value) {
+  return value.a + value.b + value.bits + value.d + value.e;
 }
 
 Constants constants_make() {

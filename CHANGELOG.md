@@ -6,8 +6,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Added
 
-* Copied structures support bit-fields, through getter and setter methods of
-  their `lib struct`.  The type option `bit_fields` chooses between calling
+* Copied structures and unions support bit-fields, through getter and setter
+  methods of their `lib struct` or `lib union`.  The type option `bit_fields` chooses between calling
   C++ accessors (`Accessors`, the default) and shifting and masking the bits in
   Crystal (`Inline`).  The clang tool's output format changed, rebuild it.
 * Documentation comments of classes, methods, fields, enums and functions are

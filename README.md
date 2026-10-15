@@ -359,15 +359,37 @@ The type option `bit_fields` sets how these methods access the bits:
 
 The `lib struct` follows the layout of the Itanium C++ ABI, used by GCC and
 Clang outside of Windows: A run of bit-fields is stored in units of its largest
-type, which also hold the smaller ones.  A structure is refused if its layout
-can't be represented this way: When a bit-field shares a unit with a member
-before or after the run, as in `char c; unsigned bits : 3;`, or for bit-fields
-in a union or of an enumeration type.
+type, which also hold the smaller ones.  Members named `_pad0`, `_pad1` and so
+on pad the structure where a zero-width bit-field like `unsigned : 0` moves the
+next member.  In a `lib union`, each bit-field has its own storage member.
 
 A wrapper class hosting the structure accesses all members through C++,
-bit-fields included, regardless of `bit_fields`.  The methods of a structure of
-an anonymous type can't call C++, as C++ can't name the type, and need
-`bit_fields: Inline`.
+bit-fields included, regardless of `bit_fields`.
+
+These structures are refused, with an error saying why:
+
+* A bit-field sharing its storage unit with the member before the run, as in
+  `char c; unsigned bits : 3;`.  The bit-fields would have to start inside the
+  unit, which a `lib struct` can't express.
+* A member sharing the last storage unit of the run, as in
+  `unsigned bits : 3; char c;`, for the same reason.
+* A bit-field of another type than an integer type or `bool`, like an
+  enumeration, `size_t` or `wchar_t`.  Integer types are `char`, `short`,
+  `int`, `long` and `long long`, signed or unsigned, and the fixed-size types
+  like `uint32_t`.
+* A packed structure (`__attribute__((packed))`, `#pragma pack`) smaller than
+  the storage of its bit-fields.  Packed structures aren't supported in
+  general: The `lib struct` isn't packed, so its layout may differ even when
+  this isn't detected.
+* With `bit_fields: Accessors`, a structure of an anonymous type, like the type
+  of `member` in `struct { unsigned bits : 3; } member;`.  The C++ accessors
+  can't name the type.  Use `bit_fields: Inline` instead.
+* A bit-field crossing a storage unit.  GCC and Clang never lay out one this
+  way.
+
+A class that isn't copied, but wrapped, has none of these restrictions: Its
+property methods access the bit-fields through C++, see
+[InstanceProperties](#instanceproperties).
 
 ## `CppWrapper`
 
