@@ -16,6 +16,7 @@ classes:
   UnionInStruct: UnionInStruct
   StructInUnion: StructInUnion
   NestedUnion: NestedUnion
+  PlainPoint: PlainPoint
   Packed: Packed
   PackedMember: PackedMember
 
@@ -35,5 +36,6 @@ types:
   UnionInStruct: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   StructInUnion: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   NestedUnion: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  PlainPoint: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   Packed: { copy_structure: true, generate_binding: false, generate_wrapper: false }
   PackedMember: { copy_structure: true, generate_binding: false, generate_wrapper: false }

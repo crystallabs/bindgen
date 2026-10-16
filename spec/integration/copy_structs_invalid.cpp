@@ -145,6 +145,12 @@ struct PackedTwo {
 };
 #pragma pack(pop)
 
+// `i` keeps its alignment, as would a member of non-POD type on most targets.
+struct __attribute__((packed)) PackedAligned {
+  char c;
+  int i __attribute__((aligned(4)));
+};
+
 union __attribute__((packed)) PackedUnion {
   char c[5];
   int i;

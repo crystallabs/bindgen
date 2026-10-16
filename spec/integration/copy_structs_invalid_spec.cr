@@ -159,6 +159,10 @@ describe "copied structure validation" do
     code, errors = copy_structures("PackedUnion")
     code.should eq(1)
     errors.should contain(%(Can't copy structure of class "PackedUnion": It is a packed union, which Crystal can't express))
+
+    code, errors = copy_structures("PackedAligned")
+    code.should eq(1)
+    errors.should contain(%(Can't copy structure of class "PackedAligned": It is packed, but not all of its members are, which Crystal can't express))
   end
 
   it "accepts packing which doesn't move a member" do
