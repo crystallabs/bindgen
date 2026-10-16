@@ -141,11 +141,27 @@ module Bindgen
                    "It is packed by `#pragma pack(#{klass.pack_alignment})`, which Crystal can't express"
                  elsif klass.packed? && klass.cpp_union?
                    "It is a packed union, which Crystal can't express"
+                 elsif klass.packed? && !fully_packed?(klass)
+                   "It is packed, but not all of its members are, which Crystal can't express"
                  end
 
         if reason
           raise "Can't copy structure of class #{klass.name.inspect}: #{reason}"
         end
+      end
+
+      # Are all members of the packed *klass* packed, as in a `@[Packed]`
+      # struct?  A member with an `aligned` attribute keeps its alignment, as
+      # does one of a non-POD type on most targets other than Darwin.
+      private def fully_packed?(klass) : Bool
+        spans = klass.fields.reject(&.static?).map do |f|
+          offset, size = f.bit_offset, f.bit_size
+          return true unless offset && size # Unknown layout, trust the packing
+          {offset, offset + size}
+        end
+
+        spans.each_cons_pair.all? { |l, r| l[1] == r[0] } &&
+          spans.last[1] == klass.byte_size * 8
       end
 
       # Turns *klass*'s non-static fields into a hash of `Call::Result`s we can

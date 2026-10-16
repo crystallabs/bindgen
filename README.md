@@ -318,7 +318,9 @@ copyable and standard-layout.
 
 A structure packed by `__attribute__((packed))` or `#pragma pack(1)` becomes a
 `@[Packed]` `lib struct`.  Other packing is refused, as Crystal can't express
-it: `#pragma pack(N)` with N above 1, and a packed union.  Packing that doesn't
+it: `#pragma pack(N)` with N above 1, a packed union, and a packed structure
+with a member which keeps its alignment, like one with an `aligned` attribute,
+or one of a non-POD type on targets other than Darwin.  Packing that doesn't
 move any member, like `#pragma pack(4)` around `char` and `short` members, is
 ignored.
 

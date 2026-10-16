@@ -132,11 +132,17 @@ union NestedUnion {
 };
 
 
+// `Point` has a constructor, so it isn't POD, and a packed structure wouldn't
+// pack it on most targets.
+struct PlainPoint {
+  int x, y;
+};
+
 // A packed structure, whose members aren't aligned.
 struct __attribute__((packed)) Packed {
   char c;
   int i;
-  Point p;
+  PlainPoint p;
 };
 
 // A structure with a packed anonymous member, which isn't inlined.

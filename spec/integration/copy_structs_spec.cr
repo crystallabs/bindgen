@@ -121,7 +121,7 @@ describe "copied structure functionality" do
           subject = Test::Binding::Packed.new
           subject.c = 1u8
           subject.i = 20
-          subject.p = Test::Binding::Point.new(x: 300, y: 4000)
+          subject.p = Test::Binding::PlainPoint.new(x: 300, y: 4000)
           Test::Funcs.packed_sum(subject).should eq(4321)
         end
 
