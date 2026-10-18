@@ -14,6 +14,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   no longer overflows when generating the Crystal wrapper.
 * Qt signals listed in `ignore_methods`, or removed otherwise before the `qt`
   processor runs, get no `on_X` connection method.
+* A macro which isn't an expression, like `__attribute__((used)) inline`, is
+  skipped instead of aborting with "Can't convert nil of Nil to auto".
 
 ## 0.11.0 (2026-10-18)
 

@@ -56,9 +56,12 @@ module Bindgen
         macros.each do |define, match|
           next if define.function?
           name = Util.pattern_rewrite(config.name, match).underscore.upcase
-          # Without a type the macro couldn't be evaluated: Nothing to copy.
+          # Without a type, or a value, the macro couldn't be evaluated: Nothing
+          # to copy.  Clang leaves an `auto` typed, uninitialized variable behind
+          # for a definition which isn't an expression.
           next unless value_type = forced_type || define.type
-          value = type.convert(define.evaluated, value_type)
+          next if (evaluated = define.evaluated).nil?
+          value = type.convert(evaluated, value_type)
 
           next if value.nil?
 

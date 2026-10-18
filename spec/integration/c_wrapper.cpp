@@ -17,6 +17,7 @@
 #define VALUE_TRUE true
 #define VALUE_FALSE false
 #define VALUE_FLOAT 3.5
+#define VALUE_UNEVALUABLE __attribute__((used)) constexpr inline // Not an expression
 
 #define ANOTHER_A "A"
 #define ANOTHER_B "B"

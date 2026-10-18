@@ -22,6 +22,10 @@ describe "C-specific functionality" do
           Test::Complex::C.should eq("FooBar")
         end
 
+        it "skips macros which aren't expressions" do
+          {{ Test::Value.constants.map(&.stringify) }}.includes?("UNEVALUABLE").should be_false
+        end
+
         it "chooses the correct Crystal type" do
           Test::Value::INT32.should be_a(Int32)
           Test::Value::INT32.should eq(1)
