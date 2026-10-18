@@ -73,6 +73,14 @@ describe "a basic C++ wrapper" do
           other.x.should eq(7)
         end
 
+        it "wraps a class named like a glue class" do
+          Test::Mutex.new.lock.should eq(1)
+        end
+
+        it "drops a method colliding with another's Crystal signature" do
+          Test::Lockable.new.try_lock.should eq(1)
+        end
+
         it "resolves a typedef through a typedef with rules" do
           Test::Timing.new.wait.should eq(250)
           Test::Timing.new.twice(4).should eq(8)

@@ -148,8 +148,9 @@ module Bindgen
           method.variants { |m| list << m }
         end
 
-        # And make sure there are no duplicates.
-        Util.uniq_by(list) { |a, b| a.equals_except_const?(b) || a.equals_virtually?(b) }
+        # And make sure there are no duplicates, also of methods whose names
+        # only differ in C++, like `tryLock` and its alias `try_lock`.
+        Util.uniq_by(list) { |a, b| a.equals_except_const?(b) || a.equals_virtually?(b) || a.same_crystal_signature?(b) }
       end
 
       # Yields each wrappable method without any further processing.

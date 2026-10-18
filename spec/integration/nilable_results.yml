@@ -9,6 +9,7 @@ classes:
   Right: Right
   Both: Both
   Visitor: Visitor
+  Finder: Finder
 
 containers:
   - class: std::vector

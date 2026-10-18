@@ -78,6 +78,13 @@ describe "C++ virtual overriding from Crystal feature" do
       class Disc < Test::Circle
       end
 
+      # Test constructing an abstract class with an implicit default constructor
+      class Maker < Test::AbstractCreator
+        def make : Int32
+          42
+        end
+      end
+
       # Test subclassing a class whose base privately overrides a pure method
       class Oval < Test::AbstractRound
         def area : Int32
@@ -170,6 +177,12 @@ describe "C++ virtual overriding from Crystal feature" do
       class Test::Subclass::Superclass
         def has_random_number?
           {{ @type.methods.map &.name.stringify }}.includes?("random_number")
+        end
+      end
+
+      context "abstract class with an implicit default constructor" do
+        it "is constructed by a Crystal subclass" do
+          Maker.new.make.should eq(42)
         end
       end
 

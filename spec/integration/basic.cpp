@@ -323,3 +323,14 @@ struct Timing {
   Millis wait() { return Millis(250); }
   long twice(Millis millis) { return millis.count() * 2; }
 };
+
+// A wrapped class named like a Crystal class bindgen's glue uses.
+struct Mutex {
+  int lock() { return 1; }
+};
+
+// A std-style alias of a method collides with it in Crystal: the first wins.
+struct Lockable {
+  int tryLock() { return 1; }
+  int try_lock() { return 2; }
+};

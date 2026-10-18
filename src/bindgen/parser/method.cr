@@ -369,6 +369,15 @@ module Bindgen
         end
       end
 
+      # Does *other* have the same Crystal name and argument types, like
+      # `try_lock` next to `tryLock`?  Both would define the same method.
+      def same_crystal_signature?(other : Method) : Bool
+        return false if @type != other.type || crystal_name != other.crystal_name
+        return false if other.arguments.size != @arguments.size
+
+        @arguments.zip(other.arguments).all? { |l, r| l.type_equals?(r) }
+      end
+
       # Is this operator one bindgen can name, like `operator+`?  Not
       # `operator->` or `operator,`, which `filter_methods` drops.
       def supported_operator? : Bool

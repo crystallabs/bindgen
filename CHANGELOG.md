@@ -85,6 +85,16 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   an ignored type, is no longer sub-classed in C++ (which left the subclass
   abstract and uncompilable); it is wrapped without Crystal overrides, with
   a warning.
+* A Crystal override returning the nilable result type of `nilable_results`
+  passes `nil` to C++ as a null pointer.
+* An abstract class keeps its implicit default constructor, which
+  `std::is_default_constructible` denies, so a Crystal subclass of
+  `QItemEditorCreatorBase` constructs.
+* A method whose Crystal name and argument types equal another's, like the
+  std-style alias `try_lock` of `tryLock`, is dropped instead of generating
+  an ambiguous overload.
+* The glue's `Mutex` is qualified as `::Mutex`, so a wrapped class may be
+  named `Mutex`.
 * `#to?` to an abstract class wraps the cast in its `Impl` class instead of
   instantiating the abstract class.
 * A typedef of a typedef with rules of its own, like `QElapsedTimer::Duration`

@@ -16,6 +16,8 @@ classes:
   Pixel: Pixel
   Pixel2: Pixel2
   Timing: Timing
+  Mutex: Mutex
+  Lockable: Lockable
   FreeOps: FreeOps
   ImplicitConstructor: ImplicitConstructor
   Aggregate: Aggregate

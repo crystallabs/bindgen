@@ -35,3 +35,10 @@ struct Visitor {
   virtual int visit(Node *node) { return node->value; }
   int run() { return visit(Node::some()); }
 };
+
+// An override may return nil for a pointer, which reaches C++ as null.
+struct Finder {
+  virtual ~Finder() { }
+  virtual Node *find() { return Node::some(); }
+  bool found() { return find() != nullptr; }
+};

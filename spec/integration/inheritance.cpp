@@ -102,6 +102,13 @@ struct Shapes {
   static int sidesOf(const AbstractShape &shape) { return shape.sides(); }
 };
 
+// An abstract class with an implicit default constructor and a virtual
+// destructor, like `QItemEditorCreatorBase`: A Crystal subclass constructs it.
+struct AbstractCreator {
+  virtual ~AbstractCreator() { }
+  virtual int make() const = 0;
+};
+
 struct Subclass : public Base, public AbstractThing {
   int calc(int a, int b) override {
     return a * b;

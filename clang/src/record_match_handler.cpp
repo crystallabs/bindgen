@@ -143,8 +143,10 @@ static int packAlignment(const clang::CXXRecordDecl *record) {
 bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *record) {
 	const auto *typeInfoResult = m_document.findTypeInfoResult(klass.name);
 
+	// `std::is_default_constructible` is false for an abstract class, which
+	// a subclass still constructs through its default constructor.
 	klass.hasDefaultConstructor = record->hasDefaultConstructor() &&
-		!(typeInfoResult && !typeInfoResult->isDefaultConstructible);
+		(record->isAbstract() || !(typeInfoResult && !typeInfoResult->isDefaultConstructible));
 	klass.hasCopyConstructor = record->hasCopyConstructorWithConstParam();
 	klass.hasUserDeclaredConstructor = record->hasUserDeclaredConstructor();
 	klass.isAbstract = record->isAbstract();

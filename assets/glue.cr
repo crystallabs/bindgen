@@ -109,7 +109,7 @@ module BindgenHelper
 
   # Guards `@@kept_alive`.  Reentrant, as a GC finalizer may run C++ code
   # releasing an object while this fiber changes `@@kept_alive`.
-  @@kept_alive_mutex = Mutex.new(:reentrant)
+  @@kept_alive_mutex = ::Mutex.new(:reentrant) # A wrapped class may be named `Mutex`
 
   # Set while `@@kept_alive` changes.  Releases meanwhile are queued in
   # `@@pending_releases`, which doesn't allocate, and done afterwards.

@@ -10,6 +10,18 @@ describe "nilable_results feature" do
         end
       end
 
+      # An override returning the nilable result type
+      class NilFinder < Test::Finder
+        def find : Test::Node?
+          nil
+        end
+      end
+
+      it "passes a nil result of an override to C++ as null" do
+        Test::Finder.new.found.should be_true
+        NilFinder.new.found.should be_false
+      end
+
       it "returns nil for a null pointer" do
         Test::Node.none.should be_nil
         Test::Node.new.link.should be_nil

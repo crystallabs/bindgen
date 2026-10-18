@@ -60,6 +60,7 @@ module Bindgen
         to(type) do |is_ref, ptr, nilable|
           typer = Typename.new(@db)
           type_name, in_lib = typer.binding(type)
+          local_type_name = type_name
 
           Log.trace &.emit("binding type_name",
             type: type.full_name,
@@ -83,20 +84,24 @@ module Bindgen
             is_ref, ptr = reconfigure_pass_type(rules.pass_by, is_ref, ptr)
 
             if template.no_op? && !rules.builtin? && !type.builtin?
+              # A nilable wrapper, by the parser or by `nilable_results`, is
+              # converted explicitly: Crystal passes `nil` or an object to a
+              # pointer parameter, but not their union, which a nilable
+              # variable or the result of a Crystal override is.
+              nilable_wrapper = (nilable || @db.nilable_results?) && rules.kind.class? &&
+                                !rules.copy_structure? && ptr == 1 && !is_ref
+
               if !is_ref && ptr == 0 && structure_hosted?(rules)
                 # The wrapper class hosts the structure, its `#to_unsafe`
                 # returns a pointer to it.  Pass a copy by value.
                 template = Template.from_string("%.to_unsafe.value", simple: true)
+              elsif nilable_wrapper
+                null = "Pointer(#{typer.qualified(local_type_name, in_lib)}).null"
+                template = Template.from_string("(%.try(&.to_unsafe) || #{null})", simple: true)
               elsif to_unsafe && (rules.generate_wrapper? || !rules.copy_structure?)
                 # Not for a copied structure without a wrapper, as it's the
                 # `lib struct` itself.
                 template = Template.from_string("%.to_unsafe", simple: true)
-              elsif nilable && rules.kind.class? && !rules.copy_structure? && ptr == 1 && !is_ref
-                # A nilable wrapper is converted explicitly: Crystal passes
-                # `nil` or an object to a pointer parameter, but not their
-                # union, which a nilable variable is.
-                null = "Pointer(#{typer.qualified(type_name, in_lib)}).null"
-                template = Template.from_string("(%.try(&.to_unsafe) || #{null})", simple: true)
               end
             end
           end

@@ -20,6 +20,7 @@ classes:
   AbstractScalerMiddle: AbstractScalerMiddle
   ConcreteScaler: ConcreteScaler
   Painter: Painter
+  AbstractCreator: AbstractCreator
   SolidPainter: SolidPainter
   AbstractShape: AbstractShape
   AbstractRound: AbstractRound
