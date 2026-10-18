@@ -2,7 +2,7 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
-## Unreleased
+## 0.10.0 (2026-10-18)
 
 ### Added
 
@@ -16,6 +16,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * `CONFIGURATION.md` describes every key of the configuration file (#55).  A
   spec fails if a configuration key or a key of `TEMPLATE.yml` is missing in
   it.
+
+### Changed
+
+* `shard.yml` no longer caps the Crystal version at 2.0.0.
 
 ### Fixed
 
