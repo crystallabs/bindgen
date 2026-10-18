@@ -16,6 +16,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   processor runs, get no `on_X` connection method.
 * A macro which isn't an expression, like `__attribute__((used)) inline`, is
   skipped instead of aborting with "Can't convert nil of Nil to auto".
+* `qsizetype` maps to the signed `Int64` (`Int32` on 32-bit platforms) instead
+  of `LibC::SizeT`.
 
 ## 0.11.0 (2026-10-18)
 
