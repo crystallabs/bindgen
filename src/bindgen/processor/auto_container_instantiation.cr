@@ -7,6 +7,25 @@ module Bindgen
     #
     # This processor must be run before `InstantiateContainers`.
     class AutoContainerInstantiation < Base
+      def process(graph : Graph::Node, doc : Parser::Document)
+        # Container instantiations listed in `classes:` are wrapped from their
+        # parsed methods by `InstantiateContainers`, even if no method uses them.
+        @config.classes.each_key do |name|
+          try_add_container_type(Parser::Type.parse(name)) if Util.template_instantiation?(name)
+        end
+
+        super
+      end
+
+      # A class deriving from a container instantiation inherits its wrapper.
+      def visit_class(klass : Graph::Class)
+        klass.origin.bases.each do |base|
+          try_add_container_type(Parser::Type.parse(base.name))
+        end
+
+        super
+      end
+
       def visit_method(method : Graph::Method)
         m = method.origin
 

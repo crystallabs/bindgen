@@ -14,8 +14,12 @@ module Bindgen
       # Module for associative containers
       ASSOCIATIVE_MODULE = "BindgenHelper::AssociativeContainer"
 
-      def process(graph : Graph::Node, _doc : Parser::Document)
+      # The parsed document, for container instantiations listed in `classes:`.
+      @doc : Parser::Document?
+
+      def process(graph : Graph::Node, doc : Parser::Document)
         root = graph.as(Graph::Container)
+        @doc = doc
 
         @config.containers.each { |container| resolve_instantiations(container) }
 
@@ -103,20 +107,63 @@ module Bindgen
       end
 
       # Instantiates a single *container* *instance* into *root*.
+      #
+      # An instantiation listed in `classes:` was parsed, so its wrapper gets
+      # the methods and bases of the C++ class, under the configured name, on
+      # top of the container methods.  Run `filter_methods` afterwards to
+      # filter them like those of other classes.
       private def add_sequential_container(container, instance, root)
         builder = Graph::Builder.new(@db)
 
         templ_type = Parser::Type.parse(cpp_container_name(container, instance))
         templ_args = templ_type.template_arguments
-        klass = build_sequential_class(container, templ_type)
+        cpp_name = container_class_name(templ_type)
 
-        add_cpp_typedef(root, templ_type, klass.name)
-        set_container_type_rules(container, klass, templ_type)
+        if parsed = parsed_class(templ_type)
+          klass = adopt_parsed_class(container, parsed, templ_type, cpp_name)
+          crystal_name = @db[templ_type.full_name]?.try(&.crystal_type) || cpp_name
+        else
+          klass = build_sequential_class(container, templ_type)
+          crystal_name = cpp_name
+        end
 
-        graph = builder.build_class(klass, klass.name, root)
+        add_cpp_typedef(root, templ_type, cpp_name)
+        set_container_type_rules(container, templ_type, cpp_name, crystal_name)
+
+        graph = builder.build_class(klass, crystal_name, root)
         graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
         graph.included_modules << container_module(SEQUENTIAL_MODULE, templ_args)
         graph.included_modules << container_module(container.class, templ_args)
+
+        # A class deriving from the instantiation finds its base through this.
+        @db.get_or_add(templ_type.full_name).graph_node = graph
+      end
+
+      # The parsed class of the instantiation *templ_type*, if it was listed
+      # in `classes:`.
+      private def parsed_class(templ_type) : Parser::Class?
+        @doc.try(&.classes[templ_type.full_name]?)
+      end
+
+      # Turns the *parsed* instantiation of the sequential *container* into a
+      # container class: The container methods are added, replacing the C++
+      # ones of the same name, so the wrapper's `Indexable` implementation
+      # doesn't depend on how they are declared.  The constructors are replaced
+      # by the default constructor of the C++ typedef *cpp_name*, like other
+      # containers have: The type rules of the instantiation copy a returned
+      # instance, which a constructor's result must not be.  `.from` builds a
+      # container from any `Enumerable`.
+      private def adopt_parsed_class(container, parsed : Parser::Class, templ_type, cpp_name : String) : Parser::Class
+        var_type = templ_type.template_arguments.first
+        container_methods = {container.access_method, container.push_method, container.size_method}
+        parsed.methods.reject! { |m| m.any_constructor? || container_methods.includes?(m.name) }
+
+        parsed.methods << default_constructor_method(Parser::Class.new(name: cpp_name))
+        parsed.methods << access_method(container, parsed.name, var_type)
+        parsed.methods << push_method(container, parsed.name, var_type)
+        parsed.methods << size_method(container, parsed.name)
+
+        parsed
       end
 
       # Instantiates a single associative *container* *instance* into *root*.
@@ -131,14 +178,19 @@ module Bindgen
         entries = build_entries_class(klass, templ_type)
         entries_type = Parser::Type.parse("BindgenMapEntries<#{templ_type.full_name}>")
 
+        if parsed_class(templ_type)
+          raise "#{templ_type.full_name} is listed in `classes:`, but wrapping the methods of an associative container isn't supported"
+        end
+
         add_cpp_typedef(root, templ_type, klass.name)
         add_cpp_typedef(root, entries_type, entries.name)
-        set_container_type_rules(container, klass, templ_type)
+        set_container_type_rules(container, templ_type, klass.name, klass.name)
 
         graph = builder.build_class(klass, klass.name, root)
         graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
         graph.included_modules << container_module(ASSOCIATIVE_MODULE, templ_args)
         graph.included_modules << container_module(container.class, templ_args)
+        @db.get_or_add(templ_type.full_name).graph_node = graph
 
         entries_graph = builder.build_class(entries, "Entries", graph)
         entries_graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
@@ -190,40 +242,42 @@ module Bindgen
         )
       end
 
-      # Updates the rules of the *container* *klass*, whose instantiated type is
-      # *templ_type*.  The rules are changed to convert from and to the binding
-      # type.
-      private def set_container_type_rules(container, klass : Parser::Class, templ_type)
+      # Updates the rules of the *container* instantiated as *templ_type*, whose
+      # C++ typedef is *cpp_name* and whose wrapper class is *crystal_name*.
+      # The rules are changed to convert from and to the binding type.  The
+      # wrapper takes and returns the `Enumerable` of the container module,
+      # also if the instantiation is listed in `classes:` under another name.
+      private def set_container_type_rules(container, templ_type, cpp_name : String, crystal_name : String)
         rules = @db.get_or_add(templ_type.full_name)
         type_args = templ_type.template_arguments
 
         rules.pass_by = TypeDatabase::PassBy::Pointer
         rules.wrapper_pass_by = TypeDatabase::PassBy::Value
-        rules.binding_type = klass.name
-        rules.crystal_type ||= enumerable_type(container, type_args)
+        rules.binding_type = cpp_name
+        rules.crystal_type = enumerable_type(container, type_args)
         rules.container_type ||= container_module(container.class, type_args)
-        rules.cpp_type ||= klass.name
+        rules.cpp_type ||= cpp_name
 
         if rules.to_crystal.no_op?
           rules.to_crystal = Template.from_string(
-            "#{klass.name}.new(unwrap: %)", simple: true)
+            "#{crystal_name}.new(unwrap: %)", simple: true)
         end
         if rules.from_crystal.no_op?
           rules.from_crystal = Template.from_string(
-            "BindgenHelper.wrap_container(#{klass.name}, %).to_unsafe", simple: true)
+            "BindgenHelper.wrap_container(#{crystal_name}, %).to_unsafe", simple: true)
         end
         if rules.from_cpp.no_op?
-          rules.from_cpp = Template.from_string(@db.cookbook.value_to_pointer(klass.name))
+          rules.from_cpp = Template.from_string(@db.cookbook.value_to_pointer(cpp_name))
         end
         if rules.to_cpp.no_op?
-          rules.to_cpp = Template.from_string(@db.cookbook.pointer_to_reference(klass.name))
+          rules.to_cpp = Template.from_string(@db.cookbook.pointer_to_reference(cpp_name))
         end
 
         # We can no longer mark a template specialization as an alias of another
         # type, so we cheat by making both types share the same binding type
         # (this is normally not an issue since all binding types are `Void`).
-        rules = @db.get_or_add(klass.as_type)
-        rules.binding_type = klass.name
+        rules = @db.get_or_add(cpp_name)
+        rules.binding_type = cpp_name
       end
 
       # Returns the `Enumerable` the wrapper of *container* instantiated with
@@ -375,8 +429,13 @@ module Bindgen
       # Note: The returned class doesn't include any modules.  This is done on
       # the `Graph::Class` of the Crystal wrapper, see `#container_module`.
       private def container_class(container, templ_type : Parser::Type) : Parser::Class
-        name = "Container_#{templ_type.mangled_name}"
-        Parser::Class.new(name: name, has_default_constructor: true)
+        Parser::Class.new(name: container_class_name(templ_type), has_default_constructor: true)
+      end
+
+      # The name of the C++ typedef of the instantiation *templ_type*, and of
+      # its wrapper class unless `classes:` names it.
+      private def container_class_name(templ_type : Parser::Type) : String
+        "Container_#{templ_type.mangled_name}"
       end
 
       # Builds a method defining a default constructor for *klass*.

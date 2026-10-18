@@ -20,17 +20,18 @@ module Bindgen
       # Graph-refining processors:
       "default_constructor",
       "function_class",
-      "inheritance",
       "copy_structs",
       "macros",
       "functions",
       "instance_properties",
       "operators",
       "filter_methods",
-      # "auto_container_instantiation", # Not stable yet
       "extern_c",
+      "enums", # Before the containers, whose element type may be an enum
+      # "auto_container_instantiation", # Not stable yet
       "instantiate_containers",
-      "enums",
+      "inheritance",    # After the containers, which a class may derive from
+      "filter_methods", # For the inherited and container methods
       # Preliminary generation processors:
       "crystal_wrapper",
       "virtual_override",

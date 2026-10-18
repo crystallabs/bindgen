@@ -309,7 +309,23 @@ BaseClass RecordMatchHandler::handleBaseClass(const clang::CXXBaseSpecifier &bas
 	b.isVirtual = base.isVirtual();
 	b.inheritedConstructor = base.getInheritConstructors();
 	b.access = base.getAccessSpecifier();
-	b.name = TypeHelper::recordName(base.getType()->getAsCXXRecordDecl());
+
+	// The base is named by its type rather than its declaration, so a template
+	// instantiation keeps its arguments: `List<int>`, not `List`.  A typedef
+	// is looked through, to name the class it refers to.
+	const clang::CXXRecordDecl *record = base.getType()->getAsCXXRecordDecl();
+	clang::ASTContext &ctx = record->getASTContext();
+	clang::QualType type = base.getType().getUnqualifiedType();
+
+	while (type->isTypedefNameType()) {
+		type = type.getSingleStepDesugaredType(ctx);
+	}
+
+	if (auto name = TypeHelper::registeredTypeName(TypeHelper::recordType(record))) {
+		b.name = *name;
+	} else {
+		b.name = TypeHelper::fullyQualifiedName(type, ctx);
+	}
 
 	return b;
 }

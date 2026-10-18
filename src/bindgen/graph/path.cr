@@ -263,15 +263,19 @@ module Bindgen
       end
 
       # Searches in *container* for a node called *name*.  Also traverses
-      # `PlatformSpecific` containers automatically.
+      # `PlatformSpecific` containers automatically, but a node of all platforms
+      # wins over a platform-specific one of the same name, like a container
+      # class over its C++ typedef.
       private def find_in_container(container, name)
+        container.nodes.each do |node|
+          return node if !node.is_a?(PlatformSpecific) && node.name == name
+        end
+
         container.nodes.each do |node|
           if node.is_a?(PlatformSpecific)            # Support platform-specific
             if found = find_in_container(node, name) # Recurse
               return found
             end
-          else
-            return node if node.name == name
           end
         end
 

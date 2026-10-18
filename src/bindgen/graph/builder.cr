@@ -8,9 +8,12 @@ module Bindgen
       def initialize(@db : TypeDatabase)
       end
 
-      # Copies *document* into the *ns*.
-      def build_document(document : Parser::Document, ns : Namespace) : Namespace
+      # Copies *document* into the *ns*.  The classes named in *except* are
+      # left out, like container instantiations `Processor::InstantiateContainers`
+      # builds.
+      def build_document(document : Parser::Document, ns : Namespace, except = Set(String).new) : Namespace
         document.classes.each do |_, klass|
+          next if except.includes?(klass.name)
           target_name = crystal_path(klass.name, document)
 
           if @db[klass.name]?.nil? && klass.anonymous?

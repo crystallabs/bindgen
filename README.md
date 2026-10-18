@@ -264,11 +264,13 @@ The following processors are available, in alphabetical order:
 ## `AutoContainerInstantiation`
 
 * **Kind**: Refining
-* **Run after**: No specific dependency
+* **Run after**: The processors adding methods, like `Functions` and `Operators`
 * **Run before**: `InstantiateContainers`
 
 When encountering a known container class on an instantiation that is not
-registered yet, registers it.
+registered yet, registers it.  Instantiations are found in the argument and
+result types of methods, in the base classes of wrapped classes, and in the
+`classes:` configuration.
 
 Container classes still need to be declared in the configuration, but don't
 require an explicit `instantiations` attribute anymore:
@@ -544,7 +546,7 @@ through configuration in the `functions:` map.
 ## `Inheritance`
 
 * **Kind**: Refining
-* **Run after**: `FunctionClass`
+* **Run after**: `FunctionClass`, and `InstantiateContainers` if used
 * **Run before**: `FilterMethods` and `VirtualOverride`
 
 Implements Crystal wrapper inheritance and adds `#as_X` conversion methods.
@@ -552,6 +554,10 @@ The Crystal superclass is the first wrapped base at offset 0 in the C++ class,
 the other bases are reached through `#as_X`, and their methods are wrapped in
 the derived class too.  Also handles abstract classes in that it adds an `Impl`
 class, so code can return instances to the (otherwise) abstract class.
+
+A container instantiation is a wrapped base too: a class like
+`QPolygon : public QList<QPoint>` inherits the container wrapper, so it is an
+`Indexable` and is accepted where C++ expects the container.
 
 Adds `#to?(T.class)` casting methods, which also cast down between polymorphic
 classes through a `dynamic_cast`, returning `nil` if the object isn't a `T`:
@@ -595,14 +601,39 @@ nested inside an unnamed member.
 ## `InstantiateContainers`
 
 * **Kind**: Refining
-* **Run after**: `AutoContainerInstantiation` if used
-* **Run before**: No specific dependency
+* **Run after**: `AutoContainerInstantiation` if used, and `Enums`, as the
+  wrapper of a container of an enum names the enum before its definition
+  otherwise
+* **Run before**: `Inheritance`, and `FilterMethods` for parsed instantiations
 
 Adds the container instantiation classes and wrappers.
 
 Each container class also gets a generic module, e.g. `QList(T)`.  Use it as
 type restriction, or get the wrapper class of an instantiation through its `of`
 macro: `QList.of(Int32).new`.  See `SPEC.md` for details.
+
+A wrapper normally offers the container interface only.  To wrap the methods
+of an instantiation too, list it in `classes:` under the name the wrapper
+should get.  It is parsed like any class, so its bases are wrapped when listed
+as well, and its methods are filtered by a `filter_methods` run afterwards.
+Qt keeps the methods of `QStringList` in a template specialization
+`QList<QString>` derives from, so both are listed:
+
+```yaml
+classes:
+  "QList<QString>": StringList
+  "QListSpecialMethods<QString>": StringListMethods
+types:
+  QStringList: { alias_for: "QList<QString>" } # Qt 6 declares it so
+```
+
+`Qt::StringList` is then a `QList(String)` with `#filter`, `#remove_duplicates`
+and the rest, and still built from and accepted as any `Enumerable(String)`.
+Its constructors are replaced by the default constructor; `.from` builds one
+from an `Enumerable`.  Methods of the instantiation name a typedef element
+type by the underlying type, like `std::basic_string<char, ...>` for
+`std::string`, which an `alias_for` rule maps back.  Wrapping the methods of
+an associative container isn't supported.
 
 Wrappers of sequential containers, like `std::vector`, are `Indexable`.
 Wrappers of associative containers, like `std::map`, `std::unordered_map`,

@@ -54,7 +54,10 @@ module Bindgen
                 @db.try_or(t, typer.full(pass.to_wrapper(t), expects_type: false), &.container_type)
               end
 
-              wrappers[arg_list] ||= "Container_#{templ_type.mangled_name}"
+              # The wrapper of an instantiation listed in `classes:` has the
+              # name configured there.
+              wrapper = @db[templ_type.full_name]?.try(&.graph_node).as?(Graph::Class)
+              wrappers[arg_list] ||= wrapper.try(&.name) || "Container_#{templ_type.mangled_name}"
             end
           end
 

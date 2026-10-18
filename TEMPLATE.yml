@@ -38,7 +38,6 @@ processors:
   # Graph-refining processors:
   - default_constructor # Create default constructors where possible
   - function_class # Turn OOP-y C APIs into real classes
-  - inheritance # Mirror inheritance hierarchy from C++
   - copy_structs # Copy structures as marked
   - macros # Support for macro mapping
   - functions # Add non-class functions
@@ -46,8 +45,11 @@ processors:
   - operators # Support for overloaded operators
   - filter_methods # Throw out filtered methods
   - extern_c # Directly bind to pure C functions
+  - enums # Add enums, before the containers whose element type may be one
+  # - auto_container_instantiation # Instantiate the containers methods use
   - instantiate_containers # Actually instantiate containers
-  - enums # Add enums
+  - inheritance # Mirror inheritance hierarchy from C++, also from containers
+  - filter_methods # Again, for the methods of containers and inherited ones
   # Preliminary generation processors:
   - crystal_wrapper # Create Crystal wrappers
   - block_overloads # Add type tags for block overloads
@@ -343,6 +345,11 @@ functions:
 # its instantiations include.  Use it in type restrictions.  The wrapper class
 # of an instantiation is returned by its `of` macro, and built from any
 # `Enumerable` by `.from`:  `QList.of(Int32).from([1, 2, 3])`
+#
+# An instantiation listed in `classes:`, like `"QList<QString>": StringList`,
+# is wrapped from its parsed methods and bases under that name, on top of the
+# container methods.  A class deriving from an instantiation, like
+# `QPolygon : public QList<QPoint>`, inherits from the container wrapper.
 containers:
   - class: Name of the C++ class
     type: "Sequential" or "Associative"

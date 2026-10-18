@@ -137,8 +137,17 @@ module Bindgen
         ld_flags: templated_ld_flags,
       )
 
-      builder.build_document(document, graph)
+      builder.build_document(document, graph, except: container_instantiations(document))
       graph
+    end
+
+    # The parsed classes which are instantiations of a configured container,
+    # which `Processor::InstantiateContainers` builds as container wrappers.
+    private def container_instantiations(document) : Set(String)
+      document.classes.keys.select do |name|
+        next false unless templ = Parser::Type.parse(name).template
+        @config.containers.any?(&.class.== templ.base_name)
+      end.to_set
     end
 
     # Generates a `Parser::Document` from the given configuration and C/C++

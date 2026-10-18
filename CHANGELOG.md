@@ -2,6 +2,32 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## Unreleased
+
+### Added
+
+* A container instantiation listed in `classes:`, like
+  `"QList<QString>": StringList`, is wrapped from its parsed methods and bases
+  under that name, on top of the container interface.  This wraps the
+  methods Qt keeps in `QListSpecialMethods<QString>`, when that specialization
+  is listed too.
+* A class deriving from a container instantiation, like
+  `QPolygon : public QList<QPoint>`, inherits the container wrapper, so it is
+  an `Indexable` and is accepted where C++ expects the container.  The
+  `inheritance` processor must run after `instantiate_containers` for this;
+  the default pipeline and `TEMPLATE.yml` do, and run `filter_methods` again
+  afterwards.  They also run `enums` before `instantiate_containers`, which a
+  container of an enum needs.
+* `auto_container_instantiation` also instantiates the containers found in
+  base classes and in `classes:`.
+
+### Fixed
+
+* The parser names a base class by its type, so a class template instantiation
+  base keeps its arguments: `QList<QPoint>` instead of `QList`.
+* A path lookup prefers a node of all platforms over a platform-specific one of
+  the same name, like a container class over its C++ typedef.
+
 ## 0.11.1 (2026-10-18)
 
 ### Fixed
