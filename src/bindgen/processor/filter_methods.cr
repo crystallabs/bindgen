@@ -12,6 +12,7 @@ module Bindgen
     # 6. Methods declared `[[deprecated]]`, if `ignore_deprecated` is set
     # 7. Methods using types nested in a template instantiation
     # 8. Operators Crystal can't name, like `operator->`
+    # 9. Methods using a template of an ignored type
     class FilterMethods < Base
       include Graph::Visitor::MayDelete
 
@@ -55,6 +56,10 @@ module Bindgen
         # Rule 8: Operators Crystal can't name, like `operator->`
         remove ||= !m.supported_operator?
 
+        # Rule 9: Templates of ignored types, like a `std::vector<Secret>`
+        remove ||= template_of_ignored?(m.return_type)
+        remove ||= m.arguments.any? { |arg| template_of_ignored?(arg) }
+
         # Rule 7: Types nested in a template instantiation, like
         # `QList<QString>::iterator`, which Crystal can't name
         remove ||= nested_in_instantiation?(m.return_type)
@@ -76,6 +81,13 @@ module Bindgen
         @db.try_or(type, false) do |config|
           config.ignore? || (config.anonymous? && config.cpp_type.nil?)
         end
+      end
+
+      # Checks if *type* is a template of an ignored type, at any depth.
+      private def template_of_ignored?(type : Parser::Type) : Bool
+        return false unless templ = type.template
+
+        templ.arguments.any? { |arg| type_ignored?(arg) || template_of_ignored?(arg) }
       end
 
       # Checks if *type* is nested in a template instantiation, like

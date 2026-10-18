@@ -28,7 +28,8 @@ struct Type {
 	int arrayPointer = 0; // Indirections to the whole array, e.g. `int (*)[4]` => 1
 	std::string baseName; // Base type. E.g., `const Foo *&` => `Foo`
 	std::string fullName; // Full name, for C++. E.g. `const Foo *&`
-	std::string desugared; // The type a typedef base type names, e.g. `QList<QFileInfo>` for `QFileInfoList`
+	std::string desugared; // The canonical type a typedef base type names, e.g. `QList<QFileInfo>` for `QFileInfoList`
+	std::vector<std::string> typedefs; // The typedefs between the base type and `desugared`, outermost first
 
 	std::optional<Template> templ; // Set if this is a template type
 };

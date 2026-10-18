@@ -1,3 +1,4 @@
+#include <chrono>
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -312,4 +313,13 @@ struct Pixel {
 struct Pixel2 {
   int x;
   int y;
+};
+
+// A typedef of a typedef with rules: `Millis` resolves to
+// `std::chrono::milliseconds`, not to the canonical `std::chrono::duration<...>`.
+typedef std::chrono::milliseconds Millis;
+
+struct Timing {
+  Millis wait() { return Millis(250); }
+  long twice(Millis millis) { return millis.count() * 2; }
 };

@@ -85,6 +85,13 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   an ignored type, is no longer sub-classed in C++ (which left the subclass
   abstract and uncompilable); it is wrapped without Crystal overrides, with
   a warning.
+* `#to?` to an abstract class wraps the cast in its `Impl` class instead of
+  instantiating the abstract class.
+* A typedef of a typedef with rules of its own, like `QElapsedTimer::Duration`
+  of `std::chrono::nanoseconds`, resolves to that typedef rather than to the
+  canonical type.
+* A container of an ignored type, like a `QMap<QFont::Tag, quint32>` of a
+  dropped method, is no longer instantiated.
 * A pointer argument defaulting to `nullptr`, like `bool *ok = nullptr`,
   defaults to `nil` instead of `true`.
 * A deduced `auto` return type is named by the deduced type, fully

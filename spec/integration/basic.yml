@@ -15,6 +15,7 @@ classes:
   Stream: Stream
   Pixel: Pixel
   Pixel2: Pixel2
+  Timing: Timing
   FreeOps: FreeOps
   ImplicitConstructor: ImplicitConstructor
   Aggregate: Aggregate
@@ -33,6 +34,16 @@ types:
     kind: Struct
     pass_by: Value
   Pixel2: *value_struct
+  "std::chrono::milliseconds": # Through the typedef `Millis`
+    cpp_type: int64_t
+    binding_type: Int64
+    crystal_type: Int64
+    builtin: true
+    generate_binding: false
+    generate_wrapper: false
+    pass_by: Value
+    to_cpp: "std::chrono::milliseconds(%)"
+    from_cpp: "(%.count())"
   Elapsed: # Converted from the result of `Clock::operator-`
     cpp_type: int
     binding_type: Int32

@@ -62,6 +62,10 @@ module Bindgen
         arg_count = container_type_arguments(container.type)
         return if templ.arguments.size < arg_count
 
+        # A container of an ignored type, like `QMap<QFont::Tag, quint32>`
+        # of a dropped method, has no element type to name.
+        return if templ.arguments[0...arg_count].any? { |arg| @db.try_or(arg, false, &.ignore?) }
+
         # Add if we don't already know of this instantiation
         instantiation = templ.arguments[0...arg_count].map do |arg|
           @db.resolve_aliases(arg).full_name

@@ -193,9 +193,22 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clan
 	if (qt->isTypedefNameType()) {
 		// The canonical type, so typedefs nested in template arguments are
 		// resolved too: `QVector<QPair<double, QVariant>>` for
-		// `QVariantAnimation::KeyValues`.
+		// `QVariantAnimation::KeyValues`.  The typedefs on the way, like
+		// `std::chrono::nanoseconds` of `QElapsedTimer::Duration`, may have
+		// rules of their own, so they are reported too.
 		clang::QualType desugared = qt.getCanonicalType().getUnqualifiedType();
 		target.desugared = fullyQualifiedName(desugared, ctx);
+
+		clang::QualType step = qt.getUnqualifiedType();
+		while (step->isTypedefNameType()) {
+			step = step.getSingleStepDesugaredType(ctx).getUnqualifiedType();
+			if (!step->isTypedefNameType()) break;
+
+			std::string name = fullyQualifiedName(step, ctx);
+			if (name != target.baseName && (target.typedefs.empty() || target.typedefs.back() != name)) {
+				target.typedefs.push_back(name);
+			}
+		}
 	}
 
 	if (const auto *tmpl = llvm::dyn_cast<clang::TemplateSpecializationType>(ut.getTypePtr())) {

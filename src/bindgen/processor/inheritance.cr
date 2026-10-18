@@ -269,6 +269,13 @@ module Bindgen
         result = Crystal::Pass.new(@db).from_wrapper(method.return_type)
         code = result.apply_conversion(binding.body.to_code(binding, Graph::Platform::Crystal))
 
+        # An abstract class can't be instantiated: wrap in its `Impl` class,
+        # which `#add_abstract_impl_class` adds next to it.
+        if target.abstract?
+          type_name, _ = Crystal::Typename.new(@db).wrapper(target.origin.as_type)
+          code = code.gsub("#{type_name}.new(unwrap:", "#{type_name}Impl.new(unwrap:")
+        end
+
         add_cast(host, target, code)
       end
 

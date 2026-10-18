@@ -86,6 +86,11 @@ module Bindgen
       # looks through a typedef without rules of its own.
       getter desugared : String?
 
+      # The typedefs between the base type and `#desugared`, outermost first,
+      # like `std::chrono::nanoseconds` of `QElapsedTimer::Duration`: One
+      # with rules of its own wins over the canonical type.
+      getter typedefs : Array(String)?
+
       # Is this type known to be non-null, like the result of a cast or an
       # element of a container?  Then `nilable_results` doesn't apply to it.
       @[JSON::Field(ignore: true)]
@@ -251,6 +256,7 @@ module Bindgen
           template: @template,
           nilable: @nilable,
           desugared: @desugared,
+          typedefs: @typedefs,
         )
       end
 
@@ -278,6 +284,9 @@ module Bindgen
             full_name: @full_name,
             template: @template,
             nilable: true,
+            desugared: @desugared,
+            typedefs: @typedefs,
+            never_nil: @never_nil,
           )
         end
       end
@@ -415,7 +424,7 @@ module Bindgen
         @base_name, @full_name, @const, @reference, @pointer, @move = false,
         @builtin = false, @void = false, @kind = Kind::Class, @template = nil,
         @nilable = false, @extents = Array(UInt64).new, @array_pointer = 0,
-        @desugared = nil,
+        @desugared = nil, @typedefs = nil, @never_nil = false,
       )
       end
 
@@ -493,6 +502,9 @@ module Bindgen
           full_name: typer.full(@base_name, @const, type_ptr, false, extents),
           template: @template,
           nilable: false,
+          desugared: @desugared,
+          typedefs: @typedefs,
+          never_nil: @never_nil,
         )
       end
 
@@ -518,6 +530,9 @@ module Bindgen
           full_name: typer.full(@base_name, @const, type_ptr, @reference, extents),
           template: @template,
           nilable: @nilable,
+          desugared: @desugared,
+          typedefs: @typedefs,
+          never_nil: @never_nil,
         )
       end
 

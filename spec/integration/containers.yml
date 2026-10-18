@@ -49,6 +49,7 @@ containers:
     erase_method: remove
 
 types:
+  Secret: { ignore: true }
   rgb: { alias_for: "unsigned int" }
   bytearray: { alias_for: "std::vector<unsigned char>" }
   phonebook: { alias_for: "std::map<std::string, int>" }

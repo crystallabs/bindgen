@@ -69,6 +69,13 @@ describe "single and multiple inheritance feature" do
         Test::ConcreteScaler.new.scaled(2).should eq(4)
       end
 
+      it "casts down to an abstract class through its Impl class" do
+        made = Test::ScalerFactory.make.as(Test::AbstractScaler)
+        middle = made.to?(Test::AbstractScalerMiddle)
+        middle.should be_a(Test::AbstractScalerMiddleImpl)
+        middle.not_nil!.extra.should eq(7)
+      end
+
       it "reaches a privately overridden method through its base" do
         Test::Circle.new.sides.should eq(0)
         Test::Circle.new.corners.should eq(0)

@@ -7,8 +7,13 @@ typedef std::vector<unsigned char> bytearray;
 typedef std::map<std::string, int> phonebook;
 typedef unsigned int rgb;
 
+// An ignored type: The container of it isn't instantiated.
+enum class Secret { Hidden };
+
 class Containers {
 public:
+  std::vector<Secret> secrets() { return { Secret::Hidden }; }
+
   // Pairs are converted to and from tuples.
   std::pair<std::string, int> entry() {
     return { "one", 1 };

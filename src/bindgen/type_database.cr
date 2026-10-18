@@ -382,7 +382,12 @@ module Bindgen
       return type if desugared.nil? || type.template
       return type if @types.has_key?(type.base_name) || @aliases.has_key?(type.base_name)
 
-      type.substitute({type.base_name => Parser::Type.parse(desugared)}).substitute(@aliases)
+      # A typedef on the way with rules of its own wins over the canonical
+      # type, which may have none: `std::chrono::nanoseconds` rather than
+      # `std::chrono::duration<long long, std::ratio<1, 1000000000>>`.
+      target = type.typedefs.try &.find { |name| @types.has_key?(name) || @aliases.has_key?(name) }
+
+      type.substitute({type.base_name => Parser::Type.parse(target || desugared)}).substitute(@aliases)
     end
 
     # Adds a type *rules* as *name*.  Overwrites any old rules previously added

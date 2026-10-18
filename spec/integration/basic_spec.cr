@@ -73,6 +73,11 @@ describe "a basic C++ wrapper" do
           other.x.should eq(7)
         end
 
+        it "resolves a typedef through a typedef with rules" do
+          Test::Timing.new.wait.should eq(250)
+          Test::Timing.new.twice(4).should eq(8)
+        end
+
         it "prefixes a method named like a reserved Crystal method" do
           init = Test::Init.new
           init.check.should be_false

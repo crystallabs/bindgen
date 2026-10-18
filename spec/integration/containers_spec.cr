@@ -5,6 +5,12 @@ describe "container instantiation feature" do
     build_and_run("containers") do
       FloatMatrix = Test::Std::Vector.of(Test::Std::Vector(Float64))
 
+      context "container of an ignored type" do
+        it "isn't instantiated" do
+          Test::Containers.new.responds_to?(:secrets).should be_false
+        end
+      end
+
       context "pair" do
         it "converts to and from tuples" do
           Test::Containers.new.entry.should eq({"one", 1})

@@ -16,6 +16,9 @@ static JsonStream &writeTypeJson(JsonStream &s, const Type &value) {
 	if (!value.desugared.empty()) {
 		s << std::make_pair("desugared", value.desugared) << c;
 	}
+	if (!value.typedefs.empty()) {
+		s << std::make_pair("typedefs", value.typedefs) << c;
+	}
 	s << std::make_pair("template", value.templ);
 	return s;
 }
