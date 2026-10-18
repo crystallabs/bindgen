@@ -12,3 +12,4 @@ enums:
   NS1::InnerEnum: NS1::InnerEnum
   NS1::NS2::InnerEnum2: NS1::NS2::InnerEnum2
   Flags: Flags
+  ScopedFlags: ScopedFlags

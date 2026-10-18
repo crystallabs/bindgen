@@ -36,6 +36,12 @@ describe "enumeration types functionality" do
           Test::Flags::None.value.should eq(0)
           Test::Flags::All.value.should eq(13)
         end
+
+        it "recognizes an uninstantiated `QFlags<T>` of an `enum class`" do
+          {{ Test::ScopedFlags.annotation(Flags) ? true : false }}.should be_true
+          Test::ScopedFlags.names.should eq(%w[S T])
+          Test::ScopedFlags.values.map(&.to_i).should eq([1, 2])
+        end
       end
 
       context "nested anonymous enums" do

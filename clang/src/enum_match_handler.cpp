@@ -40,24 +40,25 @@ bool EnumMatchHandler::runOnTypedef(Enum &e, const clang::TypedefNameDecl *typeD
 	// Support typedef'd enum types.
 	if (const clang::EnumType *eType = qt->getAs<clang::EnumType>()) {
 		return runOnEnum(e, eType->getDecl());
-	} else if (auto tmpl = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(qt->getAsCXXRecordDecl())) {
-		std::string templateName = tmpl->getTemplateInstantiationPattern()->getNameAsString();
+	}
 
-		// Check if we have a `QFlags` template type
-		if (templateName == "QFlags") {
-			return handleQFlagsType(e, tmpl);
-		}
+	// A `QFlags<E>` instantiation.  Nothing may have instantiated it, like
+	// `QMessageBox::Options` of the `enum class` `Option`, so it has no
+	// definition and no instantiation pattern: ask the template itself.
+	auto tmpl = llvm::dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(qt->getAsCXXRecordDecl());
+	if (tmpl && tmpl->getSpecializedTemplate()->getNameAsString() == "QFlags") {
+		return handleQFlagsType(e, tmpl);
 	}
 
 	return false;
 }
 
 bool EnumMatchHandler::handleQFlagsType(Enum &e, const clang::ClassTemplateSpecializationDecl *tmpl) {
-	if (tmpl->getTemplateInstantiationArgs().size() != 1)
+	if (tmpl->getTemplateArgs().size() != 1)
 		return false; // Size is expected to be "1"!
 
 	// Grab the template argument, check if it's an `enum`, and if so, process it!
-	const clang::TemplateArgument &arg = tmpl->getTemplateInstantiationArgs().get(0);
+	const clang::TemplateArgument &arg = tmpl->getTemplateArgs().get(0);
 	clang::QualType qt = arg.getAsType();
 
 	if (!qt->isEnumeralType())

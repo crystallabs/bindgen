@@ -234,6 +234,9 @@ module Bindgen
     # What to put into `@[Link(ldflags: "x")]`
     property library : String? = nil
 
+    # Drop the methods declared `[[deprecated]]`, in `filter_methods`.
+    property? ignore_deprecated : Bool = false
+
     # Which enums to wrap
     @[YAML::Field(converter: Bindgen::Configuration::GenericConverter(Bindgen::Configuration::Enum))]
     property enums : Hash(String, Bindgen::Configuration::Enum) = Hash(String, Bindgen::Configuration::Enum).new

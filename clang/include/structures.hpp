@@ -115,6 +115,7 @@ struct Method {
 	bool isPure = false; // Pure virtual?
 	bool isFinal = false; // Virtual, but can't be overridden?
 	bool isExternC = false; // Does the function use C ABI?
+	bool isDeprecated = false; // Is it declared `[[deprecated]]`?
 	std::string className; // Name of the class.
 	std::vector<Argument> arguments; // Arguments
 	int firstDefaultArgument = -1;

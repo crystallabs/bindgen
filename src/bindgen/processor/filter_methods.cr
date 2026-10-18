@@ -9,6 +9,7 @@ module Bindgen
     #    a `typedef` (See `InstanceProperties`)
     # 4. Methods using unknown template instantiations are always ignored
     # 5. Conversion operators to types without rules
+    # 6. Methods declared `[[deprecated]]`, if `ignore_deprecated` is set
     class FilterMethods < Base
       include Graph::Visitor::MayDelete
 
@@ -40,6 +41,9 @@ module Bindgen
         # Rule 5: Conversion operators to types without rules, as their name
         # can be anything, like a pointer to a member
         remove ||= m.conversion_operator? && @db[m.return_type]?.nil?
+
+        # Rule 6: Deprecated methods, overload by overload
+        remove ||= @config.ignore_deprecated? && m.deprecated?
 
         # Remove if ignored
         remove_method(method) if remove

@@ -521,7 +521,11 @@ generator completely from your configuration.
 
 Removes all methods using an argument, or returning something, which is
 configured as `ignore: true`.  Also removes methods that show up in the
-`ignore_methods:` list.
+`ignore_methods:` list, and, with `ignore_deprecated: true` at the top level
+of the configuration, the methods and functions declared `[[deprecated]]`.
+Unlike `ignore_methods:`, which drops all overloads of a name, this drops
+exactly the deprecated overloads, like Qt's `QT_DEPRECATED_VERSION_X` ones
+when `QT_DISABLE_DEPRECATED_BEFORE` doesn't hide them yet.
 
 This processor can be run at any time in theory, but should be run as first part
 of the pipeline.

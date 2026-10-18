@@ -1,0 +1,10 @@
+<<: spec_base.yml
+
+ignore_deprecated: true
+
+classes:
+  Api: Api
+
+functions:
+  "^(helper|old_helper)$":
+    destination: "::"

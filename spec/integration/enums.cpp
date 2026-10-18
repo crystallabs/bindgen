@@ -34,6 +34,14 @@ enum FlagEnum {
 template class QFlags<FlagEnum>;
 typedef QFlags<FlagEnum> Flags;
 
+// Nothing instantiates these flags, like Qt's `QMessageBox::Options`.
+enum class ScopedFlag {
+  S = 0x01,
+  T = 0x02,
+};
+
+typedef QFlags<ScopedFlag> ScopedFlags;
+
 
 
 struct Nested {

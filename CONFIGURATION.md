@@ -105,6 +105,21 @@ library: "%/ext/binding.a -lstdc++ -lgccpp -lMyLib"
 cookbook.  Without it, linking fails with an undefined reference to
 `GC_throw_bad_alloc()`.
 
+## `ignore_deprecated`
+
+Whether the `filter_methods` processor drops the methods and functions
+declared `[[deprecated]]`.  Defaults to `false`.
+
+```yaml
+ignore_deprecated: true
+```
+
+Unlike `ignore_methods` of a type rule, which drops all overloads of a name,
+this drops exactly the deprecated overloads.  Qt declares its deprecated API
+with `QT_DEPRECATED_VERSION_X`, which hides the API deprecated before
+`QT_DISABLE_DEPRECATED_BEFORE` and marks the rest `[[deprecated]]`, so set
+this instead of listing them.
+
 ## `processors`
 
 The processor pipeline, run in the order given.  Defaults to:

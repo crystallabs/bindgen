@@ -135,6 +135,7 @@ JsonStream &operator<<(JsonStream &s, const Method &value) {
 		<< std::make_pair("isPure", value.isPure) << c
 		<< std::make_pair("isFinal", value.isFinal) << c
 		<< std::make_pair("isExternC", value.isExternC) << c
+		<< std::make_pair("isDeprecated", value.isDeprecated) << c
 		<< std::make_pair("className", value.className) << c;
 
 	if (value.firstDefaultArgument < 0) {

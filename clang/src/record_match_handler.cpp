@@ -77,6 +77,7 @@ bool RecordMatchHandler::runOnMethod(Method &m, Class &klass, const clang::CXXMe
 #endif
 	m.isFinal = method->hasAttr<clang::FinalAttr>();
 	m.isExternC = method->isExternC();
+	m.isDeprecated = method->hasAttr<clang::DeprecatedAttr>();
 	m.access = method->getAccess();
 	m.isBuiltin = !method->isUserProvided();
 	m.doc = TypeHelper::docComment(method);

@@ -40,6 +40,7 @@ static Method buildMethod(const clang::FunctionDecl *func, const std::string &fu
 	m.isVirtual = false;
 	m.isPure = false;
 	m.isExternC = func->isExternC() || func->isInExternCContext();
+	m.isDeprecated = func->hasAttr<clang::DeprecatedAttr>();
 	m.access = clang::AS_public; // Global functions are always public
 	m.doc = TypeHelper::docComment(func);
 

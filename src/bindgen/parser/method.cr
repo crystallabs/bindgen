@@ -76,6 +76,11 @@ module Bindgen
       @[JSON::Field(key: "isExternC")]
       getter? extern_c : Bool
 
+      # Is this method declared `[[deprecated]]`?  Removed by the
+      # `filter_methods` processor if `ignore_deprecated` is configured.
+      @[JSON::Field(key: "isDeprecated")]
+      getter? deprecated : Bool = false
+
       # Fully qualified name of the class in which the method is defined.
       @[JSON::Field(key: "className")]
       getter class_name : String
@@ -122,7 +127,7 @@ module Bindgen
         @access = AccessSpecifier::Public, @type = Type::MemberMethod,
         @const = false, @virtual = false, @pure = false, @final = false, @extern_c = false,
         @builtin = false, @origin = nil, @crystal_name = nil, @binding_name = nil,
-        @doc = nil,
+        @doc = nil, @deprecated = false,
       )
       end
 
