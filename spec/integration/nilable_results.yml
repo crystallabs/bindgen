@@ -1,0 +1,6 @@
+<<: spec_base.yml
+
+nilable_results: true
+
+classes:
+  Node: Node

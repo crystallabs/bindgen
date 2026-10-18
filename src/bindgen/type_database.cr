@@ -294,6 +294,10 @@ module Bindgen
 
     getter cookbook : Cpp::Cookbook
 
+    # Are pointers to wrapped classes returned as `T?`?  See
+    # `Configuration#nilable_results?`.
+    property? nilable_results = false
+
     def initialize(config : Configuration, cookbook : String | Cpp::Cookbook, with_builtins = true)
       Log.info { "creating new database" }
 

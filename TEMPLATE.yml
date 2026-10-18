@@ -36,6 +36,10 @@ library: "%/ext/binding.a -lgccpp"
 # overload.  Defaults to `false`.
 ignore_deprecated: false
 
+# Return `nil` for a null pointer to a wrapped class, so such results are
+# `T?`.  Defaults to `false`, returning a wrapper of the null pointer.
+nilable_results: false
+
 # Processors pipeline.  See `README.md` for details on each.
 # Defaults to the following, without `block_overloads`:
 processors:

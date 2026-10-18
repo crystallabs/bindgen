@@ -25,6 +25,7 @@ module Bindgen
       Log.info &.emit "new bindgen tool", root_path: @root_path, show_stats: @show_stats
 
       @database = TypeDatabase.new(@config.types, @config.cookbook)
+      @database.nilable_results = @config.nilable_results?
 
       # Add enum types to the db
       @config.enums.each do |cpp_name, crystal_name|

@@ -338,6 +338,8 @@ module Bindgen
             end
 
             if !array && !rules.builtin? && !is_constructor && !rules.converter && rules.to_crystal.no_op? && !in_lib && !rules.kind.enum?
+              # A pointer to a wrapped class may be null, see `nilable_results`.
+              nilable ||= @db.nilable_results? && rules.kind.class? && type.pointer == 1 && !type.reference?
               template = wrapper_initialize_template(rules, type_name, nilable)
             end
 

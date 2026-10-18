@@ -120,6 +120,18 @@ with `QT_DEPRECATED_VERSION_X`, which hides the API deprecated before
 `QT_DISABLE_DEPRECATED_BEFORE` and marks the rest `[[deprecated]]`, so set
 this instead of listing them.
 
+## `nilable_results`
+
+Whether a method returning a pointer to a wrapped class returns `nil` for a
+null pointer, so its result type is `T?`.  Defaults to `false`, in which case
+a wrapper of the null pointer is returned, and using it crashes.  C++ APIs
+like Qt return null pointers routinely (`parentWidget()`, `currentItem()`), so
+set this for them; references are never nilable.
+
+```yaml
+nilable_results: true
+```
+
 ## `processors`
 
 The processor pipeline, run in the order given.  Defaults to:

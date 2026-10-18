@@ -29,6 +29,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   same rules, so `filter_methods` needs to run only once.
 * The `Impl` class of an abstract class deriving from another abstract class
   gets the overloads a default argument splits an inherited pure method into.
+* `nilable_results: true` returns `nil` for a null pointer to a wrapped
+  class, so such results are `T?`, instead of a wrapper of the null pointer.
 * Pair types, like `std::pair` and `QPair`, are containers of `type: Pair`,
   converted to and from a Crystal `Tuple`, also inside other containers.
 * `ignore_deprecated: true` drops the methods and functions declared

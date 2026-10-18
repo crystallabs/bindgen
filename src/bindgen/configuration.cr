@@ -238,6 +238,10 @@ module Bindgen
     # Drop the methods declared `[[deprecated]]`, in `filter_methods`.
     property? ignore_deprecated : Bool = false
 
+    # Return `nil` for a null pointer to a wrapped class, so such results are
+    # `T?`.  Otherwise a wrapper of a null pointer is returned.
+    property? nilable_results : Bool = false
+
     # Which enums to wrap
     @[YAML::Field(converter: Bindgen::Configuration::GenericConverter(Bindgen::Configuration::Enum))]
     property enums : Hash(String, Bindgen::Configuration::Enum) = Hash(String, Bindgen::Configuration::Enum).new
