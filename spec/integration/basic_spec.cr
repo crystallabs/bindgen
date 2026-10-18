@@ -73,6 +73,10 @@ describe "a basic C++ wrapper" do
           other.x.should eq(7)
         end
 
+        it "reaches a nested enum of a class wrapped under its C++ name" do
+          Test::Mode.pick(Test::Mode::Kind::Slow).should eq(1)
+        end
+
         it "drops a nullptr_t overload" do
           Test::NullSink.new.take(3).should eq(3)
         end
@@ -83,6 +87,8 @@ describe "a basic C++ wrapper" do
 
         it "drops a method colliding with another's Crystal signature" do
           Test::Lockable.new.try_lock.should eq(1)
+          Test::Lockable.new.try_acquire.should eq(1)
+          Test::Lockable.new.try_acquire(3).should eq(3)
         end
 
         it "resolves a typedef through a typedef with rules" do

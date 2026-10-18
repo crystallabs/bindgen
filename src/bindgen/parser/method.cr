@@ -373,9 +373,14 @@ module Bindgen
       # `try_lock` next to `tryLock`?  Both would define the same method.
       def same_crystal_signature?(other : Method) : Bool
         return false if @type != other.type || crystal_name != other.crystal_name
-        return false if other.arguments.size != @arguments.size
 
-        @arguments.zip(other.arguments).all? { |l, r| l.type_equals?(r) }
+        # The shorter argument list may be a prefix of the other whose
+        # remaining arguments all have defaults: `try_acquire()` next to
+        # `tryAcquire(int n = 1)`, where Crystal would replace, not overload.
+        shorter, longer = @arguments.size <= other.arguments.size ? {@arguments, other.arguments} : {other.arguments, @arguments}
+        return false unless longer[shorter.size..].all?(&.has_exposed_default?)
+
+        shorter.zip(longer).all? { |l, r| l.type_equals?(r) }
       end
 
       # Is this operator one bindgen can name, like `operator+`?  Not

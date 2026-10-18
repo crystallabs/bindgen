@@ -19,6 +19,7 @@ classes:
   Mutex: Mutex
   Lockable: Lockable
   NullSink: NullSink
+  Mode: Mode
   FreeOps: FreeOps
   ImplicitConstructor: ImplicitConstructor
   Aggregate: Aggregate
@@ -30,6 +31,9 @@ classes:
   PlainStruct: PlainStruct
   Copyable: Copyable
   Undestructible: Undestructible
+
+enums:
+  Mode::Kind: Mode::Kind
 
 types:
   Pixel: &value_struct

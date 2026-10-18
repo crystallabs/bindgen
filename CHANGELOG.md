@@ -85,6 +85,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   an ignored type, is no longer sub-classed in C++ (which left the subclass
   abstract and uncompilable); it is wrapped without Crystal overrides, with
   a warning.
+* Enums are named by their global path in `lib Binding`, so a nested enum
+  of a class wrapped under its C++ name, like `QMutex::RecursionMode` of
+  `QMutex: QMutex`, isn't shadowed by the lib's alias of the class.
 * The C++ wrapper of a method of an anonymous struct, like the implicit
   `operator=` of `QMetaObject::d`, names the struct by its typedef.
 * `instance_variables` rules are keyed by the C++ name of the class, like
@@ -99,7 +102,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `QItemEditorCreatorBase` constructs.
 * A method whose Crystal name and argument types equal another's, like the
   std-style alias `try_lock` of `tryLock`, is dropped instead of generating
-  an ambiguous overload.
+  an ambiguous overload; so is one whose arguments are a prefix of another's
+  remaining defaults, like `try_acquire()` next to `tryAcquire(int n = 1)`,
+  which Crystal would replace rather than overload.
 * The glue's `Mutex` is qualified as `::Mutex`, so a wrapped class may be
   named `Mutex`.
 * `#to?` to an abstract class wraps the cast in its `Impl` class instead of

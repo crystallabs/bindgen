@@ -334,10 +334,19 @@ struct Mutex {
 struct Lockable {
   int tryLock() { return 1; }
   int try_lock() { return 2; }
+  int tryAcquire(int n = 1) { return n; }
+  int try_acquire() { return -1; } // Would replace `try_acquire(n = 1)` in Crystal
 };
 
 // A `std::nullptr_t` overload is dropped.
 struct NullSink {
   int take(std::nullptr_t) { return 0; }
   int take(int value) { return value; }
+};
+
+// A class wrapped under its C++ name: Its nested enum is still reachable
+// from `lib Binding`, whose alias of the class would shadow it.
+struct Mode {
+  enum Kind { Fast, Slow };
+  static int pick(Kind kind) { return kind; }
 };

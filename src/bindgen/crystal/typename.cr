@@ -82,6 +82,13 @@ module Bindgen
         # their binding types as built-in
         in_lib ||= !rules.kind.enum? && rules.binding_type != "Void" && !type.builtin?
 
+        # An enum is named by its global path: Inside `lib Binding`, a
+        # nested enum like `QMutex::RecursionMode` of a class wrapped under
+        # its C++ name would otherwise resolve `QMutex` to the lib's alias.
+        if rules.kind.enum? && (node = rules.graph_node)
+          return {Graph::Path.global(node).to_s, false}
+        end
+
         if name = rules.lib_type
           {name, in_lib}
         else
