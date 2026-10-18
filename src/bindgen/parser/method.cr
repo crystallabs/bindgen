@@ -349,7 +349,7 @@ module Bindgen
           elsif setter?(name)
             name[4..-1] + "=" # Remove `set_` prefix and add `=` suffix
           else
-            name # Normal method
+            crystal_safe_name(name) # Normal method
           end
         when .member_getter?, .static_getter?
           name
@@ -367,6 +367,15 @@ module Bindgen
         else
           raise "BUG: No #crystal_name implementation for type #{@type}"
         end
+      end
+
+      # Method names Crystal reserves, which a C++ method of that name gets
+      # prefixed with `cpp_`: `QHeaderView::initialize` is `#cpp_initialize`.
+      RESERVED_NAMES = %w[initialize finalize]
+
+      # Prefixes *name* if Crystal reserves it.
+      private def crystal_safe_name(name : String) : String
+        RESERVED_NAMES.includes?(name) ? "cpp_#{name}" : name
       end
 
       # Checks if this method is equal to *other*, except for the

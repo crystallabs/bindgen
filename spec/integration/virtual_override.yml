@@ -16,6 +16,8 @@ classes:
   Subclass: Subclass
   Implicit: Implicit
   Summer: Summer
+  Painter: Painter
+  SolidPainter: SolidPainter
   AbstractShape: AbstractShape
   AbstractRound: AbstractRound
   Circle: Circle
@@ -46,6 +48,8 @@ types:
     crystal_type: "Binding::Triple"
     generate_binding: false
     generate_wrapper: false
+  Hidden:
+    ignore: true
   Subclass:
     superclass_ignore_methods: [ "^random" ]
   Skip:

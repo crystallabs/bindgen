@@ -323,3 +323,17 @@ struct Summer {
     return sum(triple);
   }
 };
+
+// A pure virtual method taking an ignored type can't be wrapped, so the class
+// isn't sub-classed from Crystal: The C++ subclass would stay abstract.
+struct Hidden { };
+
+struct Painter {
+  virtual ~Painter() { }
+  virtual void draw(Hidden hidden) = 0;
+  virtual int id() { return 1; }
+};
+
+struct SolidPainter : public Painter {
+  void draw(Hidden hidden) override { }
+};

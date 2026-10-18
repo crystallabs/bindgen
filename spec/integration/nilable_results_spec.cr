@@ -20,6 +20,12 @@ describe "nilable_results feature" do
         Test::Node.new.value_of(nil).should eq(-1)
         Test::Node.new.value_of(Test::Node.some.not_nil!).should eq(5)
       end
+
+      it "takes a nilable variable as argument" do
+        maybe = Test::Node.some.as(Test::Node?) # A union, not nil nor the class
+        Test::Node.new.value_of(maybe).should eq(5)
+        Test::Node.new.value_of(nil.as(Test::Node?)).should eq(-1)
+      end
     end
   end
 end

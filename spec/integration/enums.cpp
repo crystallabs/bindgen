@@ -51,3 +51,25 @@ struct Nested {
 struct Renamed {
   enum { Z = 30 };
 };
+
+// `None` and `All` of a flags enum are Crystal's own; an `All` of another
+// value, like `QStyle::SC_All`, is renamed.
+namespace Masks {
+  enum MaskFlag {
+    None = 0,
+    Low = 1,
+    High = 2,
+    All = 3,
+  };
+
+  typedef QFlags<MaskFlag> MaskFlags;
+}
+
+namespace Odds {
+  enum OddFlag {
+    Odd = 1,
+    All = 0,
+  };
+
+  typedef QFlags<OddFlag> OddFlags;
+}

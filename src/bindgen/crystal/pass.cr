@@ -57,7 +57,7 @@ module Bindgen
 
         return array_pointer_to_binding(type, qualified) if type.pointer_to_c_array?
 
-        to(type) do |is_ref, ptr, _nilable|
+        to(type) do |is_ref, ptr, nilable|
           typer = Typename.new(@db)
           type_name, in_lib = typer.binding(type)
 
@@ -91,6 +91,12 @@ module Bindgen
                 # Not for a copied structure without a wrapper, as it's the
                 # `lib struct` itself.
                 template = Template.from_string("%.to_unsafe", simple: true)
+              elsif nilable && rules.kind.class? && !rules.copy_structure? && ptr == 1 && !is_ref
+                # A nilable wrapper is converted explicitly: Crystal passes
+                # `nil` or an object to a pointer parameter, but not their
+                # union, which a nilable variable is.
+                null = "Pointer(#{typer.qualified(type_name, in_lib)}).null"
+                template = Template.from_string("(%.try(&.to_unsafe) || #{null})", simple: true)
               end
             end
           end

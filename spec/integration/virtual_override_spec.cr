@@ -146,6 +146,14 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      context "pure virtual method that can't be wrapped" do
+        it "leaves the class without a C++ subclass, but usable" do
+          {{ Test::Painter.abstract? }}.should be_true
+          Test::SolidPainter.new.id.should eq(1)
+          Test::SolidPainter.new.responds_to?(:draw).should be_false
+        end
+      end
+
       context "structure argument of a callback" do
         it "arrives intact" do
           Test::Summer.new.call_sum.should eq(6)

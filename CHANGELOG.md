@@ -55,6 +55,19 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   seen by `virtual_override` through intermediate bases, so a subclass gets no
   forwarder calling the private method.  The `Impl` class of such a base
   no longer lacks the method.
+* A nilable wrapper argument, like `parent : Widget? = nil`, is converted
+  explicitly, so a variable of the union type can be passed: Crystal
+  accepts `nil` or an object for a pointer parameter, but not their union.
+* A C++ method named like a reserved Crystal method, `initialize` or
+  `finalize`, is wrapped as `#cpp_initialize`, instead of breaking the
+  wrapper's constructor.
+* `None` and `All` enumerators of a flags enum are left to Crystal's
+  `@[Flags]`, which defines them, when their values agree; otherwise they
+  are renamed `CppNone` and `CppAll`, instead of failing the sanity check.
+* A class with a pure virtual method `filter_methods` drops, like one taking
+  an ignored type, is no longer sub-classed in C++ (which left the subclass
+  abstract and uncompilable); it is wrapped without Crystal overrides, with
+  a warning.
 * A `const void *` is a `Void*`, no longer a `Void**`: the `void *` rule
   merged into the `void` rules through the decayed type.
 * The result of a C++ operator is converted as a whole: a `from_cpp` rule

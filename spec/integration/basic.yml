@@ -6,6 +6,7 @@ classes:
   Adder: AdderWrap
   Ops: Ops
   Clock: Clock
+  Init: Init
   FreeOps: FreeOps
   ImplicitConstructor: ImplicitConstructor
   Aggregate: Aggregate

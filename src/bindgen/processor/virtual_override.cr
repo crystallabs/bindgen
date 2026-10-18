@@ -34,7 +34,7 @@ module Bindgen
 
         Log.trace { "visting class #{klass.diagnostics_path}" }
 
-        if subclass?(klass.origin) && @db.try_or(klass.origin.name, true, &.sub_class?)
+        if subclass?(klass.origin) && @db.try_or(klass.origin.name, true, &.sub_class?) && pure_virtuals_wrapped?(klass)
           superclass = create_superclass(klass)
           add_superclass_init(superclass, klass)
           add_superclass_method(superclass, klass)
@@ -90,6 +90,33 @@ module Bindgen
           if base_klass = class_by_name?(base.name)
             subclass?(base_klass)
           end
+        end
+      end
+
+      # Are all pure virtual methods of *klass*, own and inherited, wrapped?
+      # One `filter_methods` dropped, like a method taking an ignored type,
+      # has no forwarder, which would leave the C++ subclass abstract.
+      private def pure_virtuals_wrapped?(klass : Graph::Class) : Bool
+        filter = FilterMethods.new(@config, @db)
+        pure = klass.origin.wrap_methods.select(&.pure?) + inherited_pure_methods(klass.origin)
+        missing = pure.select { |method| filter.filtered?(method) }
+
+        unless missing.empty?
+          Log.warn { "#{klass.diagnostics_path} can't be subclassed from Crystal: the pure virtual #{missing.map(&.name).uniq.join(", ")} can't be wrapped" }
+        end
+
+        missing.empty?
+      end
+
+      # The pure virtual methods *klass* inherits from its wrapped bases and
+      # doesn't override.
+      private def inherited_pure_methods(klass : Parser::Class) : Array(Parser::Method)
+        klass.bases.flat_map do |base|
+          base_klass = class_by_name?(base.name)
+          next [] of Parser::Method unless base_klass
+
+          pure = base_klass.wrap_methods.select(&.pure?) + inherited_pure_methods(base_klass)
+          pure.reject { |method| klass.find_parent_method(method) }
         end
       end
 

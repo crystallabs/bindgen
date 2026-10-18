@@ -37,6 +37,13 @@ describe "a basic C++ wrapper" do
           Test::Copyable.new(0).to_bool.should be_false
         end
 
+        it "prefixes a method named like a reserved Crystal method" do
+          init = Test::Init.new
+          init.check.should be_false
+          init.cpp_initialize
+          init.check.should be_true
+        end
+
         it "converts the result of an operator as a whole" do
           (Test::Clock.new - Test::Clock.new).should eq(1500)
         end

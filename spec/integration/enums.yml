@@ -13,3 +13,5 @@ enums:
   NS1::NS2::InnerEnum2: NS1::NS2::InnerEnum2
   Flags: Flags
   ScopedFlags: ScopedFlags
+  Masks::MaskFlags: MaskFlags
+  Odds::OddFlags: OddFlags

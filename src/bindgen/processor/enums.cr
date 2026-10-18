@@ -41,14 +41,36 @@ module Bindgen
         is_flags = config.flags.get(enumeration.flags?)
         fields = remove_key_prefix(config.prefix, enumeration.values)
 
+        values = camelcase_fields(config, fields)
+        values = without_flag_extremes(values) if is_flags
+
         Parser::Enum.new(
           name: enumeration.name,
           type: enumeration.type, # Make configurable?
           flags: is_flags,
           anonymous: enumeration.anonymous?,
-          values: camelcase_fields(config, fields),
+          values: values,
           doc: enumeration.doc,
         )
+      end
+
+      # A `@[Flags]` enum defines `None` as 0 and `All` as all members
+      # combined itself: Such C++ enumerators are dropped, and ones of
+      # another value, like `QStyle::SC_All`, are renamed to `CppAll` and
+      # `CppNone`.
+      private def without_flag_extremes(values)
+        others = values.reject { |name, _| name == "All" || name == "None" }
+        all = others.values.reduce(0i64) { |acc, value| acc | value }
+
+        values.each_with_object(values.class.new) do |(name, value), result|
+          if name == "None"
+            result["CppNone"] = value unless value == 0
+          elsif name == "All"
+            result["CppAll"] = value unless value == all
+          else
+            result[name] = value
+          end
+        end
       end
 
       # Writes the enumerators of the given *enumeration* to the *destination*

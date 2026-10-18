@@ -37,6 +37,14 @@ describe "enumeration types functionality" do
           Test::Flags::All.value.should eq(13)
         end
 
+        it "leaves None and All to Crystal" do
+          Test::MaskFlags.names.should eq(%w[Low High])
+          Test::MaskFlags::All.value.should eq(3)
+          Test::MaskFlags::None.value.should eq(0)
+          Test::OddFlags.names.should eq(%w[Odd CppAll])
+          Test::OddFlags::CppAll.value.should eq(0)
+        end
+
         it "recognizes an uninstantiated `QFlags<T>` of an `enum class`" do
           {{ Test::ScopedFlags.annotation(Flags) ? true : false }}.should be_true
           Test::ScopedFlags.names.should eq(%w[S T])

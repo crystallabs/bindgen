@@ -259,3 +259,10 @@ struct PlainStruct {
   void *vp;
   void **vpp;
 };
+
+// A method named like a Crystal reserved method is prefixed: `#cpp_initialize`.
+struct Init {
+  bool ready = false;
+  void initialize() { ready = true; }
+  bool check() { return ready; }
+};
