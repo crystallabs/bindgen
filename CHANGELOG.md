@@ -2,7 +2,7 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
-## Unreleased
+## 0.11.1 (2026-10-18)
 
 ### Fixed
 
