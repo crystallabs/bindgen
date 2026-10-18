@@ -13,7 +13,7 @@ classes:
 containers:
   - class: std::vector
     type: Sequential
-    instantiations:
-      - [ "Node *" ]
+    instantiations: # The nested `std::vector<Node *>` follows from this one
+      - [ "std::vector<Node *>" ]
   - class: std::__1::vector
     type: Sequential

@@ -27,6 +27,7 @@ describe "nilable_results feature" do
         nodes = Test::Nodes.new.all
         typeof(nodes.first).should eq(Test::Node)
         nodes.map(&.value).should eq([5, 5])
+        Test::Nodes.new.grid.map(&.map(&.value)).should eq([[5, 5], [5]])
         typeof(Test::Both.new.as_right).should eq(Test::Right)
         Test::Both.new.as_right.right.should eq(2)
         Test::Visitor.new.run.should eq(5)

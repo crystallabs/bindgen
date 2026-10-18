@@ -3,6 +3,21 @@ require "./spec_helper"
 describe "container classes feature" do
   it "works" do
     build_and_run("container_classes") do
+      class Doubling < Test::Totals
+        def total(values) : Float64
+          values.sum * 2
+        end
+      end
+
+      context "typedef of a container" do
+        it "is looked through in a virtual method" do
+          typeof(Test::Totals.new.total([1.0])).should eq(Float64)
+          Test::Totals.new.total([1.0, 2.5]).should eq(3.5)
+          Test::Totals.new.run.should eq(3.0)
+          Doubling.new.run.should eq(6.0)
+        end
+      end
+
       context "container instantiation listed in classes" do
         it "is wrapped under the configured name" do
           Test::List.of(String).should eq(Test::StringList)

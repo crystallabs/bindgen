@@ -19,6 +19,11 @@ struct Nodes {
   std::vector<Node *> all() {
     return { Node::some(), Node::some() };
   }
+
+  // Only the outer vector is listed in the configuration.
+  std::vector<std::vector<Node *>> grid() {
+    return { all(), { Node::some() } };
+  }
 };
 
 struct Left { int left() { return 1; } };

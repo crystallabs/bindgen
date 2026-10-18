@@ -138,3 +138,18 @@ public:
     return polygon.perimeter();
   }
 };
+
+// A typedef'd container argument of a virtual method, like
+// `QAbstractItemModel::mimeData(const QModelIndexList &)`.
+struct Totals {
+  virtual ~Totals() { }
+  virtual double total(const DoubleList &values) {
+    double sum = 0;
+    for (int i = 0; i < values.size(); i++) sum += values.at(i);
+    return sum;
+  }
+
+  double run() {
+    return total(DoubleList(std::vector<double>{ 1.0, 2.0 }));
+  }
+};

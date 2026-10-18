@@ -26,11 +26,14 @@ module Bindgen
         @name, @base_name, @full_name, @const, @reference, @move, @builtin,
         @void, @pointer, @template, @kind = Type::Kind::Class,
         @has_default = false, @value = nil, @nilable = false, @variadic = false,
-        @extents = Array(UInt64).new, @array_pointer = 0,
+        @extents = Array(UInt64).new, @array_pointer = 0, @desugared = nil,
+        @never_nil = false,
       )
       end
 
       def initialize(@name, type : Type, @has_default = false, @value = nil)
+        @desugared = type.desugared
+        @never_nil = type.never_nil?
         @base_name = type.base_name
         @full_name = type.full_name
         @const = type.const?
@@ -85,6 +88,8 @@ module Bindgen
           has_default: false,
           value: nil,
           nilable: nilable?,
+          desugared: @desugared,
+          never_nil: @never_nil,
         )
       end
 
@@ -111,6 +116,8 @@ module Bindgen
           has_default: @has_default || other.has_default?,
           value: @value || other.value,
           nilable: nilable? || other.nilable?,
+          desugared: @desugared,
+          never_nil: @never_nil,
         )
       end
 

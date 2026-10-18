@@ -55,7 +55,11 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   the canonical type, so nested typedefs resolve too, and the type database
   resolves it like an alias, also for a `const T &` argument.
 * `auto_container_instantiation` instantiates the containers nested in
-  template arguments too, like the pairs of a `QList<QPair<...>>`.
+  template arguments too, like the pairs of a `QList<QPair<...>>`, and so
+  does `instantiate_containers` for the configured `instantiations`.
+* The arguments of virtual methods keep what their typedef names when they
+  are unified across the class hierarchy, so a `const QModelIndexList &` of
+  `QAbstractItemModel::mimeData` is looked through like elsewhere.
 * The overload a default argument Crystal can't express splits off a pure
   virtual method is concrete, calling C++ with the default, which dispatches
   to the override: a Crystal subclass implements the full overload only,

@@ -9,13 +9,15 @@ processors:
   - instantiate_containers
   - inheritance
   - enums
+  - crystal_wrapper
+  - virtual_override
   - cpp_wrapper
   - crystal_binding
-  - crystal_wrapper
   - sanity_check
 
 classes:
   Lists: Lists
+  Totals: Totals
   Polygon: Polygon
   # Container instantiations, wrapped from their parsed methods
   "List<std::string>": StringList

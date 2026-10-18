@@ -25,6 +25,7 @@ module Bindgen
         @doc = doc
 
         @config.containers.each { |container| resolve_instantiations(container) }
+        add_nested_instantiations
 
         # Containers like `std::vector` and `std::__1::vector` share a module.
         used = @config.containers.reject(&.instantiations.empty?)
@@ -86,7 +87,7 @@ module Bindgen
 
       # Adds all instances of the sequential *container* into *root*.
       private def add_sequential_containers(container, root)
-        container.instantiations.each do |instance|
+        nested_first(container.instantiations).each do |instance|
           check_sequential_instance! container, instance
           add_sequential_container(container, instance, root)
         end
@@ -94,7 +95,7 @@ module Bindgen
 
       # Adds all instances of the associative *container* into *root*.
       private def add_associative_containers(container, root)
-        container.instantiations.each do |instance|
+        nested_first(container.instantiations).each do |instance|
           check_associative_instance! container, instance
           add_associative_container(container, instance, root)
         end
@@ -102,7 +103,7 @@ module Bindgen
 
       # Adds all instances of the *container* pair type into *root*.
       private def add_pair_containers(container, root)
-        container.instantiations.each do |instance|
+        nested_first(container.instantiations).each do |instance|
           check_associative_instance! container, instance
           add_pair_container(container, instance, root)
         end
@@ -130,6 +131,40 @@ module Bindgen
         graph.included_modules << container_module(PAIR_MODULE, templ_args)
         graph.included_modules << container_module(container.class, templ_args)
         @db.get_or_add(templ_type.full_name).graph_node = graph
+      end
+
+      # The *instantiations* with the less nested ones first, so the rules of
+      # a nested container exist when the one of it is instantiated.
+      private def nested_first(instantiations)
+        instantiations.to_a.sort_by { |instance| instance.sum(&.count('<')) }
+      end
+
+      # Instantiates the containers nested in the arguments of the configured
+      # instantiations, like the `std::vector<int>` of
+      # `std::vector<std::vector<int>>`, which `AutoContainerInstantiation`
+      # does for the ones it finds in methods.
+      private def add_nested_instantiations
+        loop do
+          added = false
+
+          @config.containers.each do |container|
+            container.instantiations.dup.each do |instance|
+              instance.each do |arg|
+                templ = Parser::Type.parse(arg).template
+                next unless templ
+                nested = @config.containers.find(&.class.== templ.base_name)
+                next unless nested
+                arg_count = nested.type.pair? || nested.type.associative? ? 2 : 1
+                next if templ.arguments.size < arg_count
+
+                instantiation = templ.arguments[0...arg_count].map { |t| @db.resolve_aliases(t).full_name }
+                added = true if nested.instantiations.add?(instantiation)
+              end
+            end
+          end
+
+          break unless added
+        end
       end
 
       # Resolves aliases in the type arguments of *container*'s instantiations,
