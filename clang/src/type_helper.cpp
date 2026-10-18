@@ -184,11 +184,10 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clan
 	// A typedef is reported with the type it names too, like `QList<QFileInfo>`
 	// for `QFileInfoList`, so bindgen can look through it if it has no rules.
 	if (qt->isTypedefNameType()) {
-		clang::QualType desugared = qt.getUnqualifiedType();
-		while (desugared->isTypedefNameType()) {
-			desugared = desugared.getSingleStepDesugaredType(ctx).getUnqualifiedType();
-		}
-
+		// The canonical type, so typedefs nested in template arguments are
+		// resolved too: `QVector<QPair<double, QVariant>>` for
+		// `QVariantAnimation::KeyValues`.
+		clang::QualType desugared = qt.getCanonicalType().getUnqualifiedType();
 		target.desugared = fullyQualifiedName(desugared, ctx);
 	}
 

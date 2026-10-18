@@ -17,7 +17,7 @@ module Bindgen
 
         arguments = method.arguments.map_with_index do |arg, idx|
           caller = pass.from_binding(arg, qualified: true)
-          callee = pass.from_wrapper(arg)
+          callee = pass.from_wrapper(arg, callback_argument: true)
           result = combine_result(caller, callee)
           result = pointer_argument(result) if pass.proc_by_pointer?(arg)
           result.to_argument(argument.name(arg, idx))

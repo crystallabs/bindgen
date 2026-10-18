@@ -395,7 +395,7 @@ module Bindgen
         )
 
         klass.methods << map_helper_method(klass, "bindgen_map_fetch", "fetch",
-          [Parser::Argument.new("map", self_type), key_arg], value_type)
+          [Parser::Argument.new("map", self_type), key_arg], value_type.never_nil)
 
         if insert_method = container.insert_method
           klass.methods << Parser::Method.build(
@@ -428,8 +428,8 @@ module Bindgen
         second_arg = Parser::Argument.new("second", second_type)
 
         klass.methods << default_constructor_method(klass)
-        klass.methods << map_helper_method(klass, "bindgen_pair_first", "first", [pair_arg], first_type)
-        klass.methods << map_helper_method(klass, "bindgen_pair_second", "second", [pair_arg], second_type)
+        klass.methods << map_helper_method(klass, "bindgen_pair_first", "first", [pair_arg], first_type.never_nil)
+        klass.methods << map_helper_method(klass, "bindgen_pair_second", "second", [pair_arg], second_type.never_nil)
         klass.methods << map_helper_method(klass, "bindgen_pair_set", "set",
           [pair_arg, first_arg, second_arg], Parser::Type::VOID)
 
@@ -476,7 +476,7 @@ module Bindgen
           name: "key",
           class_name: entries.name,
           arguments: [index_arg],
-          return_type: key_type,
+          return_type: key_type.never_nil,
           crystal_name: "unsafe_key",
         )
 
@@ -484,7 +484,7 @@ module Bindgen
           name: "value",
           class_name: entries.name,
           arguments: [index_arg],
-          return_type: value_type,
+          return_type: value_type.never_nil,
           crystal_name: "unsafe_value",
         )
 
@@ -526,8 +526,8 @@ module Bindgen
           name: container.access_method,
           class_name: klass_name,
           arguments: [idx_arg],
-          return_type: var_type,
-          crystal_name: "unsafe_at", # Used by `SequentialContainer#unsafe_fetch`
+          return_type: var_type.never_nil, # `Indexable(T)` returns a `T`
+          crystal_name: "unsafe_at",       # Used by `SequentialContainer#unsafe_fetch`
         )
       end
 

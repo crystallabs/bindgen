@@ -22,6 +22,11 @@ public:
     return { { "a", 1 }, { "b", 2 } };
   }
 
+  // The pair appears only inside the list.
+  std::vector<std::pair<double, int>> weights() {
+    return { { 0.5, 1 }, { 1.5, 2 } };
+  }
+
   std::vector<int> integers() {
     return std::vector<int>{ 1, 2, 3 };
   }

@@ -304,7 +304,7 @@ module Bindgen
       end
 
       # Computes a result for passing *type* from the wrapper to the user.
-      def from_wrapper(type : Parser::Type, is_constructor = false, no_slice = false) : Call::Result
+      def from_wrapper(type : Parser::Type, is_constructor = false, no_slice = false, callback_argument = false) : Call::Result
         Log.trace &.emit "from wrapper", type: type.base_name, is_constructor: is_constructor
 
         type = type.pointee_array if type.reference_to_c_array?
@@ -345,7 +345,10 @@ module Bindgen
 
             if !array && !rules.builtin? && !is_constructor && !rules.converter && rules.to_crystal.no_op? && !in_lib && !rules.kind.enum?
               # A pointer to a wrapped class may be null, see `nilable_results`.
-              nilable ||= @db.nilable_results? && rules.kind.class? && type.pointer == 1 && !type.reference?
+              # Not for the argument of a callback, which a Crystal override
+              # takes as declared, nor for a type known to be non-null.
+              nilable ||= @db.nilable_results? && !callback_argument && !type.never_nil? &&
+                          rules.kind.class? && type.pointer == 1 && !type.reference?
               template = wrapper_initialize_template(rules, type_name, nilable)
             end
 

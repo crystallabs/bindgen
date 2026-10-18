@@ -31,6 +31,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   gets the overloads a default argument splits an inherited pure method into.
 * `nilable_results: true` returns `nil` for a null pointer to a wrapped
   class, so such results are `T?`, instead of a wrapper of the null pointer.
+  Not for the argument of a callback, which a Crystal override takes as
+  declared, nor for container elements, pair members and `#as_X` casts.
 * Pair types, like `std::pair` and `QPair`, are containers of `type: Pair`,
   converted to and from a Crystal `Tuple`, also inside other containers.
 * `ignore_deprecated: true` drops the methods and functions declared
@@ -42,14 +44,25 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * The parser no longer crashes on a `QFlags<E>` typedef nothing instantiates,
   like `QMessageBox::Options` of an `enum class`.
 * A callback, like a Qt signal or a virtual method override, receives a
-  built-in `kind: Struct` type passed by value, like the `CrystalVariant`
-  behind `QVariant`, by pointer, as copied structures already were: the C
+  built-in `kind: Struct` type passed by value or by reference, like the
+  `CrystalVariant` behind a `const QVariant &`, by pointer, as copied
+  structures already were: the C
   ABI passes a structure larger than 16 bytes indirectly, which a Crystal
   `Proc` taking it by value read as garbage.  `bindgen_address` of
   `bindgen_helper.hpp` takes the address of a converted temporary.
 * A typedef without rules or an alias of its own, like `QFileInfoList`, is
   looked through to the type it names, `QList<QFileInfo>`: the parser reports
-  it, and the type database resolves it like an alias.
+  the canonical type, so nested typedefs resolve too, and the type database
+  resolves it like an alias, also for a `const T &` argument.
+* `auto_container_instantiation` instantiates the containers nested in
+  template arguments too, like the pairs of a `QList<QPair<...>>`.
+* The overload a default argument Crystal can't express splits off a pure
+  virtual method is concrete, calling C++ with the default, which dispatches
+  to the override: a Crystal subclass implements the full overload only,
+  like `row_count(parent)` of a model.
+* A default-argument overload copied from a base class stays one, so no
+  forwarder calling a non-existent C++ overload, like `columnCount()` of
+  `QStringListModel`, is generated.
 * A method a base class overrides privately, like `QAbstractListModel::parent`,
   is wrapped through the base it is public in, and the private override is
   seen by `virtual_override` through intermediate bases, so a subclass gets no

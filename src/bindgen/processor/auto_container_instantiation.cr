@@ -48,6 +48,11 @@ module Bindgen
         templ = type.template
         return if templ.nil?
 
+        # The arguments may be containers too, like the pairs of a list.
+        templ.arguments.each do |arg|
+          try_add_container_type(@db.resolve_aliases(arg))
+        end
+
         # Has to be a configured container type
         container = @config.containers.find(&.class.== templ.base_name)
         return if container.nil?

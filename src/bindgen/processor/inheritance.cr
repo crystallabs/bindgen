@@ -319,7 +319,7 @@ module Bindgen
 
         Parser::Method.build(
           name: "AS_#{to.mangled_name}",
-          return_type: to.origin.as_type(pointer: 1),
+          return_type: to.origin.as_type(pointer: 1).never_nil, # A cast of self
           arguments: [] of Parser::Argument,
           class_name: from.origin.name,
           crystal_name: "as_#{demodulized}",
@@ -399,6 +399,7 @@ module Bindgen
           first_default_argument: method.first_default_argument,
           return_type: method.return_type,
           deprecated: method.deprecated?,
+          origin: method.origin, # A variant of its origin stays one
         )
       end
 
@@ -417,6 +418,7 @@ module Bindgen
           first_default_argument: method.first_default_argument,
           return_type: method.return_type,
           deprecated: method.deprecated?,
+          origin: method.origin, # A variant of its origin stays one
         )
       end
 

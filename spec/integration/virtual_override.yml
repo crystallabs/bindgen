@@ -16,6 +16,9 @@ classes:
   Subclass: Subclass
   Implicit: Implicit
   Summer: Summer
+  AbstractScaler: AbstractScaler
+  AbstractScalerMiddle: AbstractScalerMiddle
+  ConcreteScaler: ConcreteScaler
   Painter: Painter
   SolidPainter: SolidPainter
   AbstractShape: AbstractShape

@@ -33,6 +33,7 @@ describe "container classes feature" do
           Test::Lists.new.joined(Test::Lists.new.names).should eq("Alice+Bob")
           Test::Lists.new.halves.to_a.should eq([0.5, 1.5])
           Test::Lists.new.doubles.to_a.should eq([2.5, 3.5]) # Through a typedef
+          Test::Lists.new.total_of([1.5, 2.0]).should eq(3.5)
         end
 
         it "is written after the types it names" do

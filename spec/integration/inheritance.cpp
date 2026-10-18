@@ -1,3 +1,5 @@
+#include <string>
+
 /* Note: Used by `inheritance_spec.cr` and `virtual_override_spec.cr`. */
 
 struct Base {
@@ -57,6 +59,9 @@ struct AbstractThing {
 struct AbstractScaler {
   virtual ~AbstractScaler() { }
   virtual int scaled(int a, int factor = 2) const = 0;
+  // A default Crystal can't express: The overload without it is concrete.
+  static int defaultPad() { return 2; }
+  virtual int padded(int pad = defaultPad()) const = 0;
 };
 
 struct AbstractScalerMiddle : public AbstractScaler {
@@ -65,6 +70,7 @@ struct AbstractScalerMiddle : public AbstractScaler {
 
 struct ConcreteScaler : public AbstractScalerMiddle {
   int scaled(int a, int factor) const override { return a * factor; }
+  int padded(int pad) const override { return pad; }
   int extra() const override { return 7; }
 };
 
@@ -77,14 +83,14 @@ struct ScalerFactory {
 // override it, but can't call it through `#superclass`.
 struct AbstractShape {
   virtual ~AbstractShape() { }
-  virtual int sides() const = 0;
+  virtual int sides(int scale = 1) const = 0; // Split by its default argument
   virtual int area() const = 0;
   int corners() const { return sides(); }
 };
 
 struct AbstractRound : public AbstractShape {
 private:
-  int sides() const override { return 0; }
+  int sides(int scale) const override { return 0 * scale; }
 };
 
 struct Circle : public AbstractRound {
@@ -317,10 +323,16 @@ struct Triple {
 struct Summer {
   virtual ~Summer() { }
   virtual long sum(Triple triple) { return triple.a + triple.b + triple.c; }
+  virtual long sumRef(const Triple &triple) { return triple.a + triple.b + triple.c; }
 
   long callSum() {
     Triple triple { 1, 2, 3 };
     return sum(triple);
+  }
+
+  long callSumRef() {
+    Triple triple { 4, 5, 6 };
+    return sumRef(triple);
   }
 };
 

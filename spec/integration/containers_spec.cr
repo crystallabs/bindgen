@@ -10,6 +10,7 @@ describe "container instantiation feature" do
           Test::Containers.new.entry.should eq({"one", 1})
           Test::Containers.new.sum({2, 3}).should eq(5)
           Test::Containers.new.entries.to_a.should eq([{"a", 1}, {"b", 2}])
+          Test::Containers.new.weights.to_a.should eq([{0.5, 1}, {1.5, 2}])
           pair = Test::Std::Pair.of(String, Int32).from({"x", 4})
           pair.first.should eq("x")
           pair.to_tuple.should eq({"x", 4})

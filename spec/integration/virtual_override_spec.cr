@@ -49,6 +49,33 @@ describe "C++ virtual overriding from Crystal feature" do
         def sum(triple) : Int64
           (triple.a + triple.b + triple.c) * 2
         end
+
+        def sum_ref(triple) : Int64
+          (triple.a + triple.b + triple.c) * 3
+        end
+      end
+
+      # Implements only the full overload of a pure method with a default
+      # argument, like a Crystal model implementing `row_count(parent)`.
+      class Tripler < Test::AbstractScalerMiddle
+        def scaled(a : Int32, factor : Int32 = 2) : Int32
+          a * factor * 3
+        end
+
+        # Only the full overload: `padded()` is concrete, calling C++ with
+        # the default.
+        def padded(pad : Int32) : Int32
+          pad * 3
+        end
+
+        def extra : Int32
+          0
+        end
+      end
+
+      # A subclass of a concrete class below a private override of a method
+      # with a default argument, like QStringListModel
+      class Disc < Test::Circle
       end
 
       # Test subclassing a class whose base privately overrides a pure method
@@ -158,6 +185,17 @@ describe "C++ virtual overriding from Crystal feature" do
         it "arrives intact" do
           Test::Summer.new.call_sum.should eq(6)
           Doubler.new.call_sum.should eq(12)
+          Test::Summer.new.call_sum_ref.should eq(15) # Taken by reference
+          Doubler.new.call_sum_ref.should eq(45)
+        end
+      end
+
+      context "pure method with a default argument" do
+        it "needs only the full overload implemented" do
+          Tripler.new.scaled(2, 2).should eq(12)
+          Tripler.new.scaled(2).should eq(12)
+          Tripler.new.padded(3).should eq(9)
+          Tripler.new.padded.should eq(6) # The default 2, through C++
         end
       end
 
@@ -165,8 +203,10 @@ describe "C++ virtual overriding from Crystal feature" do
         it "is wrapped and the subclass works" do
           oval = Oval.new
           oval.sides.should eq(0)
+          oval.sides(3).should eq(0) # The default argument's overload
           oval.area.should eq(40)
           Test::Shapes.sides_of(oval).should eq(0)
+          Disc.new.sides.should eq(0)
         end
       end
 

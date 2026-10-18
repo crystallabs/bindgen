@@ -93,9 +93,16 @@ typedef List<double> DoubleList;
 
 class Lists {
 public:
-  // A typedef of an instantiation is looked through without a rule.
+  // A typedef of an instantiation is looked through without a rule, also
+  // as a reference argument.
   DoubleList doubles() {
     return DoubleList(std::vector<double>{ 2.5, 3.5 });
+  }
+
+  double totalOf(const DoubleList &values) {
+    double total = 0;
+    for (int i = 0; i < values.size(); i++) total += values.at(i);
+    return total;
   }
 
   // A container of an enum: Its wrapper names the enum, which may be written

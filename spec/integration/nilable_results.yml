@@ -4,3 +4,16 @@ nilable_results: true
 
 classes:
   Node: Node
+  Nodes: Nodes
+  Left: Left
+  Right: Right
+  Both: Both
+  Visitor: Visitor
+
+containers:
+  - class: std::vector
+    type: Sequential
+    instantiations:
+      - [ "Node *" ]
+  - class: std::__1::vector
+    type: Sequential

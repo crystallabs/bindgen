@@ -86,8 +86,20 @@ module Bindgen
       # looks through a typedef without rules of its own.
       getter desugared : String?
 
+      # Is this type known to be non-null, like the result of a cast or an
+      # element of a container?  Then `nilable_results` doesn't apply to it.
+      @[JSON::Field(ignore: true)]
+      property? never_nil = false
+
       # Template information, if this type is a template type.
       getter template : Template?
+
+      # A copy of this type known to be non-null, see `#never_nil?`.
+      def never_nil : Type
+        copy = dup
+        copy.never_nil = true
+        copy
+      end
 
       # Returns the template arguments of this type.  Only valid for template
       # types, like container instantiations or `CrystalProc`s.
@@ -238,6 +250,7 @@ module Bindgen
           full_name: typer.full(@base_name, is_const, type_ptr, is_ref, extents, array_ptr),
           template: @template,
           nilable: @nilable,
+          desugared: @desugared,
         )
       end
 

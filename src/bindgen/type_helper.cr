@@ -62,7 +62,8 @@ module Bindgen
     # built-in `kind: Struct` types, like the `CrystalVariant` behind
     # `QVariant`.
     def proc_by_pointer?(type : Parser::Type) : Bool
-      return false if type.pointer > 0 || type.c_array?
+      # A reference counts as a pointer in `Parser::Type`, like `const QVariant &`.
+      return false if type.pointer > (type.reference? ? 1 : 0) || type.c_array?
 
       @db.try_or(type, false) do |rules|
         # C++ built-in types like `int` have `kind: Struct` rules too.

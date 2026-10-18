@@ -221,7 +221,7 @@ module Bindgen
             return_type: @return_type,
             const: @const,
             virtual: @virtual,
-            pure: @pure,
+            pure: false, # Calls C++ with the default, which dispatches virtually
             final: @final,
             builtin: @builtin,
             origin: self,

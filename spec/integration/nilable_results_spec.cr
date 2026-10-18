@@ -3,6 +3,13 @@ require "./spec_helper"
 describe "nilable_results feature" do
   it "works" do
     build_and_run("nilable_results") do
+      # The argument of an override is the class itself, not nilable.
+      class Doubling < Test::Visitor
+        def visit(node : Test::Node) : Int32
+          node.value * 2
+        end
+      end
+
       it "returns nil for a null pointer" do
         Test::Node.none.should be_nil
         Test::Node.new.link.should be_nil
@@ -14,6 +21,16 @@ describe "nilable_results feature" do
         some.should be_a(Test::Node)
         some.not_nil!.value.should eq(5)
         Test::Node.new.self.should be_a(Test::Node) # A reference, never nil
+      end
+
+      it "keeps container elements, casts and override arguments non-nil" do
+        nodes = Test::Nodes.new.all
+        typeof(nodes.first).should eq(Test::Node)
+        nodes.map(&.value).should eq([5, 5])
+        typeof(Test::Both.new.as_right).should eq(Test::Right)
+        Test::Both.new.as_right.right.should eq(2)
+        Test::Visitor.new.run.should eq(5)
+        Doubling.new.run.should eq(10)
       end
 
       it "keeps nilable arguments" do

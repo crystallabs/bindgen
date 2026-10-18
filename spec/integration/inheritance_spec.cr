@@ -62,6 +62,8 @@ describe "single and multiple inheritance feature" do
         made = Test::ScalerFactory.make
         made.should be_a(Test::AbstractScalerMiddleImpl)
         made.scaled(3).should eq(6) # The default argument's overload
+        made.padded.should eq(2)    # A default Crystal can't express
+        made.padded(3).should eq(3)
         made.scaled(3, 3).should eq(9)
         made.extra.should eq(7)
         Test::ConcreteScaler.new.scaled(2).should eq(4)
