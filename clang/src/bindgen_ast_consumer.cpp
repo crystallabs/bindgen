@@ -150,6 +150,64 @@ void BindgenASTConsumer::gatherTypeInfo(clang::ASTContext &ctx) {
 	}
 }
 
+// The template arguments written in the instantiation *name*, like `int` and
+// `std::string` of `Map<int, std::string>`.
+static std::vector<std::string> writtenTemplateArguments(const std::string &name) {
+	std::vector<std::string> arguments;
+	size_t open = name.find('<');
+	size_t close = name.rfind('>');
+	if (open == std::string::npos || close == std::string::npos || close < open) return arguments;
+
+	std::string current;
+	int depth = 0;
+
+	for (size_t i = open + 1; i < close; i++) {
+		char c = name[i];
+
+		if (c == '<' || c == '(') depth++;
+		if (c == '>' || c == ')') depth--;
+
+		if (c == ',' && depth == 0) {
+			arguments.push_back(current);
+			current.clear();
+		} else {
+			current += c;
+		}
+	}
+
+	arguments.push_back(current);
+
+	for (std::string &argument : arguments) {
+		size_t first = argument.find_first_not_of(' ');
+		size_t last = argument.find_last_not_of(' ');
+		argument = first == std::string::npos ? "" : argument.substr(first, last - first + 1);
+	}
+
+	return arguments;
+}
+
+// Names the type arguments of the *instantiation* as they are written in its
+// configured *name*.  Clang stores them canonically, so a typedef like
+// `std::string` would otherwise appear as `std::basic_string<char, ...>` in
+// the members of the instantiation.
+static void registerArgumentNames(const clang::CXXRecordDecl *instantiation, const std::string &name) {
+	auto spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(instantiation);
+	if (!spec) return;
+
+	const clang::TemplateArgumentList &arguments = spec->getTemplateArgs();
+	std::vector<std::string> written = writtenTemplateArguments(name);
+
+	for (size_t i = 0; i < written.size() && i < arguments.size(); i++) {
+		const clang::TemplateArgument &argument = arguments[i];
+		if (argument.getKind() != clang::TemplateArgument::Type || written[i].empty()) continue;
+
+		clang::QualType type = argument.getAsType();
+		if (!TypeHelper::registeredTypeName(type)) {
+			TypeHelper::registerTypeName(type, written[i]);
+		}
+	}
+}
+
 std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> BindgenASTConsumer::gatherInstantiations(clang::ASTContext &ctx) {
 	std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> result;
 
@@ -165,6 +223,7 @@ std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> BindgenASTConsumer:
 		const clang::CXXRecordDecl *record = args[1].getAsType()->getAsCXXRecordDecl();
 		if (record && record->getDefinition() && !record->isInvalidDecl()) {
 			TypeHelper::registerTypeName(TypeHelper::recordType(record), ClassList[index]);
+			registerArgumentNames(record->getDefinition(), ClassList[index]);
 			result.push_back(std::make_pair(index, record->getDefinition()));
 		}
 	}

@@ -2,7 +2,8 @@
 
 # `filter_methods` runs again after `instantiate_containers` and
 # `inheritance`, for the parsed methods of the container classes and the
-# methods copied from base classes.
+# methods copied from base classes.  `enums` runs last on purpose: The
+# generator must still define the enum before the container of it.
 processors:
   - default_constructor
   - filter_methods
@@ -10,6 +11,7 @@ processors:
   - instantiate_containers
   - inheritance
   - filter_methods
+  - enums
   - cpp_wrapper
   - crystal_binding
   - crystal_wrapper
@@ -26,8 +28,8 @@ containers:
   - class: List
     type: Sequential
 
+enums:
+  Color: Color
+
 types:
   StringList: { alias_for: "List<std::string>" }
-  # The methods of a parsed instantiation name a typedef element type by its
-  # underlying type, as Clang stores the template arguments canonically.
-  "std::basic_string<char, std::char_traits<char>, std::allocator<char>>": { alias_for: "std::string" }

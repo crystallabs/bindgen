@@ -94,7 +94,24 @@ Type TypeHelper::qualTypeToType(const clang::QualType &qt, clang::ASTContext &ct
 	return type;
 }
 
-void TypeHelper::qualTypeToType(Type &target, const clang::QualType &qt, clang::ASTContext &ctx) {
+// Looks through the typedefs a class template instantiation declares, like
+// `QList<QString>::value_type`: Their names are not useful to the binding, but
+// the types they refer to are.  Other typedefs are kept, as type rules may
+// name them.
+static clang::QualType desugarInstantiationTypedefs(clang::QualType qt, clang::ASTContext &ctx) {
+	while (const auto *typedefType = qt->getAs<clang::TypedefType>()) {
+		const clang::DeclContext *context = typedefType->getDecl()->getDeclContext();
+		if (!llvm::isa<clang::ClassTemplateSpecializationDecl>(context)) break;
+
+		qt = ctx.getQualifiedType(typedefType->desugar(), qt.getLocalQualifiers());
+	}
+
+	return qt;
+}
+
+void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clang::ASTContext &ctx) {
+	clang::QualType qt = desugarInstantiationTypedefs(given, ctx);
+
 #if CLANG_VERSION_MAJOR >= 22
 	clang::QualType ut = qt; // `ElaboratedType` is gone.
 #else

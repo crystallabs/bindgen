@@ -15,6 +15,7 @@ describe "container classes feature" do
         it "has the parsed methods" do
           list = Test::StringList.from(["b", "a"])
           list.first.should eq("b")
+          list.take_last.should eq("a") # Declared through a class-local typedef
           list.clear
           list.size.should eq(0)
         end
@@ -30,6 +31,10 @@ describe "container classes feature" do
           Test::Lists.new.joined(["x", "y"]).should eq("x+y")
           Test::Lists.new.joined(Test::Lists.new.names).should eq("Alice+Bob")
           Test::Lists.new.halves.to_a.should eq([0.5, 1.5])
+        end
+
+        it "is written after the types it names" do
+          Test::Lists.new.colors.to_a.should eq([Test::Color::Red, Test::Color::Blue])
         end
       end
 

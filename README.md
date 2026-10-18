@@ -601,9 +601,7 @@ nested inside an unnamed member.
 ## `InstantiateContainers`
 
 * **Kind**: Refining
-* **Run after**: `AutoContainerInstantiation` if used, and `Enums`, as the
-  wrapper of a container of an enum names the enum before its definition
-  otherwise
+* **Run after**: `AutoContainerInstantiation` if used
 * **Run before**: `Inheritance`, and `FilterMethods` for parsed instantiations
 
 Adds the container instantiation classes and wrappers.
@@ -630,10 +628,10 @@ types:
 `Qt::StringList` is then a `QList(String)` with `#filter`, `#remove_duplicates`
 and the rest, and still built from and accepted as any `Enumerable(String)`.
 Its constructors are replaced by the default constructor; `.from` builds one
-from an `Enumerable`.  Methods of the instantiation name a typedef element
-type by the underlying type, like `std::basic_string<char, ...>` for
-`std::string`, which an `alias_for` rule maps back.  Wrapping the methods of
-an associative container isn't supported.
+from an `Enumerable`.  The typedefs the instantiation declares, like
+`QList<QString>::value_type`, are looked through, and its template arguments
+keep the spelling of the `classes:` entry, like `std::string`.  Wrapping the
+methods of an associative container isn't supported.
 
 Wrappers of sequential containers, like `std::vector`, are `Indexable`.
 Wrappers of associative containers, like `std::map`, `std::unordered_map`,

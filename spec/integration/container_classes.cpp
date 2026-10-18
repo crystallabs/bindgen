@@ -20,6 +20,8 @@ class List : public ListSpecialMethods<T> {
   std::vector<T> m_items;
 
 public:
+  typedef T value_type;
+
   List() { }
   List(const std::vector<T> &items) : m_items(items) { }
 
@@ -29,6 +31,13 @@ public:
 
   T first() const { return m_items.front(); }
   void clear() { m_items.clear(); }
+
+  // Declared through the class-local typedef, like QList's takeFirst
+  value_type take_last() {
+    value_type item = m_items.back();
+    m_items.pop_back();
+    return item;
+  }
 };
 
 using StringList = List<std::string>;
@@ -74,8 +83,16 @@ public:
   }
 };
 
+enum Color { Red, Green, Blue };
+
 class Lists {
 public:
+  // A container of an enum: Its wrapper names the enum, which may be written
+  // later than the class.
+  List<Color> colors() {
+    return List<Color>(std::vector<Color>{ Red, Blue });
+  }
+
   StringList names() {
     return StringList(std::vector<std::string>{ "Alice", "Bob" });
   }

@@ -16,15 +16,22 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   an `Indexable` and is accepted where C++ expects the container.  The
   `inheritance` processor must run after `instantiate_containers` for this;
   the default pipeline and `TEMPLATE.yml` do, and run `filter_methods` again
-  afterwards.  They also run `enums` before `instantiate_containers`, which a
-  container of an enum needs.
+  afterwards.
 * `auto_container_instantiation` also instantiates the containers found in
   base classes and in `classes:`.
+* The parser looks through the typedefs a class template instantiation
+  declares, like `QList<QString>::value_type`, and names the template
+  arguments of an instantiation listed in `classes:` as written there, like
+  `std::string` instead of `std::basic_string<char, ...>`.
 
 ### Fixed
 
 * The parser names a base class by its type, so a class template instantiation
   base keeps its arguments: `QList<QPoint>` instead of `QList`.
+* The Crystal generator writes a class after the types its included modules
+  name, like the enum a container wrapper is of, not only after its
+  superclass.  The order of the `enums` and `instantiate_containers`
+  processors no longer matters for this.
 * A path lookup prefers a node of all platforms over a platform-specific one of
   the same name, like a container class over its C++ typedef.
 

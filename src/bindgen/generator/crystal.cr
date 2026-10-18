@@ -11,10 +11,11 @@ module Bindgen
 
         @wrote_glue = false
 
-        # Classes that will be written, but haven't been yet.
-        @unwritten = Set(Graph::Class).new
+        # Classes and enums that will be written, but haven't been yet.
+        @unwritten = Set(Graph::Class | Graph::Enum).new
 
-        # Classes held back until their superclass has been written.
+        # Classes held back until their superclass, and the types their
+        # included modules name, have been written.
         @deferred = [] of Graph::Class
       end
 
@@ -23,7 +24,7 @@ module Bindgen
         visit_node(node)
 
         unless @deferred.empty?
-          raise "BUG: Superclasses of #{@deferred.map(&.diagnostics_path).join(", ")} were never written"
+          raise "BUG: Dependencies of #{@deferred.map(&.diagnostics_path).join(", ")} were never written"
         end
       end
 
@@ -110,8 +111,10 @@ module Bindgen
       def visit_class(klass)
         return unless write_class?(klass)
 
-        # A Crystal class must be defined after its superclass.
-        if unwritten_superclass?(klass)
+        # A Crystal class must be defined after its superclass, and after the
+        # types its included modules name, like the element type of a
+        # container.
+        if unwritten_dependency?(klass)
           @deferred << klass
         else
           write_class(klass)
@@ -123,7 +126,8 @@ module Bindgen
         @db.try_or(klass.origin.name, true, &.generate_wrapper?)
       end
 
-      # Collects all classes below *container* this generator will write.
+      # Collects all classes and enums below *container* this generator will
+      # write.
       private def collect_classes(container)
         container.nodes.each do |node|
           case node
@@ -131,6 +135,8 @@ module Bindgen
             next unless write_class?(node)
             @unwritten << node
             collect_classes(node)
+          when Graph::Enum
+            @unwritten << node
           when Graph::PlatformSpecific
             collect_classes(node) if node.platforms.includes? PLATFORM
           when Graph::Namespace
@@ -139,16 +145,26 @@ module Bindgen
         end
       end
 
-      # Does *klass* inherit from a class which will be written later?
-      private def unwritten_superclass?(klass)
-        base_class = klass.base_class
-        return false if base_class.nil?
+      # Does *klass* depend on a class or enum which will be written later?
+      # That's its superclass, and the types named in its included modules.
+      private def unwritten_dependency?(klass)
+        dependencies = [] of String
+        dependencies << klass.base_class.not_nil! if klass.base_class
+        klass.included_modules.each { |mod| dependencies.concat(constant_paths(mod)) }
 
-        base = Graph::Path.from(base_class).lookup(klass)
-        base.is_a?(Graph::Class) && @unwritten.includes?(base)
+        dependencies.any? do |path|
+          node = Graph::Path.from(path).lookup(klass)
+          node.is_a?(Graph::Class | Graph::Enum) && @unwritten.includes?(node)
+        end
       end
 
-      # Writes the deferred classes inside *container* whose superclasses have
+      # The paths of the constants in the Crystal type *expression*, like
+      # `Foo::Bar` and `Baz` in `Foo::Bar(Baz)`.
+      private def constant_paths(expression : String) : Array(String)
+        expression.scan(/\b(?:::)?[A-Z]\w*(?:::[A-Z]\w*)*/).map(&.[0])
+      end
+
+      # Writes the deferred classes inside *container* whose dependencies have
       # been written in the meantime.  The containers between *container* and
       # these classes are reopened as needed, as in:
       #
@@ -170,7 +186,7 @@ module Bindgen
       private def write_deferred(container)
         reopened = [] of Graph::Container
 
-        while klass = @deferred.find { |k| inside?(k, container) && !unwritten_superclass?(k) }
+        while klass = @deferred.find { |k| inside?(k, container) && !unwritten_dependency?(k) }
           @deferred.delete(klass)
           path = reopen_path(klass, container)
 
@@ -230,7 +246,7 @@ module Bindgen
         puts "end"
       end
 
-      # Writes *klass*, which must not be written before its superclass.
+      # Writes *klass*, which must not be written before its dependencies.
       private def write_class(klass)
         @unwritten.delete(klass)
 
@@ -287,6 +303,7 @@ module Bindgen
       end
 
       def visit_enum(enumeration)
+        @unwritten.delete(enumeration)
         typename = Bindgen::Crystal::Typename.new(@db)
         type = Parser::Type.parse(enumeration.origin.type)
         type_name = typename.qualified(*typename.wrapper(type))
