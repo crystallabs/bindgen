@@ -230,9 +230,12 @@ module Bindgen
 
       # Adds a cast from *host* to *target* doing a `dynamic_cast` in C++.
       private def add_downcast_method(host, target)
+        return_type = target.origin.as_type(pointer: 1).make_pointer_nilable ||
+                      raise "BUG: A pointer to #{target.origin.name} must be nilable"
+
         method = Parser::Method.build(
           name: "CAST_#{target.mangled_name}",
-          return_type: target.origin.as_type(pointer: 1).make_pointer_nilable.as(Parser::Type),
+          return_type: return_type,
           arguments: [] of Parser::Argument,
           class_name: host.origin.name,
         )

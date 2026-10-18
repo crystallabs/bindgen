@@ -148,8 +148,6 @@ JsonStream &operator<<(JsonStream &s, const Method &value) {
 	writeDoc(s, value.doc);
 
 	return s << JsonStream::ObjectEnd;
-
-	return s;
 }
 
 JsonStream &operator<<(JsonStream &s, clang::AccessSpecifier value) {

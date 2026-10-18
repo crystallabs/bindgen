@@ -13,6 +13,7 @@ classes:
   Inner: Inner
   Outer: Outer
   Picky: Picky
+  Plain: Plain
 
 types:
   Inner:
@@ -22,6 +23,8 @@ types:
     keep_alive:
       - ^inside$
       - ^store
+  Plain:
+    kind: Struct
   Picky:
     keep_alive:
       setBoth: [2]

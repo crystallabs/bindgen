@@ -54,22 +54,18 @@ module Bindgen
       # `TypeHelper#proc_by_pointer?`.
       private def pointer_argument(result)
         value = Template.from_string("%.value", simple: true)
-        by_pointer(result, value.followed_by(result.conversion))
+        result.copy_with(
+          pointer: 1, reference: false,
+          conversion: value.followed_by(result.conversion),
+        )
       end
 
       # Returns a copied structure by pointer to a copy allocated by the GC.
       private def pointer_result(result)
         copy = Template.from_string("Pointer(#{result.type_name}).malloc(1, %)", simple: true)
-        by_pointer(result, result.conversion.followed_by(copy))
-      end
-
-      private def by_pointer(result, conversion)
-        Call::Result.new(
-          type: result.type,
-          type_name: result.type_name,
-          pointer: 1,
-          reference: false,
-          conversion: conversion,
+        result.copy_with(
+          pointer: 1, reference: false,
+          conversion: result.conversion.followed_by(copy),
         )
       end
 

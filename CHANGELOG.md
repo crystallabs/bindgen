@@ -19,6 +19,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Fixed
 
+* `keep_alive:` skips arguments whose type is a `kind: Struct` wrapper;
+  passing one made the generated wrapper call `BindgenHelper.keep_alive` with a
+  pointer, which doesn't compile.
 * A copied structure packed by `__attribute__((packed))` or `#pragma pack(1)`
   becomes a `@[Packed]` `lib struct`.  It was laid out unpacked, with the wrong
   member offsets.  Other packing which moves a member, like `#pragma pack(2)`

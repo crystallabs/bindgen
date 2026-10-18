@@ -62,13 +62,7 @@ module Bindgen
       private def proc_pass(type, result) : Call::Result
         return result unless proc_by_pointer?(type)
 
-        Call::Result.new(
-          type: type,
-          type_name: result.type_name,
-          reference: false,
-          pointer: 1,
-          conversion: result.conversion,
-        )
+        result.copy_with(type: type, reference: false, pointer: 1)
       end
 
       # Computes a result for passing *type* from Crystal to C++.

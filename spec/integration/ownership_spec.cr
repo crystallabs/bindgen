@@ -35,6 +35,11 @@ describe "keeping objects passed to C++ alive" do
           Test::Outer.last.other.x.should eq(9)
         end
 
+        it "skips arguments wrapped as a Crystal struct" do
+          plain = Test::Plain.new
+          Test::Outer.new_no_gc.store_plain(pointerof(plain))
+        end
+
         it "ignores other methods" do
           inner = Test::Inner.new(10)
           Test::Outer.new_no_gc.sum(inner, 1).should eq(11)

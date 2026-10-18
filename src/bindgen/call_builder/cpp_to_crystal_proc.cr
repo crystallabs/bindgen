@@ -18,7 +18,7 @@ module Bindgen
         arguments = method.arguments.map_with_index do |arg, idx|
           result = pass.passthrough_to_crystal(arg)
           if pass.proc_by_pointer?(arg)
-            result = with_conversion(result, result.conversion.followed_by(address))
+            result = result.copy_with(conversion: result.conversion.followed_by(address))
           end
           result.to_argument(Cpp::Argument.name(arg, idx))
         end
@@ -26,7 +26,7 @@ module Bindgen
         result = pass.to_cpp(method.return_type)
         if pass.proc_by_pointer?(method.return_type)
           deref = Template.from_string("*%", simple: true)
-          result = with_conversion(result, deref.followed_by(result.conversion))
+          result = result.copy_with(conversion: deref.followed_by(result.conversion))
         end
 
         Call.new(
@@ -35,16 +35,6 @@ module Bindgen
           result: result,
           arguments: arguments,
           body: lambda ? LambdaBody.new : InvokeBody.new,
-        )
-      end
-
-      private def with_conversion(result, conversion)
-        Call::Result.new(
-          type: result.type,
-          type_name: result.type_name,
-          reference: result.reference,
-          pointer: result.pointer,
-          conversion: conversion,
         )
       end
 

@@ -10,6 +10,11 @@ struct Inner {
   int padding[1 << 16];
 };
 
+// A struct wrapped as a Crystal struct, which keep_alive must skip.
+struct Plain {
+  int value;
+};
+
 // Not allocated by the GC: Its members don't keep anything alive.
 struct Outer {
   static Outer *new_no_gc() { return new Outer; }
@@ -18,8 +23,10 @@ struct Outer {
 
   Inner *inside = nullptr;
   Inner *other = nullptr;
+  Plain *plain_ = nullptr;
 
   void storeInside(Inner *in) { inside = in; }
+  void storePlain(Plain *plain) { plain_ = plain; }
   void storeOther(Inner &in) { other = &in; }
   int sum(Inner *in, int x) { return in->x + x; }
 

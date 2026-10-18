@@ -44,6 +44,22 @@ module Bindgen
       def initialize(@type, @type_name, @reference, @pointer, @conversion = Template::None.new, @nilable = false)
       end
 
+      # Returns a copy of this result, with the given fields replaced.
+      def copy_with(
+        type : Parser::Type = @type, type_name : String = @type_name,
+        reference : Bool = @reference, pointer : Int32 = @pointer,
+        conversion : Template::Base = @conversion, nilable : Bool = @nilable,
+      ) : Result
+        Result.new(
+          type: type,
+          type_name: type_name,
+          reference: reference,
+          pointer: pointer,
+          conversion: conversion,
+          nilable: nilable,
+        )
+      end
+
       # Applies the result's conversion template to a piece of code.
       def apply_conversion(code : String) : String
         conversion.template(code)

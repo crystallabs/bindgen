@@ -195,7 +195,7 @@ module BindgenHelper
 
   # Wraps `Slice` to a `Binding::CrystalSlice`, which can then pass on to C++.
   # `Nil` version, returns an empty slice.
-  def self.wrap_slice(nothing : Nil) forall T
+  def self.wrap_slice(nothing : Nil)
     Binding::CrystalSlice.new(
       ptr: Pointer(Void).null,
       size: 0,

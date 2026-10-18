@@ -147,7 +147,9 @@ module Bindgen
 
       # Returns the indices of the arguments of *method* to keep alive.  Only
       # instances of wrapped classes, passed by pointer or reference, are kept.
-      # A copy constructor doesn't keep its argument.
+      # A copy constructor doesn't keep its argument.  Wrappers of `kind: Struct`
+      # are skipped, as they are Crystal structs and their pointer arguments
+      # stay pointers.
       private def kept_alive_arguments(method : Parser::Method) : Array(Int32)
         indices = [] of Int32
         return indices if method.copy_constructor?
@@ -163,7 +165,8 @@ module Bindgen
           next false unless arg.pointer == 1
 
           type_rules = @db[arg]?
-          !!type_rules && type_rules.generate_wrapper? && type_rules.graph_node.is_a?(Graph::Class)
+          !!type_rules && type_rules.generate_wrapper? &&
+            type_rules.kind.class? && type_rules.graph_node.is_a?(Graph::Class)
         end
       end
 
