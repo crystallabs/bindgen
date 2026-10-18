@@ -59,6 +59,17 @@ public:
   static int value() { return 7; }
 };
 
+// The result of an operator is converted as a whole, like
+// `QDateTime::operator-` returning `std::chrono::milliseconds`.
+struct Elapsed {
+  int ms;
+  int count() const { return ms; }
+};
+
+struct Clock {
+  Elapsed operator-(const Clock &other) const { return Elapsed{ 1500 }; }
+};
+
 struct Ops {
   int operator+  (int x) const { return x * 1; }
   int operator-  (int x) const { return x * 2; }

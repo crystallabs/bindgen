@@ -91,7 +91,8 @@ module Bindgen
             code = %[(*#{call.name}) #{op} (#{pass_arg})]
           end
 
-          call.result.apply_conversion(code)
+          # A conversion like `%.count()` applies to the whole expression.
+          call.result.apply_conversion("(#{code})")
         end
       end
     end

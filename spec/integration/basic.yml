@@ -5,6 +5,7 @@
 classes:
   Adder: AdderWrap
   Ops: Ops
+  Clock: Clock
   FreeOps: FreeOps
   ImplicitConstructor: ImplicitConstructor
   Aggregate: Aggregate
@@ -18,6 +19,16 @@ classes:
   Undestructible: Undestructible
 
 types:
+  Elapsed: # Converted from the result of `Clock::operator-`
+    cpp_type: int
+    binding_type: Int32
+    crystal_type: Int32
+    builtin: true
+    generate_binding: false
+    generate_wrapper: false
+    pass_by: Value
+    from_cpp: "(%.count())"
+    to_cpp: "Elapsed{%}"
   IgnoreMe: # Ignore by type
     ignore: true
   Adder: # Ignore by method name

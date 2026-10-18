@@ -37,6 +37,10 @@ describe "a basic C++ wrapper" do
           Test::Copyable.new(0).to_bool.should be_false
         end
 
+        it "converts the result of an operator as a whole" do
+          (Test::Clock.new - Test::Clock.new).should eq(1500)
+        end
+
         it "supports member operator overloading" do
           subject = Test::Ops.new
 

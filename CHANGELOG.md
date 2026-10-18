@@ -37,6 +37,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 * The parser no longer crashes on a `QFlags<E>` typedef nothing instantiates,
   like `QMessageBox::Options` of an `enum class`.
+* The result of a C++ operator is converted as a whole: a `from_cpp` rule
+  like `(%.count())` applied to `a - b` gave `a - (b).count()`, which
+  broke `QDateTime::operator-` returning `std::chrono::milliseconds`.
 * A virtual operator, like `QTableWidgetItem::operator<`, no longer aborts
   `virtual_override` with "Unexpected operator".  It is wrapped and can be
   overridden from Crystal; the override can't call the C++ implementation
