@@ -2,6 +2,14 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## Unreleased
+
+### Added
+
+* `<<+: file.yml` deep-merges a dependency into the configuration mapping:
+  mappings under the same key merge recursively and sequences concatenate,
+  where `<<:` keeps only the later value.  See "Deep merge" in the README.
+
 ## 0.10.0 (2026-10-18)
 
 ### Added

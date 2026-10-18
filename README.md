@@ -929,6 +929,23 @@ if_os_is_windows:
   <<: windows-specific.yml
 ```
 
+### Deep merge
+
+`<<:` embeds the dependency as it is: A key it shares with the mapping keeps
+only the later value.  `<<+:` instead merges the dependency into what the
+mapping holds so far, including earlier dependencies: Mappings under the same
+key are merged recursively, sequences are concatenated, and other values are
+replaced.  So two files can configure the same type:
+
+```yaml
+types:
+  <<: ignores.yml      # QLayout: { ignore_methods: [ trUtf8 ] }
+  <<+: keep_alive.yml  # QLayout: { keep_alive: [ ^addWidget$ ] }
+  # QLayout now has both `ignore_methods` and `keep_alive`.
+```
+
+Keys written after a `<<+:` aren't merged into it, they override as usual.
+
 ### Errors
 
 An exception will be raised if any of the following occur:
@@ -936,6 +953,7 @@ An exception will be raised if any of the following occur:
 * The maximum dependency depth of `10` (`MAX_DEPTH`) is exceeded.
 * The dependency name contains a dot: `../foo.yml` won't work.
 * The dependency name is absolute: `/foo/bar.yml` won't work.
+* `<<+:` is given something other than a file name, like an alias.
 
 # Platform support
 

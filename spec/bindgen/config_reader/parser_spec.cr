@@ -280,6 +280,83 @@ describe Bindgen::ConfigReader::Parser do
       YAML
     files["./subdir/first"] = %[{ <<: second }]
     files["./subdir/second"] = %[{ string: three }]
+    files["./deep-first"] = <<-YAML
+      list: [one]
+      recurse: { list: [four], string: WRONG }
+      YAML
+    files["./deep-second"] = <<-YAML
+      list: [two]
+      string: three
+      recurse: { string: five }
+      YAML
+    files["./deep-nested"] = %[{ <<: deep-second }]
+    files["./deep-list"] = %[[ one, two ]]
+
+    describe "deep merge" do
+      expected = YamlThing.new(%w[one two], "three", YamlThing.new(%w[four], "five"))
+
+      it "merges mappings recursively and concatenates sequences" do
+        parse(<<-YAML).should eq(expected)
+          <<+: deep-first
+          <<+: deep-second
+          YAML
+      end
+
+      it "merges into the keys of the mapping" do
+        parse(<<-YAML).should eq(expected)
+          list: [one]
+          recurse: { list: [four], string: WRONG }
+          <<+: deep-second
+          YAML
+      end
+
+      it "merges into an earlier shallow dependency" do
+        parse(<<-YAML).should eq(expected)
+          <<: deep-first
+          <<+: deep-second
+          YAML
+      end
+
+      it "merges the dependencies of the dependency" do
+        parse(<<-YAML).should eq(expected)
+          <<+: deep-first
+          <<+: deep-nested
+          YAML
+      end
+
+      it "is overridden by later keys" do
+        parse(<<-YAML).should eq(YamlThing.new(%w[two], "three", YamlThing.new(nil, "five")))
+          <<+: deep-first
+          <<+: deep-second
+          list: [two]
+          recurse: { string: five }
+          YAML
+      end
+
+      it "leaves the shallow dependency shallow" do
+        parse(<<-YAML).should eq(YamlThing.new(%w[two], "three", YamlThing.new(nil, "five")))
+          <<: deep-first
+          <<: deep-second
+          YAML
+      end
+
+      it "fails for an alias" do
+        expect_raises(Bindgen::ConfigReader::Parser::Error, /needs the name of a file/) do
+          parse(<<-YAML, Hash(String, String))
+            foo: &foo bar
+            <<+: *foo
+            YAML
+        end
+      end
+
+      it "fails for a dependency which isn't a mapping" do
+        expect_raises(Bindgen::ConfigReader::Parser::Error, /isn't a mapping/) do
+          parse(<<-YAML, Hash(String, String))
+            <<+: deep-list
+            YAML
+        end
+      end
+    end
 
     describe "functionality" do
       it "injects into open mapping" do

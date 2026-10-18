@@ -115,6 +115,25 @@ module Bindgen
     #   <<: windows-specific.yml
     # ```
     #
+    # ### Deep merge
+    #
+    # `<<:` embeds the dependency as it is: A key it shares with the mapping
+    # keeps only the later value.  `<<+:` instead merges the dependency into
+    # what the mapping holds so far, including earlier dependencies: Mappings
+    # under the same key are merged recursively, sequences are concatenated,
+    # and other values are replaced.  So two files can configure the same
+    # type:
+    #
+    # ```yaml
+    # types:
+    #   <<: ignores.yml      # QLayout: { ignore_methods: [ trUtf8 ] }
+    #   <<+: keep_alive.yml  # QLayout: { keep_alive: [ ^addWidget$ ] }
+    #   # QLayout now has both `ignore_methods` and `keep_alive`.
+    # ```
+    #
+    # Keys written after a `<<+:` aren't merged into it, they override as
+    # usual.
+    #
     # ### Errors
     #
     # An exception will be raised if any of the following occur:
@@ -122,6 +141,7 @@ module Bindgen
     # * The maximum dependency depth of `10` (`MAX_DEPTH`) is exceeded.
     # * The dependency name contains a dot: `../foo.yml` won't work.
     # * The dependency name is absolute: `/foo/bar.yml` won't work.
+    # * `<<+:` is given something other than a file name, like an alias.
     class Parser < YAML::Nodes::Parser
       class Error < YAML::ParseException
         # The file the error occured in
@@ -219,13 +239,92 @@ module Bindgen
         ::raise Error.new(err.message, @pull_parser.start_line, @pull_parser.start_column, @path)
       end
 
+      # Key embedding a dependency, like YAML's merge key.
+      MERGE_KEY = "<<"
+
+      # Key deep-merging a dependency into the mapping.
+      DEEP_MERGE_KEY = "<<+"
+
       # Adds the *key*-*value* pair to *mapping*.
       protected def update_mapping(mapping, key, value)
-        if key.is_a?(YAML::Nodes::Scalar) && value.is_a?(YAML::Nodes::Scalar) && key.value == "<<"
+        if key.is_a?(YAML::Nodes::Scalar) && value.is_a?(YAML::Nodes::Scalar) && key.value == MERGE_KEY
           value = load_dependency(value.value)
+        elsif key.is_a?(YAML::Nodes::Scalar) && key.value == DEEP_MERGE_KEY
+          unless value.is_a?(YAML::Nodes::Scalar)
+            ::raise Error.new("#{DEEP_MERGE_KEY} needs the name of a file", key.start_line, key.start_column, @path)
+          end
+
+          dependency = load_dependency(value.value)
+          unless dependency.is_a?(YAML::Nodes::Mapping)
+            ::raise Error.new("#{DEEP_MERGE_KEY}: #{value.value} isn't a mapping", key.start_line, key.start_column, @path)
+          end
+
+          deep_merge(mapping, dependency)
+          return
         end
 
         add_to_mapping(mapping, key, value)
+      end
+
+      # Merges *source* into *target*, see "Deep merge" above.  Entries of
+      # *source* behind a `<<` are merged as if written in place.
+      protected def deep_merge(target : YAML::Nodes::Mapping, source : YAML::Nodes::Mapping)
+        source.each do |key, value|
+          if merge_key?(key)
+            merged_mappings(value).each { |mapping| deep_merge(target, mapping) }
+            next
+          end
+
+          found = find_last(target, key)
+          existing = found.try { |mapping, index| mapping.nodes[index + 1] }
+
+          if existing.is_a?(YAML::Nodes::Mapping) && value.is_a?(YAML::Nodes::Mapping)
+            deep_merge(existing, value)
+          elsif existing.is_a?(YAML::Nodes::Sequence) && value.is_a?(YAML::Nodes::Sequence)
+            value.nodes.each { |node| existing << node }
+          elsif found
+            mapping, index = found
+            mapping.nodes[index + 1] = value
+          else
+            target[key] = value
+          end
+        end
+      end
+
+      # Returns the mapping holding the last entry for *key* in *target*, and
+      # the index of its key node.  Looks into mappings embedded through `<<`,
+      # as `YAML::Schema::Core.each` later reads them in place.
+      protected def find_last(target : YAML::Nodes::Mapping, key : YAML::Nodes::Node) : {YAML::Nodes::Mapping, Int32}?
+        return unless key.is_a?(YAML::Nodes::Scalar)
+        found = nil
+
+        0.step(by: 2, to: target.nodes.size - 1) do |index|
+          entry_key = target.nodes[index]
+          if merge_key?(entry_key)
+            merged_mappings(target.nodes[index + 1]).each do |mapping|
+              found = find_last(mapping, key) || found
+            end
+          elsif entry_key.is_a?(YAML::Nodes::Scalar) && entry_key.value == key.value
+            found = {target, index}
+          end
+        end
+
+        found
+      end
+
+      private def merge_key?(key : YAML::Nodes::Node) : Bool
+        key.is_a?(YAML::Nodes::Scalar) && key.value == MERGE_KEY
+      end
+
+      # The mappings a `<<` *value* embeds: A mapping, or a sequence of them.
+      private def merged_mappings(value : YAML::Nodes::Node) : Array(YAML::Nodes::Mapping)
+        value = value.value || return [] of YAML::Nodes::Mapping if value.is_a?(YAML::Nodes::Alias)
+
+        case value
+        when YAML::Nodes::Mapping  then [value]
+        when YAML::Nodes::Sequence then value.nodes.select(YAML::Nodes::Mapping)
+        else                            [] of YAML::Nodes::Mapping
+        end
       end
 
       protected def add_to_mapping(mapping, key, value)
