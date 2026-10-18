@@ -21,6 +21,13 @@ module Bindgen
         /^metaObject$/, /^qt_metacast$/, /^qt_metacall$/)
 
       def visit_class(klass)
+        # The signals still in the graph: Those removed before, like by
+        # `ignore_methods` through `Processor::FilterMethods`, get no connection
+        # method either.  Private signals are handled below.
+        signals = klass.nodes.compact_map do |node|
+          node.as?(Graph::Method).try(&.origin).try { |m| m if m.signal? }
+        end
+
         # Filter Qt-specific annoyances out.
         klass.nodes.select! do |node|
           if node.is_a?(Graph::Method)
@@ -37,9 +44,12 @@ module Bindgen
         end
 
         # Add signals, ignoring default argument values towards the emission
-        # method.
-        klass.origin.each_wrappable_method do |method|
-          handle_signal(klass, method) if method.signal?
+        # method.  Also honour `ignore_methods` in case `filter_methods` runs
+        # after this processor.
+        ignored = @db[klass.origin.name]?.try(&.ignore_methods)
+        signals.each do |method|
+          next if ignored.try(&.includes?(method.name))
+          handle_signal(klass, method)
         end
 
         # Remove `Q_OBJECT` internals from the generated superclass wrappers.

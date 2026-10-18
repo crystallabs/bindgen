@@ -66,6 +66,13 @@ describe "Qt-specific wrapper features" do
           end
         end
 
+        context "ignored signals" do
+          it "have no connection method" do
+            {{ Test::SomeObject.methods.map(&.name.stringify) }}.includes?("ignored_signal").should be_false
+            {{ Test::SomeObject.methods.map(&.name.stringify) }}.includes?("on_ignored_signal").should be_false
+          end
+        end
+
         context "private signals" do
           it "don't have an emission method" do
             {{ Test::SomeObject.methods.map(&.name.stringify) }}.includes?("private_signal").should be_false

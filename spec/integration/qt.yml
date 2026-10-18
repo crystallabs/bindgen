@@ -17,6 +17,8 @@ classes:
   Conv: Conv
 
 types:
+  SomeObject:
+    ignore_methods: [ignoredSignal]
   "QMetaObject::Connection":
     crystal_type: SignalConnection
     cpp_type: "QMetaObject::Connection"

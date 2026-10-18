@@ -68,6 +68,10 @@ signals:
   void convSignal(const Conv &) {
     // Empty.
   }
+
+  void ignoredSignal(int) {
+    // Empty.  Listed in `ignore_methods`.
+  }
 };
 
 // Tests Q_GADGET cleaning

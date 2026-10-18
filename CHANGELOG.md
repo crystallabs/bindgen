@@ -12,6 +12,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   ambiguous.
 * A default argument value above `Int32::MAX`, like an enumerator `0xffffffff`,
   no longer overflows when generating the Crystal wrapper.
+* Qt signals listed in `ignore_methods`, or removed otherwise before the `qt`
+  processor runs, get no `on_X` connection method.
 
 ## 0.11.0 (2026-10-18)
 
