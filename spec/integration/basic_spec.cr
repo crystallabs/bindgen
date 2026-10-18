@@ -246,6 +246,13 @@ describe "a basic C++ wrapper" do
           subject.void_pointer.address.should eq(0x11223344)
         end
 
+        it "passes a const void pointer as a Void*" do
+          subject = Test::TypeConversion.new
+          typeof(subject.const_void_pointer).should eq(Pointer(Void))
+          subject.const_void_pointer.address.should eq(0x11223344)
+          subject.address_of(subject.const_void_pointer).should eq(0x11223344)
+        end
+
         it "evaluates code once in templates using it twice" do
           subject = Test::TypeConversion.new
           subject.counted.should eq(11 * 11)

@@ -189,6 +189,15 @@ public:
     return reinterpret_cast<void *>(0x11223344); // Don't break on 32bit!
   }
 
+  // A `const void *` is a `Void*` too, like `QUuid::fromBytes` takes.
+  const void *constVoidPointer() {
+    return reinterpret_cast<const void *>(0x11223344);
+  }
+
+  long addressOf(const void *pointer) {
+    return reinterpret_cast<long>(pointer);
+  }
+
   counted_t counted() {
     return ++countedCalls;
   }

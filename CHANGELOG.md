@@ -55,6 +55,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   seen by `virtual_override` through intermediate bases, so a subclass gets no
   forwarder calling the private method.  The `Impl` class of such a base
   no longer lacks the method.
+* A `const void *` is a `Void*`, no longer a `Void**`: the `void *` rule
+  merged into the `void` rules through the decayed type.
 * The result of a C++ operator is converted as a whole: a `from_cpp` rule
   like `(%.count())` applied to `a - b` gave `a - (b).count()`, which
   broke `QDateTime::operator-` returning `std::chrono::milliseconds`.
