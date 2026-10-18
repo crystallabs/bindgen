@@ -17,6 +17,10 @@ classes:
   AbstractScalerMiddle: AbstractScalerMiddle
   ConcreteScaler: ConcreteScaler
   ScalerFactory: ScalerFactory
+  AbstractShape: AbstractShape
+  AbstractRound: AbstractRound
+  Circle: Circle
+  Shapes: Shapes
   NonPolymorphic: NonPolymorphic
   Polymorphic: Polymorphic
   Outer: Outer

@@ -12,8 +12,11 @@ static JsonStream &writeTypeJson(JsonStream &s, const Type &value) {
 		<< std::make_pair("extents", value.extents) << c
 		<< std::make_pair("arrayPointer", value.arrayPointer) << c
 		<< std::make_pair("baseName", value.baseName) << c
-		<< std::make_pair("fullName", value.fullName) << c
-		<< std::make_pair("template", value.templ);
+		<< std::make_pair("fullName", value.fullName) << c;
+	if (!value.desugared.empty()) {
+		s << std::make_pair("desugared", value.desugared) << c;
+	}
+	s << std::make_pair("template", value.templ);
 	return s;
 }
 

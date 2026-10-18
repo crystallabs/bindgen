@@ -35,6 +35,13 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      # Test subclassing a class whose base privately overrides a pure method
+      class Oval < Test::AbstractRound
+        def area : Int32
+          sides + 40
+        end
+      end
+
       # Test overriding a virtual operator
       class LessThing < Test::Base
         def <(other) : Bool
@@ -120,6 +127,15 @@ describe "C++ virtual overriding from Crystal feature" do
       class Test::Subclass::Superclass
         def has_random_number?
           {{ @type.methods.map &.name.stringify }}.includes?("random_number")
+        end
+      end
+
+      context "private override in a base" do
+        it "is wrapped and the subclass works" do
+          oval = Oval.new
+          oval.sides.should eq(0)
+          oval.area.should eq(40)
+          Test::Shapes.sides_of(oval).should eq(0)
         end
       end
 

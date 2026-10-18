@@ -236,14 +236,30 @@ module Bindgen
         method.origin.virtual? && !method.origin.final?
       end
 
-      # Checks if *method* was overriden by *klass* privately.  In this case, we
-      # don't allow overriding this method, nor calling it.
-      private def private_override?(klass, method)
-        if found = klass.find_parent_method(method)
-          found.private?
-        else
-          false
+      # Checks if *method* was overriden privately by *klass*, or by a wrapped
+      # base between *klass* and the class declaring it, like
+      # `QAbstractListModel::parent` for `QStringListModel`.  In this case, we
+      # don't allow overriding this method, nor calling it through *klass*.
+      private def private_override?(klass : Parser::Class, method) : Bool
+        self_and_ancestors(klass).each do |ancestor|
+          if found = ancestor.find_parent_method(method)
+            return found.private?
+          end
         end
+
+        false
+      end
+
+      # *klass* and its wrapped ancestors, the nearest first.
+      private def self_and_ancestors(klass : Parser::Class) : Array(Parser::Class)
+        list = [klass]
+
+        klass.bases.each do |base|
+          node = @db[base.name]?.try(&.graph_node).as?(Graph::Class)
+          list.concat(self_and_ancestors(node.origin)) if node
+        end
+
+        list
       end
 
       private def build_cpp_forwarder(

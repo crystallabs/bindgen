@@ -361,13 +361,24 @@ module Bindgen
     # Resolves type aliases referred to by *type* or the name of a *type*.
     # Returns a type without aliases.
     def resolve_aliases(type : Parser::Type | String)
-      return type.substitute(@aliases) if type.is_a?(Parser::Type)
+      return resolve_typedef(type.substitute(@aliases)) if type.is_a?(Parser::Type)
 
       if underlying_type = @aliases[type]?
         underlying_type
       else
         Parser::Type.parse(type).substitute(@aliases)
       end
+    end
+
+    # Looks through *type* if its base type is a typedef without rules or an
+    # alias of its own, like `QFileInfoList`, to the type the parser reports it
+    # names, like `QList<QFileInfo>`, as if it were an alias of it.
+    private def resolve_typedef(type : Parser::Type) : Parser::Type
+      desugared = type.desugared
+      return type if desugared.nil? || type.template
+      return type if @types.has_key?(type.base_name) || @aliases.has_key?(type.base_name)
+
+      type.substitute({type.base_name => Parser::Type.parse(desugared)}).substitute(@aliases)
     end
 
     # Adds a type *rules* as *name*.  Overwrites any old rules previously added

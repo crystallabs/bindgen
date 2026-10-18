@@ -67,6 +67,15 @@ describe "single and multiple inheritance feature" do
         Test::ConcreteScaler.new.scaled(2).should eq(4)
       end
 
+      it "reaches a privately overridden method through its base" do
+        Test::Circle.new.sides.should eq(0)
+        Test::Circle.new.corners.should eq(0)
+        round = Test::Shapes.round
+        round.should be_a(Test::AbstractRoundImpl)
+        round.sides.should eq(0)
+        round.area.should eq(28)
+      end
+
       it "adds shadow-impl class for abstract classes" do
         {{ Test::AbstractThingImpl.superclass == Test::AbstractThing }}.should be_true
 

@@ -89,8 +89,15 @@ public:
 
 enum Color { Red, Green, Blue };
 
+typedef List<double> DoubleList;
+
 class Lists {
 public:
+  // A typedef of an instantiation is looked through without a rule.
+  DoubleList doubles() {
+    return DoubleList(std::vector<double>{ 2.5, 3.5 });
+  }
+
   // A container of an enum: Its wrapper names the enum, which may be written
   // later than the class.
   List<Color> colors() {

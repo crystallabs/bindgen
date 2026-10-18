@@ -72,6 +72,30 @@ struct ScalerFactory {
   static AbstractScalerMiddle *make() { return new ConcreteScaler(); }
 };
 
+// A base overriding a pure method privately, like `QAbstractListModel::parent`:
+// Callers reach it through the base it is public in, and a subclass can still
+// override it, but can't call it through `#superclass`.
+struct AbstractShape {
+  virtual ~AbstractShape() { }
+  virtual int sides() const = 0;
+  virtual int area() const = 0;
+  int corners() const { return sides(); }
+};
+
+struct AbstractRound : public AbstractShape {
+private:
+  int sides() const override { return 0; }
+};
+
+struct Circle : public AbstractRound {
+  int area() const override { return 28; }
+};
+
+struct Shapes {
+  static AbstractRound *round() { return new Circle(); }
+  static int sidesOf(const AbstractShape &shape) { return shape.sides(); }
+};
+
 struct Subclass : public Base, public AbstractThing {
   int calc(int a, int b) override {
     return a * b;

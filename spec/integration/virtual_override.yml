@@ -15,6 +15,10 @@ classes:
   AbstractThing: AbstractThing
   Subclass: Subclass
   Implicit: Implicit
+  AbstractShape: AbstractShape
+  AbstractRound: AbstractRound
+  Circle: Circle
+  Shapes: Shapes
   FinalClass: FinalClass
   FinalMethod: FinalMethod
   Skip: Skip

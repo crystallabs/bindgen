@@ -39,6 +39,14 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 * The parser no longer crashes on a `QFlags<E>` typedef nothing instantiates,
   like `QMessageBox::Options` of an `enum class`.
+* A typedef without rules or an alias of its own, like `QFileInfoList`, is
+  looked through to the type it names, `QList<QFileInfo>`: the parser reports
+  it, and the type database resolves it like an alias.
+* A method a base class overrides privately, like `QAbstractListModel::parent`,
+  is wrapped through the base it is public in, and the private override is
+  seen by `virtual_override` through intermediate bases, so a subclass gets no
+  forwarder calling the private method.  The `Impl` class of such a base
+  no longer lacks the method.
 * The result of a C++ operator is converted as a whole: a `from_cpp` rule
   like `(%.count())` applied to `a - b` gave `a - (b).count()`, which
   broke `QDateTime::operator-` returning `std::chrono::milliseconds`.

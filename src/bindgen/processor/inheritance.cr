@@ -101,7 +101,9 @@ module Bindgen
         additional_methods.each do |method|
           next if existing.any?(&.equals_virtually?(method))
           next if filter.filtered?(method)
-          if !klass.abstract? && method.pure?
+          # A private override implements a pure method, for C++ callers
+          # through the base: `QAbstractListModel::parent`.
+          if method.pure? && (!klass.abstract? || private_override?(klass.origin, method))
             method = unabstract_method(method)
           end
 
@@ -119,7 +121,11 @@ module Bindgen
       # *klass*, so their wrappers get the `this` pointer adjusted by C++.
       private def base_methods(klass, superclass, others) : Array(Parser::Method)
         # Private overrides count too: C++ can't call those through *klass*.
+        # The public declaration in the superclass is still callable through
+        # it, and dispatches to the override, so that one is copied instead;
+        # the other bases' methods are moved into *klass*, so there it can't.
         known_virtuals = klass.methods.select(&.virtual?)
+        known_public_virtuals = known_virtuals.reject(&.private?)
 
         bases = others.map { |base| {base, true} }
         bases.unshift({superclass, false}) if superclass
@@ -130,7 +136,8 @@ module Bindgen
           candidates = base.origin.wrap_methods + ancestor_virtuals(base.origin)
           methods = candidates.select do |method|
             if method.virtual?
-              known_virtuals.none?(&.equals_virtually?(method))
+              known = moved ? known_virtuals : known_public_virtuals
+              known.none?(&.equals_virtually?(method))
             else
               moved && method.member_method? &&
                 klass.methods.none? { |m| m.name == method.name }
@@ -317,6 +324,11 @@ module Bindgen
           class_name: from.origin.name,
           crystal_name: "as_#{demodulized}",
         )
+      end
+
+      # Does *klass* override *method* privately?
+      private def private_override?(klass : Parser::Class, method : Parser::Method) : Bool
+        klass.find_parent_method(method).try(&.private?) || false
       end
 
       # Finds all wrapped classes in *bases*.

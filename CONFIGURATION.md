@@ -526,6 +526,10 @@ types:
   qreal: { alias_for: double }
 ```
 
+A typedef without rules of its own, like `QFileInfoList`, is looked through to
+the type it names, `QList<QFileInfo>`, so an alias is only needed when the
+typedef's name should map elsewhere.
+
 ### `ignore`
 
 If `true`, all methods using this type are ignored.  Useful to get started.
@@ -550,6 +554,9 @@ doesn't turn a type into a callback.
 ### `crystal_type`
 
 The name of the type in the Crystal wrapper.
+
+The name is written as is into the generated module, so a type a wrapper
+class shadows is qualified: `"::Time::Span"` where `Qt::Time` exists.
 
 ### `cpp_type`
 

@@ -181,6 +181,17 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clan
 		target.baseName = *name;
 	}
 
+	// A typedef is reported with the type it names too, like `QList<QFileInfo>`
+	// for `QFileInfoList`, so bindgen can look through it if it has no rules.
+	if (qt->isTypedefNameType()) {
+		clang::QualType desugared = qt.getUnqualifiedType();
+		while (desugared->isTypedefNameType()) {
+			desugared = desugared.getSingleStepDesugaredType(ctx).getUnqualifiedType();
+		}
+
+		target.desugared = fullyQualifiedName(desugared, ctx);
+	}
+
 	if (const auto *tmpl = llvm::dyn_cast<clang::TemplateSpecializationType>(ut.getTypePtr())) {
 		target.templ = handleTemplate(tmpl, ctx);
 		if (target.templ) {

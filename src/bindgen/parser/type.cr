@@ -81,6 +81,11 @@ module Bindgen
       @[JSON::Field(key: "acceptsNull")]
       getter? nilable = false
 
+      # The type the base type names if it is a typedef, like
+      # `QList<QFileInfo>` for `QFileInfoList`.  `TypeDatabase#resolve_aliases`
+      # looks through a typedef without rules of its own.
+      getter desugared : String?
+
       # Template information, if this type is a template type.
       getter template : Template?
 
@@ -397,6 +402,7 @@ module Bindgen
         @base_name, @full_name, @const, @reference, @pointer, @move = false,
         @builtin = false, @void = false, @kind = Kind::Class, @template = nil,
         @nilable = false, @extents = Array(UInt64).new, @array_pointer = 0,
+        @desugared = nil,
       )
       end
 
