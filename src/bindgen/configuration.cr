@@ -93,6 +93,7 @@ module Bindgen
       enum Type
         Sequential
         Associative
+        Pair # `std::pair` and `QPair`, converted to a Crystal `Tuple`
       end
       include YAML::Serializable
 

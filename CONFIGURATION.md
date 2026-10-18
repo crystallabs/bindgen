@@ -439,7 +439,7 @@ the wrapper class of an instantiation, and `.from` builds one from any
 | Key | Description |
 |-----|-------------|
 | `class` | **Mandatory.**  The C++ class template. |
-| `type` | **Mandatory.**  `Sequential` (like `std::vector`, wrapped as an `Indexable`) or `Associative` (like `std::map`, with a `Hash`-like interface). |
+| `type` | **Mandatory.**  `Sequential` (like `std::vector`, wrapped as an `Indexable`), `Associative` (like `std::map`, with a `Hash`-like interface) or `Pair` (like `std::pair` and `QPair`, converted to and from a `Tuple`). |
 | `instantiations` | The instantiations to wrap, each a list of the template arguments: `[ "int" ]` for a sequential, `[ "std::string", "int" ]` for an associative container.  May be left out when using the `auto_container_instantiation` processor. |
 | `access_method` | Returns an element.  Defaults to `at`. |
 | `size_method` | Returns the number of elements.  Defaults to `size`. |

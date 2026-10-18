@@ -9,6 +9,19 @@ typedef unsigned int rgb;
 
 class Containers {
 public:
+  // Pairs are converted to and from tuples.
+  std::pair<std::string, int> entry() {
+    return { "one", 1 };
+  }
+
+  int sum(const std::pair<int, int> &values) {
+    return values.first + values.second;
+  }
+
+  std::vector<std::pair<std::string, int>> entries() {
+    return { { "a", 1 }, { "b", 2 } };
+  }
+
   std::vector<int> integers() {
     return std::vector<int>{ 1, 2, 3 };
   }

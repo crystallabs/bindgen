@@ -353,6 +353,65 @@ module BindgenHelper
     end
   end
 
+  # Wrapper for an instantiated pair type, like `std::pair` or `QPair`.
+  #
+  # Pairs convert to and from a `Tuple` of the two values, so wrapped methods
+  # take and return tuples; this wrapper is only seen when built directly, by
+  # `.from` or `Pair.of(A, B).new`.
+  module PairContainer(A, B)
+    # `.unsafe_first`, `.unsafe_second` and `.unsafe_set` will be implemented
+    # by the wrapper class.
+
+    # The first value.
+    def first : A
+      self.class.unsafe_first(self)
+    end
+
+    # The second value.
+    def second : B
+      self.class.unsafe_second(self)
+    end
+
+    # Sets both values.
+    def set(first : A, second : B) : self
+      self.class.unsafe_set(self, first, second)
+      self
+    end
+
+    # Both values as a tuple.
+    def to_tuple : {A, B}
+      {first, second}
+    end
+
+    def to_s(io)
+      to_tuple.to_s(io)
+    end
+
+    def inspect(io)
+      io << "<Wrapped "
+      to_tuple.inspect(io)
+      io << ">"
+    end
+
+    # Note: Crystal has no dependent types, so this module must refer to its
+    # own type parameters.
+    private module ClassMethods(A, B)
+      # Wraps the *values* into a pair of this type, if it's not already one.
+      def from(values : {A, B}) : self
+        new.set(*values)
+      end
+
+      # :ditto:
+      def from(values : self) : self
+        values
+      end
+    end
+
+    macro included
+      extend ClassMethods(A, B)
+    end
+  end
+
   # Wrapper for an instantiated, associative container type.
   #
   # This offers a subset of the methods known from `Hash`, and is `Enumerable`

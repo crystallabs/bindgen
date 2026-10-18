@@ -14,6 +14,9 @@ module Bindgen
       # Module for associative containers
       ASSOCIATIVE_MODULE = "BindgenHelper::AssociativeContainer"
 
+      # Module for pairs
+      PAIR_MODULE = "BindgenHelper::PairContainer"
+
       # The parsed document, for container instantiations listed in `classes:`.
       @doc : Parser::Document?
 
@@ -29,7 +32,9 @@ module Bindgen
           build_container_module(containers, root)
         end
 
-        @config.containers.each do |container|
+        # Pairs first: Their type rules are needed by the containers of them.
+        pairs, others = @config.containers.partition(&.type.pair?)
+        (pairs + others).each do |container|
           instantiate_container(container, root)
         end
       end
@@ -72,6 +77,8 @@ module Bindgen
           add_sequential_containers(container, root)
         when .associative?
           add_associative_containers(container, root)
+        when .pair?
+          add_pair_containers(container, root)
         else
           raise "BUG: Missing case for #{container.type.inspect}"
         end
@@ -91,6 +98,38 @@ module Bindgen
           check_associative_instance! container, instance
           add_associative_container(container, instance, root)
         end
+      end
+
+      # Adds all instances of the *container* pair type into *root*.
+      private def add_pair_containers(container, root)
+        container.instantiations.each do |instance|
+          check_associative_instance! container, instance
+          add_pair_container(container, instance, root)
+        end
+      end
+
+      # Instantiates a single pair *container* *instance* into *root*.  Its
+      # wrapper is an implementation detail: The type rules convert a pair to
+      # and from a Crystal `Tuple`.
+      private def add_pair_container(container, instance, root)
+        builder = Graph::Builder.new(@db)
+
+        templ_type = Parser::Type.parse(cpp_container_name(container, instance))
+        templ_args = templ_type.template_arguments
+        klass = build_pair_class(container, templ_type)
+
+        if parsed_class(templ_type)
+          raise "#{templ_type.full_name} is listed in `classes:`, but wrapping the methods of a pair isn't supported"
+        end
+
+        add_cpp_typedef(root, templ_type, klass.name)
+        set_container_type_rules(container, templ_type, klass.name, klass.name)
+
+        graph = builder.build_class(klass, klass.name, root)
+        graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
+        graph.included_modules << container_module(PAIR_MODULE, templ_args)
+        graph.included_modules << container_module(container.class, templ_args)
+        @db.get_or_add(templ_type.full_name).graph_node = graph
       end
 
       # Resolves aliases in the type arguments of *container*'s instantiations,
@@ -263,11 +302,13 @@ module Bindgen
 
         if rules.to_crystal.no_op?
           rules.to_crystal = Template.from_string(
-            "#{crystal_name}.new(unwrap: %)", simple: true)
+            container.type.pair? ? "#{crystal_name}.new(unwrap: %).to_tuple" : "#{crystal_name}.new(unwrap: %)",
+            simple: true)
         end
         if rules.from_crystal.no_op?
           rules.from_crystal = Template.from_string(
-            "BindgenHelper.wrap_container(#{crystal_name}, %).to_unsafe", simple: true)
+            container.type.pair? ? "#{crystal_name}.from(%).to_unsafe" : "BindgenHelper.wrap_container(#{crystal_name}, %).to_unsafe",
+            simple: true)
         end
         if rules.from_cpp.no_op?
           rules.from_cpp = Template.from_string(@db.cookbook.value_to_pointer(cpp_name))
@@ -283,14 +324,15 @@ module Bindgen
         rules.binding_type = cpp_name
       end
 
-      # Returns the `Enumerable` the wrapper of *container* instantiated with
-      # the *type_args* includes.  Associative containers enumerate tuples of
-      # the key and the value, like `Hash`.
+      # Returns the Crystal type of the *container* instantiated with the
+      # *type_args*: The `Enumerable` the wrapper includes, where associative
+      # containers enumerate tuples of the key and the value, like `Hash`, or
+      # the `Tuple` a pair converts to.
       private def enumerable_type(container, type_args)
-        if container.type.associative?
-          "Enumerable({#{wrapper_type_list(type_args)}})"
-        else
-          container_module("Enumerable", type_args)
+        case container.type
+        when .associative? then "Enumerable({#{wrapper_type_list(type_args)}})"
+        when .pair?        then "Tuple(#{wrapper_type_list(type_args)})"
+        else                    container_module("Enumerable", type_args)
         end
       end
 
@@ -367,6 +409,29 @@ module Bindgen
           klass.methods << map_helper_method(klass, "bindgen_map_store", "store",
             [Parser::Argument.new("map", self_type), key_arg, value_arg], Parser::Type::VOID)
         end
+
+        klass
+      end
+
+      # Builds a full `Parser::Class` for the pair *container* in the specified
+      # *instantiation*.  The members are reached through the helper functions
+      # `bindgen_pair_first`, `bindgen_pair_second` and `bindgen_pair_set` of
+      # `bindgen_helper.hpp`, as they are fields, not methods.
+      private def build_pair_class(container, templ_type : Parser::Type) : Parser::Class
+        first_type, second_type = templ_type.template_arguments
+        klass = container_class(container, templ_type)
+        # The typedef, which Crystal knows as the wrapper class: The pair type
+        # itself converts to a `Tuple`.
+        self_type = Parser::Type.parse("#{klass.name} &")
+        pair_arg = Parser::Argument.new("pair", self_type)
+        first_arg = Parser::Argument.new("first", first_type)
+        second_arg = Parser::Argument.new("second", second_type)
+
+        klass.methods << default_constructor_method(klass)
+        klass.methods << map_helper_method(klass, "bindgen_pair_first", "first", [pair_arg], first_type)
+        klass.methods << map_helper_method(klass, "bindgen_pair_second", "second", [pair_arg], second_type)
+        klass.methods << map_helper_method(klass, "bindgen_pair_set", "set",
+          [pair_arg, first_arg, second_arg], Parser::Type::VOID)
 
         klass
       end

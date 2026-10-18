@@ -355,7 +355,8 @@ functions:
 # `QPolygon : public QList<QPoint>`, inherits from the container wrapper.
 containers:
   - class: Name of the C++ class
-    type: "Sequential" or "Associative"
+    # "Pair" is for `std::pair` and `QPair`, converted to and from a `Tuple`.
+    type: "Sequential", "Associative" or "Pair"
     # access_method: C++ item access method.  Defaults to `at`.
     # size_method: C++ container size method.  Defaults to `size`.
     # push_method: C++ item append method.  Defaults to `push_back`.

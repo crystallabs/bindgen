@@ -302,6 +302,25 @@ void bindgen_map_store(M &map, const typename M::key_type &key, const typename M
   }
 }
 
+/* The members of a pair `P`, like `std::pair` or `QPair`, which are fields
+ * and not methods.
+ */
+template <typename P>
+const typename P::first_type &bindgen_pair_first(const P &pair) {
+  return pair.first;
+}
+
+template <typename P>
+const typename P::second_type &bindgen_pair_second(const P &pair) {
+  return pair.second;
+}
+
+template <typename P>
+void bindgen_pair_set(P &pair, const typename P::first_type &first, const typename P::second_type &second) {
+  pair.first = first;
+  pair.second = second;
+}
+
 /* Copy of all entries of an associative container `M`, taken at once.  The
  * entries are then accessed by index from Crystal, as C++ iterators can't be
  * passed to Crystal.  As it's a copy, changing the container while iterating

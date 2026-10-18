@@ -655,6 +655,14 @@ lengths["three"] = 5
 lengths.each { |word, length| puts "#{word}: #{length}" }
 ```
 
+A pair type, like `std::pair` or `QPair`, is configured with `type: Pair`
+and converts to and from a Crystal `Tuple`: a method returning
+`QList<QPair<QString, int>>` returns an `Enumerable({String, Int32})`, and one
+taking a pair takes a tuple.  The wrapper class behind it, with `#first`,
+`#second`, `#set` and `#to_tuple`, is built by `Std::Pair.of(String, Int32).from({"a", 1})`.
+Its members are reached through the helpers `bindgen_pair_first`,
+`bindgen_pair_second` and `bindgen_pair_set` of `bindgen_helper.hpp`.
+
 Associative containers call the C++ methods `count(key)`, `erase(key)` and
 `size()`, and the helpers `bindgen_map_fetch`, `bindgen_map_store` and
 `BindgenMapEntries` from `bindgen_helper.hpp`.  For Qt, configure the method

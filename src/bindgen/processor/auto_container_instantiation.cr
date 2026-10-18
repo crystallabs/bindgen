@@ -71,6 +71,7 @@ module Bindgen
         case type
         when .sequential?  then 1
         when .associative? then 2
+        when .pair?        then 2
         else
           raise "BUG: Missing case for #{type.inspect}"
         end

@@ -38,6 +38,10 @@ containers:
     type: Associative
   - class: std::__1::unordered_map
     type: Associative
+  - class: std::pair
+    type: Pair
+  - class: std::__1::pair
+    type: Pair
   - class: QtStyleMap
     type: Associative
     count_method: contains

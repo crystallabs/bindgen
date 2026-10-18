@@ -41,7 +41,7 @@ module Bindgen
       # tuples: `Enumerable({K, V})`
       # TODO: support other Crystal stdlib types (which might not correspond to
       # any C++ type at all)
-      ENUMERABLE_RX = /^Enumerable(?:\([A-Za-z0-9_():*{}, ]*\))?$/
+      ENUMERABLE_RX = /^(?:Enumerable|Tuple)(?:\([A-Za-z0-9_():*{}, ]*\))?$/
 
       # Regular expression for the Crystal type of a C array of other than
       # built-in types, capturing the element type: `Slice(Color)`
@@ -263,7 +263,7 @@ module Bindgen
         elsif @db.try_or(expr.type, false, &.builtin?)
           true # Crystal built-in
         elsif expr.type_name.matches?(ENUMERABLE_RX)
-          true # Containers
+          true # Containers and pairs
         elsif ARRAY_BINDING_TYPES.includes?(expr.type_name)
           true # C arrays passed to Crystal
         else

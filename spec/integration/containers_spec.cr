@@ -5,6 +5,17 @@ describe "container instantiation feature" do
     build_and_run("containers") do
       FloatMatrix = Test::Std::Vector.of(Test::Std::Vector(Float64))
 
+      context "pair" do
+        it "converts to and from tuples" do
+          Test::Containers.new.entry.should eq({"one", 1})
+          Test::Containers.new.sum({2, 3}).should eq(5)
+          Test::Containers.new.entries.to_a.should eq([{"a", 1}, {"b", 2}])
+          pair = Test::Std::Pair.of(String, Int32).from({"x", 4})
+          pair.first.should eq("x")
+          pair.to_tuple.should eq({"x", 4})
+        end
+      end
+
       context "sequential container" do
         it "works with explicitly instantiated container" do
           Test::Containers.new.integers.to_a.should eq([1, 2, 3])
