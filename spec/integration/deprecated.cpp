@@ -9,6 +9,9 @@ public:
   int value(int a) { return a; }
   [[deprecated]] int value(int a, int b) { return a + b; }
 
+  // Split into overloads by its default argument, which stay deprecated
+  [[deprecated]] int scaled(int a, int factor = 2) { return a * factor; }
+
   static int count() { return 3; }
   [[deprecated]] static int old_count() { return 4; }
 };

@@ -380,6 +380,7 @@ module Bindgen
           arguments: method.arguments,
           first_default_argument: method.first_default_argument,
           return_type: method.return_type,
+          deprecated: method.deprecated?,
         )
       end
 
@@ -397,6 +398,7 @@ module Bindgen
           arguments: method.arguments,
           first_default_argument: method.first_default_argument,
           return_type: method.return_type,
+          deprecated: method.deprecated?,
         )
       end
 

@@ -226,6 +226,7 @@ module Bindgen
             builtin: @builtin,
             origin: self,
             doc: @doc,
+            deprecated: @deprecated,
           )
 
           variant.crystal_name = @crystal_name
@@ -283,6 +284,7 @@ module Bindgen
           pure: false,
           builtin: @builtin,
           origin: self,
+          deprecated: @deprecated,
         )
       end
 
@@ -504,6 +506,7 @@ module Bindgen
           crystal_name: crystal_name,
           binding_name: binding_method_name,
           doc: @doc,
+          deprecated: @deprecated,
         )
       end
 
@@ -708,6 +711,7 @@ module Bindgen
           final: @final,
           builtin: @builtin,
           doc: @doc || other.doc,
+          deprecated: @deprecated || other.deprecated?,
         )
       end
 
@@ -741,6 +745,7 @@ module Bindgen
           pure: @pure,
           final: @final,
           doc: @doc,
+          deprecated: @deprecated,
         )
       end
 
@@ -765,6 +770,7 @@ module Bindgen
           pure: @pure,
           final: @final,
           doc: @doc,
+          deprecated: @deprecated,
         )
       end
     end
