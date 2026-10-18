@@ -12,7 +12,7 @@ Add the dependency to `shard.yml`:
 dependencies:
   bindgen:
     github: Papierkorb/bindgen
-    version: ~> 0.10.0
+    version: ~> 0.11.0
 ```
 
 # Table of Contents
