@@ -2,6 +2,15 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## Unreleased
+
+### Fixed
+
+* A virtual method overridden with a covariant return type, like
+  `Derived *clone()` overriding `Base *clone()`, is no longer taken for an
+  overload, which copied the base method into the subclass and made both
+  ambiguous.
+
 ## 0.11.0 (2026-10-18)
 
 ### Added

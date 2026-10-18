@@ -239,3 +239,15 @@ struct Outer {
     int inner() { return 12; }
   };
 };
+
+/* Covariant return types: `Square::clone` overrides `Shape::clone`. */
+struct Shape {
+  virtual ~Shape() { }
+  virtual Shape *clone() const { return new Shape(); }
+  virtual int sides() const { return 0; }
+};
+
+struct Square : Shape {
+  Square *clone() const override { return new Square(); }
+  int sides() const override { return 4; }
+};

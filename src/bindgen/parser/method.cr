@@ -380,13 +380,14 @@ module Bindgen
         true
       end
 
-      # Checks if this method is equl to *other*, as is suitable to determine
+      # Checks if this method is equal to *other*, as is suitable to determine
       # if they're the same for C++ virtual methods between parent- and
       # sub-classes.
       def equals_virtually?(other : Method) : Bool
         # Don't check if they're both pure or not: One may not in an abstract
-        # base.
-        {% for i in %i[type name virtual const return_type] %}
+        # base.  Nor the return type: An override may only change it covariantly,
+        # like `Derived *clone()` overriding `Base *clone()`.
+        {% for i in %i[type name virtual const] %}
           return false if @{{ i.id }} != other.@{{ i.id }}
         {% end %}
 

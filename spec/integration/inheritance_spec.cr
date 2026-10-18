@@ -141,6 +141,15 @@ describe "single and multiple inheritance feature" do
           {{ Test::Module::Derived1.has_method?("to?") }}.should be_false
         end
       end
+
+      context "covariant return types" do
+        it "wraps the override, and not the base method again" do
+          {{ Test::Square.methods.select(&.name.== "clone").size }}.should eq(1)
+          clone = Test::Square.new.clone
+          clone.should be_a(Test::Square)
+          clone.as(Test::Square).sides.should eq(4)
+        end
+      end
     end
   end
 end

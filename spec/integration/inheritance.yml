@@ -28,3 +28,5 @@ classes:
   Puppy: Puppy
   Pet: Pet
   Hamster: Hamster
+  Shape: Shape
+  Square: Square
