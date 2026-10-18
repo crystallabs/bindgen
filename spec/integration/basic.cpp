@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <chrono>
 #include <atomic>
 #include <cstdio>
@@ -333,4 +334,10 @@ struct Mutex {
 struct Lockable {
   int tryLock() { return 1; }
   int try_lock() { return 2; }
+};
+
+// A `std::nullptr_t` overload is dropped.
+struct NullSink {
+  int take(std::nullptr_t) { return 0; }
+  int take(int value) { return value; }
 };

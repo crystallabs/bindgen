@@ -187,6 +187,20 @@ bool RecordMatchHandler::runOnRecord(Class &klass, const clang::CXXRecordDecl *r
 			if (runOnMethod(m, klass, method, isSignal)) {
 				klass.methods.push_back(m);
 			}
+		} else if (clang::UsingDecl *usingDecl = llvm::dyn_cast<clang::UsingDecl>(decl)) {
+			// A base method re-exported by `using Base::method;`, like the
+			// `lock` of Qt 5's `QRecursiveMutex : private QMutex`.
+			for (clang::UsingShadowDecl *shadow : usingDecl->shadows()) {
+				clang::CXXMethodDecl *method = llvm::dyn_cast<clang::CXXMethodDecl>(shadow->getTargetDecl());
+				if (!method || llvm::isa<clang::CXXConstructorDecl>(method)) continue;
+
+				Method m;
+				if (runOnMethod(m, klass, method, isSignal)) {
+					m.className = klass.name;
+					m.access = shadow->getAccess();
+					klass.methods.push_back(m);
+				}
+			}
 		} else if (clang::AccessSpecDecl *spec = llvm::dyn_cast<clang::AccessSpecDecl>(decl)) {
 			isSignal = checkAccessSpecForSignal(spec);
 		} else if (clang::FieldDecl *field = llvm::dyn_cast<clang::FieldDecl>(decl)) {

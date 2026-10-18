@@ -52,6 +52,10 @@ struct Anonymous {
       int x3; // .p2.p1.x3
     } p1;
   } p2;
+
+  // Declares the implicit `operator=` of the anonymous struct, which is
+  // wrapped under the typedef naming the struct in C++.
+  void copyFrom(const Anonymous &other) { p2 = other.p2; }
 };
 
 // these fields should not be copied

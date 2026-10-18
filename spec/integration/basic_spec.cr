@@ -73,6 +73,10 @@ describe "a basic C++ wrapper" do
           other.x.should eq(7)
         end
 
+        it "drops a nullptr_t overload" do
+          Test::NullSink.new.take(3).should eq(3)
+        end
+
         it "wraps a class named like a glue class" do
           Test::Mutex.new.lock.should eq(1)
         end

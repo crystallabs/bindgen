@@ -285,6 +285,7 @@ describe "C++ instance properties" do
       context "nested members" do
         it "supports direct members inside nested anonymous types" do
           {{ Test::Anonymous.has_method?("x0") }}.should be_true
+          Test::Anonymous.new.responds_to?(:copy_from).should be_true
           {{ Test::Anonymous.has_method?("x0=") }}.should be_true
         end
 

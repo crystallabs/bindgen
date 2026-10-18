@@ -4,6 +4,8 @@ module Bindgen
     #
     # **Important**: This should be one of the last processors in the pipeline!
     class CppWrapper < Base
+      include TypeHelper
+
       PLATFORM = Graph::Platform::Cpp
 
       def initialize(*args)
@@ -41,7 +43,7 @@ module Bindgen
 
         method.calls[PLATFORM] = wrapper.build(
           method: method.origin,
-          class_name: method.origin.class_name,
+          class_name: cpp_class_name(method.origin.class_name), # An anonymous type by its typedef
           target: target,
         )
       end

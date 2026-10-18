@@ -85,6 +85,13 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   an ignored type, is no longer sub-classed in C++ (which left the subclass
   abstract and uncompilable); it is wrapped without Crystal overrides, with
   a warning.
+* The C++ wrapper of a method of an anonymous struct, like the implicit
+  `operator=` of `QMetaObject::d`, names the struct by its typedef.
+* `instance_variables` rules are keyed by the C++ name of the class, like
+  the other type rules; the Crystal name still works.
+* A base method re-exported by a using-declaration, like `lock` of Qt 5's
+  `QRecursiveMutex : private QMutex`, is wrapped.
+* `std::nullptr_t` is ignored by default, dropping the `nullptr` overloads.
 * A Crystal override returning the nilable result type of `nilable_results`
   passes `nil` to C++ as a null pointer.
 * An abstract class keeps its implicit default constructor, which

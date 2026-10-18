@@ -69,6 +69,11 @@ describe "single and multiple inheritance feature" do
         Test::ConcreteScaler.new.scaled(2).should eq(4)
       end
 
+      it "wraps a method re-exported by a using-declaration" do
+        Test::Recursive.new.lock.should eq(7)
+        Test::Recursive.new.responds_to?(:unlock).should be_false
+      end
+
       it "casts down to an abstract class through its Impl class" do
         made = Test::ScalerFactory.make.as(Test::AbstractScaler)
         middle = made.to?(Test::AbstractScalerMiddle)

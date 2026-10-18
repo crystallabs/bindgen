@@ -21,6 +21,7 @@ classes:
   AbstractRound: AbstractRound
   Circle: Circle
   Shapes: Shapes
+  Recursive: Recursive
   NonPolymorphic: NonPolymorphic
   Polymorphic: Polymorphic
   Outer: Outer

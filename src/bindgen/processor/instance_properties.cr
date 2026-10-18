@@ -22,7 +22,10 @@ module Bindgen
         # for a member of it, see `#add_anonymous_typedef`.
         return super if klass.origin.anonymous? && @db[klass.origin.name]?.try(&.cpp_type).nil?
 
-        var_config = @db.try_or(klass.name, VarConfig.new, &.instance_variables)
+        # The rules are keyed by the C++ name, like other type rules; the
+        # Crystal name is accepted too.
+        var_config = @db.try_or(klass.origin.name, nil, &.instance_variables) ||
+                     @db.try_or(klass.name, VarConfig.new, &.instance_variables)
         taken = method_signatures(klass)
 
         each_direct_field(klass) do |field, nested_access|

@@ -2,6 +2,7 @@
 # Describes sane defaults to map built-in C/C++ types to Crystal.
 
 void: { binding_type: Void, kind: Struct, builtin: true }
+"std::nullptr_t": { ignore: true } # Only ever a `nullptr` overload
 # `void *` is `Void*` through the `void` rules: no rule of its own, which the
 # decayed `const void *` would merge into them, making a `Void**`.
 

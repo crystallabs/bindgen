@@ -109,6 +109,17 @@ struct AbstractCreator {
   virtual int make() const = 0;
 };
 
+// A method re-exported from a private base by a using-declaration, like
+// `QRecursiveMutex::lock` in Qt 5.
+struct Locker {
+  int lock() { return 7; }
+  int unlock() { return 8; }
+};
+
+struct Recursive : private Locker {
+  using Locker::lock;
+};
+
 struct Subclass : public Base, public AbstractThing {
   int calc(int a, int b) override {
     return a * b;
