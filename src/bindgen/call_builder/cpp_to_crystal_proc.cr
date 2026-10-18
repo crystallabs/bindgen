@@ -12,9 +12,10 @@ module Bindgen
       def build(method : Parser::Method, *, proc_name : String = "_proc_", lambda = false) : Call
         pass = Cpp::Pass.new(@db)
 
-        # Copied structures are passed by pointer, see
-        # `TypeHelper#proc_by_pointer?`.
-        address = Template.from_string("&%", simple: true)
+        # Structures are passed by pointer, see `TypeHelper#proc_by_pointer?`.
+        # A converted one is a temporary, which `bindgen_address` of
+        # `bindgen_helper.hpp` keeps alive for the call.
+        address = Template.from_string("bindgen_address(%)", simple: true)
         arguments = method.arguments.map_with_index do |arg, idx|
           result = pass.passthrough_to_crystal(arg)
           if pass.proc_by_pointer?(arg)

@@ -35,6 +35,22 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      # The built-in structure of `Summer#sum`, see virtual_override.yml
+      lib Test::Binding
+        struct Triple
+          a : Int64
+          b : Int64
+          c : Int64
+        end
+      end
+
+      # Test a callback taking a structure larger than 16 bytes by value
+      class Doubler < Test::Summer
+        def sum(triple) : Int64
+          (triple.a + triple.b + triple.c) * 2
+        end
+      end
+
       # Test subclassing a class whose base privately overrides a pure method
       class Oval < Test::AbstractRound
         def area : Int32
@@ -127,6 +143,13 @@ describe "C++ virtual overriding from Crystal feature" do
       class Test::Subclass::Superclass
         def has_random_number?
           {{ @type.methods.map &.name.stringify }}.includes?("random_number")
+        end
+      end
+
+      context "structure argument of a callback" do
+        it "arrives intact" do
+          Test::Summer.new.call_sum.should eq(6)
+          Doubler.new.call_sum.should eq(12)
         end
       end
 

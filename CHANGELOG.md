@@ -41,6 +41,12 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 * The parser no longer crashes on a `QFlags<E>` typedef nothing instantiates,
   like `QMessageBox::Options` of an `enum class`.
+* A callback, like a Qt signal or a virtual method override, receives a
+  built-in `kind: Struct` type passed by value, like the `CrystalVariant`
+  behind `QVariant`, by pointer, as copied structures already were: the C
+  ABI passes a structure larger than 16 bytes indirectly, which a Crystal
+  `Proc` taking it by value read as garbage.  `bindgen_address` of
+  `bindgen_helper.hpp` takes the address of a converted temporary.
 * A typedef without rules or an alias of its own, like `QFileInfoList`, is
   looked through to the type it names, `QList<QFileInfo>`: the parser reports
   it, and the type database resolves it like an alias.

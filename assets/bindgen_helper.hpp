@@ -165,6 +165,15 @@ CrystalArray bindgen_array_to_view(T (&arr)[N]) noexcept {
 template<typename T>
 using bindgen_type = T;
 
+/* The address of `value`, also of a temporary, which lives until the end of
+ * the full expression: a `CrystalProc` receives structures by pointer, and
+ * only reads them.
+ */
+template <typename T>
+T *bindgen_address(const T &value) {
+  return const_cast<T *>(&value);
+}
+
 /* Wrapper for a Crystal `Proc`. */
 template<typename T, typename ... Args>
 struct CrystalProc {

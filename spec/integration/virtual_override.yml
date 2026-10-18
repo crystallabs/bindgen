@@ -15,6 +15,7 @@ classes:
   AbstractThing: AbstractThing
   Subclass: Subclass
   Implicit: Implicit
+  Summer: Summer
   AbstractShape: AbstractShape
   AbstractRound: AbstractRound
   Circle: Circle
@@ -36,6 +37,15 @@ classes:
   OnlyFilteredVirtuals: OnlyFilteredVirtuals
 
 types:
+  Triple: # A built-in structure, like Qt's CrystalVariant; declared in the spec
+    builtin: true
+    kind: Struct
+    pass_by: Value
+    binding_type: Triple
+    cpp_type: Triple
+    crystal_type: "Binding::Triple"
+    generate_binding: false
+    generate_wrapper: false
   Subclass:
     superclass_ignore_methods: [ "^random" ]
   Skip:

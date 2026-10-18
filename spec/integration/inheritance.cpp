@@ -304,3 +304,22 @@ struct Square : Shape {
   Square *clone() const override { return new Square(); }
   int sides() const override { return 4; }
 };
+
+// A structure argument of a callback is passed by pointer, see
+// `TypeHelper#proc_by_pointer?`: Larger than 16 bytes, the C ABI passes it
+// indirectly, which a Crystal `Proc` taking it by value reads as garbage.
+struct Triple {
+  long a;
+  long b;
+  long c;
+};
+
+struct Summer {
+  virtual ~Summer() { }
+  virtual long sum(Triple triple) { return triple.a + triple.b + triple.c; }
+
+  long callSum() {
+    Triple triple { 1, 2, 3 };
+    return sum(triple);
+  }
+};

@@ -55,13 +55,19 @@ module Bindgen
       end
     end
 
-    # Is *type* a copied structure passed by value?  A `CrystalProc` passes it
-    # by pointer instead, as a Crystal `Proc` doesn't follow the C ABI.
+    # Is *type* a structure passed by value?  A `CrystalProc` passes it by
+    # pointer instead, as a Crystal `Proc` doesn't follow the C ABI: the C ABI
+    # passes a structure larger than 16 bytes indirectly, which a `Proc`
+    # taking it by value reads as garbage.  This covers copied structures and
+    # built-in `kind: Struct` types, like the `CrystalVariant` behind
+    # `QVariant`.
     def proc_by_pointer?(type : Parser::Type) : Bool
       return false if type.pointer > 0 || type.c_array?
 
       @db.try_or(type, false) do |rules|
-        rules.copy_structure? && (rules.pass_by.original? || rules.pass_by.value?)
+        # C++ built-in types like `int` have `kind: Struct` rules too.
+        structure = rules.copy_structure? || (rules.builtin? && rules.kind.struct? && !type.builtin?)
+        structure && (rules.pass_by.original? || rules.pass_by.value?)
       end
     end
 
