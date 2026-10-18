@@ -10,6 +10,8 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `Derived *clone()` overriding `Base *clone()`, is no longer taken for an
   overload, which copied the base method into the subclass and made both
   ambiguous.
+* A default argument value above `Int32::MAX`, like an enumerator `0xffffffff`,
+  no longer overflows when generating the Crystal wrapper.
 
 ## 0.11.0 (2026-10-18)
 

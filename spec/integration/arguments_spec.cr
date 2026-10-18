@@ -20,6 +20,10 @@ describe "the argument translation functionality" do
         check_default_arg("default_int32", Int32, 123)
       end
 
+      it "copies default of enum type above Int32::MAX" do
+        check_default_arg("default_large_enum", Test::Bits, Test::Bits::Everything)
+      end
+
       it "copies default of enum type" do
         check_default_arg("default_enum", Test::Numeral, Test::Numeral::Second)
       end

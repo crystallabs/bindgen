@@ -7,3 +7,4 @@ classes:
 
 enums:
   Numeral: Numeral
+  Bits: Bits

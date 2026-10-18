@@ -25,7 +25,7 @@ module Bindgen
           stringified = literal(arg.type_name, value)
 
           if stringified.nil? && value.is_a?(Number)
-            stringified = qualified_enum_name arg.type, value.to_i
+            stringified = qualified_enum_name arg.type, enum_value(value)
           end
 
           default = " = #{stringified}" if stringified
@@ -94,6 +94,12 @@ module Bindgen
 
           "#{value}#{suffix}" # TODO: Literal thousand's grouping
         end
+      end
+
+      # The *value* as the `Int64` enumerators are stored as.  An unsigned value
+      # above `Int64::MAX` wraps around, like its enumerator did.
+      private def enum_value(value : Number) : Int64
+        value.is_a?(Float) ? value.to_i64 : value.to_i64!
       end
 
       # Returns the qualified name of *value* in the enum called *enum_name*.
