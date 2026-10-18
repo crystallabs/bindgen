@@ -15,8 +15,7 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `QPolygon : public QList<QPoint>`, inherits the container wrapper, so it is
   an `Indexable` and is accepted where C++ expects the container.  The
   `inheritance` processor must run after `instantiate_containers` for this;
-  the default pipeline and `TEMPLATE.yml` do, and run `filter_methods` again
-  afterwards.
+  the default pipeline and `TEMPLATE.yml` do.
 * `auto_container_instantiation` also instantiates the containers found in
   base classes and in `classes:`.
 * The parser looks through the typedefs a class template instantiation
@@ -24,6 +23,12 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   arguments of an instantiation listed in `classes:` as written there, like
   `std::string` instead of `std::basic_string<char, ...>`.
 
+* `filter_methods` drops the methods using a type nested in a template
+  instantiation, like `QList<QString>::iterator`, unless it has rules.  The
+  methods `instantiate_containers` and `inheritance` add are filtered by the
+  same rules, so `filter_methods` needs to run only once.
+* The `Impl` class of an abstract class deriving from another abstract class
+  gets the overloads a default argument splits an inherited pure method into.
 * `ignore_deprecated: true` drops the methods and functions declared
   `[[deprecated]]`, overload by overload, in `filter_methods`.  The parser
   reports the attribute as `isDeprecated`.

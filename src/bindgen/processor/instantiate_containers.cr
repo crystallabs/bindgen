@@ -110,8 +110,7 @@ module Bindgen
       #
       # An instantiation listed in `classes:` was parsed, so its wrapper gets
       # the methods and bases of the C++ class, under the configured name, on
-      # top of the container methods.  Run `filter_methods` afterwards to
-      # filter them like those of other classes.
+      # top of the container methods.
       private def add_sequential_container(container, instance, root)
         builder = Graph::Builder.new(@db)
 
@@ -152,11 +151,15 @@ module Bindgen
       # by the default constructor of the C++ typedef *cpp_name*, like other
       # containers have: The type rules of the instantiation copy a returned
       # instance, which a constructor's result must not be.  `.from` builds a
-      # container from any `Enumerable`.
+      # container from any `Enumerable`.  The other methods are filtered like
+      # `FilterMethods` does, as that ran before this class existed.
       private def adopt_parsed_class(container, parsed : Parser::Class, templ_type, cpp_name : String) : Parser::Class
         var_type = templ_type.template_arguments.first
         container_methods = {container.access_method, container.push_method, container.size_method}
-        parsed.methods.reject! { |m| m.any_constructor? || container_methods.includes?(m.name) }
+        filter = FilterMethods.new(@config, @db)
+        parsed.methods.reject! do |m|
+          m.any_constructor? || container_methods.includes?(m.name) || filter.filtered?(m)
+        end
 
         parsed.methods << default_constructor_method(Parser::Class.new(name: cpp_name))
         parsed.methods << access_method(container, parsed.name, var_type)

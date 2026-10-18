@@ -1,16 +1,13 @@
 <<: spec_base.yml
 
-# `filter_methods` runs again after `instantiate_containers` and
-# `inheritance`, for the parsed methods of the container classes and the
-# methods copied from base classes.  `enums` runs last on purpose: The
-# generator must still define the enum before the container of it.
+# `enums` runs last on purpose: The generator must still define the enum
+# before the container of it.
 processors:
   - default_constructor
   - filter_methods
   - auto_container_instantiation
   - instantiate_containers
   - inheritance
-  - filter_methods
   - enums
   - cpp_wrapper
   - crystal_binding

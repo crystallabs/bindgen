@@ -13,6 +13,10 @@ classes:
   Base: Base
   AbstractThing: AbstractThing
   Subclass: Subclass
+  AbstractScaler: AbstractScaler
+  AbstractScalerMiddle: AbstractScalerMiddle
+  ConcreteScaler: ConcreteScaler
+  ScalerFactory: ScalerFactory
   NonPolymorphic: NonPolymorphic
   Polymorphic: Polymorphic
   Outer: Outer

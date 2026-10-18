@@ -95,8 +95,12 @@ module Bindgen
         # An `Impl` class already has the pure methods, see `#add_abstract_impl_class`
         existing = klass.nodes.compact_map(&.as?(Graph::Method).try(&.origin))
 
+        # Filtered like the methods of the class itself, see `FilterMethods`.
+        filter = FilterMethods.new(@config, @db)
+
         additional_methods.each do |method|
           next if existing.any?(&.equals_virtually?(method))
+          next if filter.filtered?(method)
           if !klass.abstract? && method.pure?
             method = unabstract_method(method)
           end
@@ -120,8 +124,10 @@ module Bindgen
         bases = others.map { |base| {base, true} }
         bases.unshift({superclass, false}) if superclass
 
+        # `wrap_methods` has the overloads a default argument splits a method
+        # into, which an `Impl` class of an abstract base needs too.
         list = bases.flat_map do |base, moved|
-          candidates = base.origin.wrappable_methods + ancestor_virtuals(base.origin)
+          candidates = base.origin.wrap_methods + ancestor_virtuals(base.origin)
           methods = candidates.select do |method|
             if method.virtual?
               known_virtuals.none?(&.equals_virtually?(method))
@@ -145,7 +151,7 @@ module Bindgen
       private def ancestor_virtuals(klass : Parser::Class) : Array(Parser::Method)
         return [] of Parser::Method unless base = split_bases(klass)[0]
 
-        base.origin.wrappable_methods.select(&.virtual?) + ancestor_virtuals(base.origin)
+        base.origin.wrap_methods.select(&.virtual?) + ancestor_virtuals(base.origin)
       end
 
       # Adds all conversion methods from *klass* to *bases*.

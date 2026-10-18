@@ -10,6 +10,7 @@ module Bindgen
     # 4. Methods using unknown template instantiations are always ignored
     # 5. Conversion operators to types without rules
     # 6. Methods declared `[[deprecated]]`, if `ignore_deprecated` is set
+    # 7. Methods using types nested in a template instantiation
     class FilterMethods < Base
       include Graph::Visitor::MayDelete
 
@@ -19,8 +20,13 @@ module Bindgen
       end
 
       def visit_method(method : Graph::Method)
-        m = method.origin
+        remove_method(method) if filtered?(method.origin)
+      end
 
+      # Is the method *m* to be ignored by the rules above?  Processors adding
+      # methods later, like `InstantiateContainers` and `Inheritance`, ask
+      # this too, so a single `filter_methods` run suffices.
+      def filtered?(m : Parser::Method) : Bool
         # Rule 1: Ignored types
         remove = m.filtered?(@db)
 
@@ -45,8 +51,12 @@ module Bindgen
         # Rule 6: Deprecated methods, overload by overload
         remove ||= @config.ignore_deprecated? && m.deprecated?
 
-        # Remove if ignored
-        remove_method(method) if remove
+        # Rule 7: Types nested in a template instantiation, like
+        # `QList<QString>::iterator`, which Crystal can't name
+        remove ||= nested_in_instantiation?(m.return_type)
+        remove ||= m.arguments.any? { |arg| nested_in_instantiation?(arg) }
+
+        remove
       end
 
       # Removes the *method* from its parent.
@@ -62,6 +72,14 @@ module Bindgen
         @db.try_or(type, false) do |config|
           config.ignore? || (config.anonymous? && config.cpp_type.nil?)
         end
+      end
+
+      # Checks if *type* is nested in a template instantiation, like
+      # `QList<QString>::iterator`, without rules of its own.
+      private def nested_in_instantiation?(type : Parser::Type) : Bool
+        return false if @db[type]?
+
+        type.base_name.includes?(">::")
       end
 
       # Checks if *type* instantiates a template which is neither configured nor

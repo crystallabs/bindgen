@@ -52,6 +52,26 @@ struct AbstractThing {
   }
 };
 
+// An abstract class deriving from an abstract class: The `Impl` class of the
+// middle one needs the overloads of the inherited pure method too.
+struct AbstractScaler {
+  virtual ~AbstractScaler() { }
+  virtual int scaled(int a, int factor = 2) const = 0;
+};
+
+struct AbstractScalerMiddle : public AbstractScaler {
+  virtual int extra() const = 0;
+};
+
+struct ConcreteScaler : public AbstractScalerMiddle {
+  int scaled(int a, int factor) const override { return a * factor; }
+  int extra() const override { return 7; }
+};
+
+struct ScalerFactory {
+  static AbstractScalerMiddle *make() { return new ConcreteScaler(); }
+};
+
 struct Subclass : public Base, public AbstractThing {
   int calc(int a, int b) override {
     return a * b;

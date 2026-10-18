@@ -53,7 +53,6 @@ processors:
   # - auto_container_instantiation # Instantiate the containers methods use
   - instantiate_containers # Actually instantiate containers
   - inheritance # Mirror inheritance hierarchy from C++, also from containers
-  - filter_methods # Again, for the methods of containers and inherited ones
   # Preliminary generation processors:
   - crystal_wrapper # Create Crystal wrappers
   - block_overloads # Add type tags for block overloads

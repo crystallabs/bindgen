@@ -32,6 +32,10 @@ public:
   T first() const { return m_items.front(); }
   void clear() { m_items.clear(); }
 
+  // Nested in the instantiation, like QList's iterators: Not wrapped.
+  struct Cursor { int position; };
+  Cursor cursor() const { return Cursor{ 0 }; }
+
   // Declared through the class-local typedef, like QList's takeFirst
   value_type take_last() {
     value_type item = m_items.back();

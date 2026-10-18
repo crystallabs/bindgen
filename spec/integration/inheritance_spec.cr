@@ -58,6 +58,15 @@ describe "single and multiple inheritance feature" do
         Test::Subclass.new.as_abstract_thing.privately_overridden.should eq(6)
       end
 
+      it "gives the Impl class of an abstract subclass the inherited overloads" do
+        made = Test::ScalerFactory.make
+        made.should be_a(Test::AbstractScalerMiddleImpl)
+        made.scaled(3).should eq(6) # The default argument's overload
+        made.scaled(3, 3).should eq(9)
+        made.extra.should eq(7)
+        Test::ConcreteScaler.new.scaled(2).should eq(4)
+      end
+
       it "adds shadow-impl class for abstract classes" do
         {{ Test::AbstractThingImpl.superclass == Test::AbstractThing }}.should be_true
 

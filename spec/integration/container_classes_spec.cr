@@ -15,7 +15,8 @@ describe "container classes feature" do
         it "has the parsed methods" do
           list = Test::StringList.from(["b", "a"])
           list.first.should eq("b")
-          list.take_last.should eq("a") # Declared through a class-local typedef
+          list.take_last.should eq("a")              # Declared through a class-local typedef
+          list.responds_to?(:cursor).should be_false # Returns a nested type
           list.clear
           list.size.should eq(0)
         end

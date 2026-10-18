@@ -30,8 +30,7 @@ module Bindgen
       "enums", # Before the containers, whose element type may be an enum
       # "auto_container_instantiation", # Not stable yet
       "instantiate_containers",
-      "inheritance",    # After the containers, which a class may derive from
-      "filter_methods", # For the inherited and container methods
+      "inheritance", # After the containers, which a class may derive from
       # Preliminary generation processors:
       "crystal_wrapper",
       "virtual_override",

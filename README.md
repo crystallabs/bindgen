@@ -527,8 +527,11 @@ Unlike `ignore_methods:`, which drops all overloads of a name, this drops
 exactly the deprecated overloads, like Qt's `QT_DEPRECATED_VERSION_X` ones
 when `QT_DISABLE_DEPRECATED_BEFORE` doesn't hide them yet.
 
-This processor can be run at any time in theory, but should be run as first part
-of the pipeline.
+Methods added later, by `InstantiateContainers` for a parsed instantiation
+and by `Inheritance` from the base classes, are filtered by the same rules,
+so a single run early in the pipeline suffices.  Methods using a type nested
+in a template instantiation, like `QList<QString>::iterator`, are dropped
+unless the type has rules.
 
 ## `Functions`
 
@@ -605,8 +608,8 @@ nested inside an unnamed member.
 ## `InstantiateContainers`
 
 * **Kind**: Refining
-* **Run after**: `AutoContainerInstantiation` if used
-* **Run before**: `Inheritance`, and `FilterMethods` for parsed instantiations
+* **Run after**: `AutoContainerInstantiation` if used, and `FilterMethods`
+* **Run before**: `Inheritance`
 
 Adds the container instantiation classes and wrappers.
 
@@ -617,7 +620,7 @@ macro: `QList.of(Int32).new`.  See `SPEC.md` for details.
 A wrapper normally offers the container interface only.  To wrap the methods
 of an instantiation too, list it in `classes:` under the name the wrapper
 should get.  It is parsed like any class, so its bases are wrapped when listed
-as well, and its methods are filtered by a `filter_methods` run afterwards.
+as well, and its methods are filtered like `FilterMethods` does.
 Qt keeps the methods of `QStringList` in a template specialization
 `QList<QString>` derives from, so both are listed:
 
