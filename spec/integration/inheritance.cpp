@@ -1,6 +1,15 @@
 /* Note: Used by `inheritance_spec.cr` and `virtual_override_spec.cr`. */
 
 struct Base {
+  // A virtual operator, like `QTableWidgetItem::operator<`
+  virtual bool operator<(const Base &other) const {
+    return false;
+  }
+
+  bool lessThan(const Base &other) const {
+    return *this < other;
+  }
+
   virtual int calc(int a, int b) {
     return a + b;
   }

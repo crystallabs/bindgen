@@ -203,7 +203,10 @@ module Bindgen
           # Generates a C++ wrapper function that always calls the base class
           # method, but only for concrete methods that are accessible.  The
           # function definition will be filled in by `Processor::CppWrapper`.
+          # An operator has no name for such a function, so a Crystal override
+          # of one can't reach the C++ implementation through `#superclass`.
           next if node.origin.pure? || node.origin.private? || superclass.nil?
+          next if node.origin.operator?
           next if ignored_methods.matches?(node.origin.name)
           method_clone = node.origin.superclass_copy
 

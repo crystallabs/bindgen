@@ -32,6 +32,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 * The parser no longer crashes on a `QFlags<E>` typedef nothing instantiates,
   like `QMessageBox::Options` of an `enum class`.
+* A virtual operator, like `QTableWidgetItem::operator<`, no longer aborts
+  `virtual_override` with "Unexpected operator".  It is wrapped and can be
+  overridden from Crystal; the override can't call the C++ implementation
+  through `#superclass`.
 * The parser names a base class by its type, so a class template instantiation
   base keeps its arguments: `QList<QPoint>` instead of `QList`.
 * The Crystal generator writes a class after the types its included modules

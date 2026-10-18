@@ -35,6 +35,13 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      # Test overriding a virtual operator
+      class LessThing < Test::Base
+        def <(other) : Bool
+          true
+        end
+      end
+
       # Test calling superclass method from overridden method
       class OverrideThing < Test::Base
         def calc(a, b)
@@ -113,6 +120,14 @@ describe "C++ virtual overriding from Crystal feature" do
       class Test::Subclass::Superclass
         def has_random_number?
           {{ @type.methods.map &.name.stringify }}.includes?("random_number")
+        end
+      end
+
+      context "virtual operator" do
+        it "is wrapped and overridable" do
+          (Test::Base.new < Test::Base.new).should be_false
+          Test::Base.new.less_than(Test::Base.new).should be_false
+          LessThing.new.less_than(Test::Base.new).should be_true # Through C++
         end
       end
 
