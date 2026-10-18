@@ -19,7 +19,8 @@ void BindgenFrontendAction::addSystemIncludes(clang::CompilerInstance &ci) {
 	clang::HeaderSearchOptions &headerOpts = ci.getHeaderSearchOpts();
 
 	for (const char *path : BG_SYSTEM_INCLUDES) {
-		headerOpts.AddPath(llvm::StringRef(path), clang::frontend::System, false, false);
+		// IgnoreSysRoot: these are absolute paths, not relative to a sysroot like macOS' SDK.
+		headerOpts.AddPath(llvm::StringRef(path), clang::frontend::System, false, true);
 	}
 }
 

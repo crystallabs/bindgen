@@ -10,6 +10,11 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   mappings under the same key merge recursively and sequences concatenate,
   where `<<:` keeps only the later value.  See "Deep merge" in the README.
 
+### Fixed
+
+* The bundled system include paths are no longer prefixed with the sysroot,
+  which made them unusable with macOS' SDK.
+
 ## 0.10.0 (2026-10-18)
 
 ### Added
