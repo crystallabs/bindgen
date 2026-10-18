@@ -313,7 +313,7 @@ module Bindgen
       config.each do |name, rules|
         case rules
         when TypeAlias  then add_alias(name, rules.alias_for)
-        when TypeConfig then add(name, rules)
+        when TypeConfig then add(name, rules.dup) # Rules may be shared by a YAML anchor
         end
       end
     end

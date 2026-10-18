@@ -7,6 +7,14 @@ classes:
   Ops: Ops
   Clock: Clock
   Init: Init
+  Flags: Flags
+  Deduced: Deduced
+  Deduced::Inner: DeducedInner
+  Arrow: Arrow
+  Params: Params
+  Stream: Stream
+  Pixel: Pixel
+  Pixel2: Pixel2
   FreeOps: FreeOps
   ImplicitConstructor: ImplicitConstructor
   Aggregate: Aggregate
@@ -20,6 +28,11 @@ classes:
   Undestructible: Undestructible
 
 types:
+  Pixel: &value_struct
+    copy_structure: true
+    kind: Struct
+    pass_by: Value
+  Pixel2: *value_struct
   Elapsed: # Converted from the result of `Clock::operator-`
     cpp_type: int
     binding_type: Int32

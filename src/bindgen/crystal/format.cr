@@ -22,7 +22,9 @@ module Bindgen
 
         value = arg.default_value
         if value != nil && expose_default
-          stringified = literal(arg.type_name, value)
+          # The parser reports a `nullptr` default as `true`: a pointer
+          # argument of any type, like `bool *flag = nullptr`, defaults to nil.
+          stringified = arg.pointer > 0 && value == true ? "nil" : literal(arg.type_name, value)
 
           if stringified.nil? && value.is_a?(Number)
             stringified = qualified_enum_name arg.type, enum_value(value)

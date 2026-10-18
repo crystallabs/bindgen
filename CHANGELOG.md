@@ -85,6 +85,19 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   an ignored type, is no longer sub-classed in C++ (which left the subclass
   abstract and uncompilable); it is wrapped without Crystal overrides, with
   a warning.
+* A pointer argument defaulting to `nullptr`, like `bool *ok = nullptr`,
+  defaults to `nil` instead of `true`.
+* A deduced `auto` return type is named by the deduced type, fully
+  qualified.
+* An operator Crystal can't name, like `operator->`, is dropped by
+  `filter_methods` instead of aborting.
+* A parameter named like a Crystal keyword, like `self`, is renamed.
+* A templated friend operator, like `QDataStream`'s, is skipped by the
+  parser instead of dragging template parameters into the binding.
+* A copied structure wrapped as a Crystal `struct` (`kind: Struct`) gets
+  property methods for its public fields.
+* Type rules shared through a YAML anchor are copied per type, as bindgen
+  keeps per-type state in them.
 * A `const void *` is a `Void*`, no longer a `Void**`: the `void *` rule
   merged into the `void` rules through the decayed type.
 * The result of a C++ operator is converted as a whole: a `from_cpp` rule

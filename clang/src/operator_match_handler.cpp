@@ -11,6 +11,14 @@ void OperatorMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResu
 	const auto *op = result.Nodes.getNodeAs<clang::FunctionDecl>("operatorDecl");
 	if (!op) return;
 
+	// A templated operator, like a friend `template <typename T>
+	// operator<<(QDataStream &, const T &)`, has no concrete signature.
+	if (op->isTemplated() || op->getTemplatedKind() != clang::FunctionDecl::TK_NonTemplate) return;
+	if (op->getReturnType()->isDependentType()) return;
+	for (const clang::ParmVarDecl *param : op->parameters()) {
+		if (param->getType()->isDependentType()) return;
+	}
+
 	Class *klass = this->m_document.classes.at(this->m_className);
 	if (!klass) return;
 

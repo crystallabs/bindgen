@@ -17,7 +17,7 @@ module Bindgen
         # into `Binding`, as all fields are directly accessible anyway, unless
         # they're hidden inside a wrapper class.
         return if klass.wrapped_class
-        return if @db.try_or(klass.origin.name, false) { |rules| rules.copy_structure? && !structure_hosted?(rules) }
+        return if @db.try_or(klass.origin.name, false) { |rules| rules.copy_structure? && !structure_wrapped?(rules) }
         # An anonymous type can only be named in C++ through the `typedef` added
         # for a member of it, see `#add_anonymous_typedef`.
         return super if klass.origin.anonymous? && @db[klass.origin.name]?.try(&.cpp_type).nil?
@@ -61,6 +61,13 @@ module Bindgen
         end
 
         super
+      end
+
+      # Does a wrapper, a class hosting the structure or a `kind: Struct`
+      # wrapping it by value, hide the structure's fields?
+      private def structure_wrapped?(rules : TypeDatabase::TypeConfig) : Bool
+        structure_hosted?(rules) ||
+          (rules.copy_structure? && rules.generate_wrapper? && rules.kind.struct? && rules.graph_node.is_a?(Graph::Class))
       end
 
       # Returns the Crystal names and argument counts of the methods of *klass*.

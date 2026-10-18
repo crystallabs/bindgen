@@ -11,6 +11,7 @@ module Bindgen
     # 5. Conversion operators to types without rules
     # 6. Methods declared `[[deprecated]]`, if `ignore_deprecated` is set
     # 7. Methods using types nested in a template instantiation
+    # 8. Operators Crystal can't name, like `operator->`
     class FilterMethods < Base
       include Graph::Visitor::MayDelete
 
@@ -50,6 +51,9 @@ module Bindgen
 
         # Rule 6: Deprecated methods, overload by overload
         remove ||= @config.ignore_deprecated? && m.deprecated?
+
+        # Rule 8: Operators Crystal can't name, like `operator->`
+        remove ||= !m.supported_operator?
 
         # Rule 7: Types nested in a template instantiation, like
         # `QList<QString>::iterator`, which Crystal can't name

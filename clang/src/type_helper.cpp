@@ -112,6 +112,13 @@ static clang::QualType desugarInstantiationTypedefs(clang::QualType qt, clang::A
 void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clang::ASTContext &ctx) {
 	clang::QualType qt = desugarInstantiationTypedefs(given, ctx);
 
+	// A deduced `auto` is named by the deduced type, fully qualified.
+	if (const auto *autoType = qt->getContainedAutoType()) {
+		if (autoType->isDeduced()) {
+			qt = ctx.getQualifiedType(autoType->getDeducedType(), qt.getLocalQualifiers());
+		}
+	}
+
 #if CLANG_VERSION_MAJOR >= 22
 	clang::QualType ut = qt; // `ElaboratedType` is gone.
 #else

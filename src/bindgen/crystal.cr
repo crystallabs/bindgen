@@ -13,6 +13,7 @@ module Bindgen
       case when select then of abstract rescue ensure is_a? alias
       pointerof sizeof instance_sizeof as as? typeof
       super private protected asm uninitialized nil? in
+      self
     ]
 
     # All (overridable) Crystal operators

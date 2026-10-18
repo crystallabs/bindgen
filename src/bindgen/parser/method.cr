@@ -369,6 +369,17 @@ module Bindgen
         end
       end
 
+      # Is this operator one bindgen can name, like `operator+`?  Not
+      # `operator->` or `operator,`, which `filter_methods` drops.
+      def supported_operator? : Bool
+        return true unless operator?
+
+        binding_operator_name
+        true
+      rescue Exception
+        false
+      end
+
       # Method names Crystal reserves, which a C++ method of that name gets
       # prefixed with `cpp_`: `QHeaderView::initialize` is `#cpp_initialize`.
       RESERVED_NAMES = %w[initialize finalize]

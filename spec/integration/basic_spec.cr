@@ -37,6 +37,42 @@ describe "a basic C++ wrapper" do
           Test::Copyable.new(0).to_bool.should be_false
         end
 
+        it "defaults a nullptr pointer argument to nil" do
+          Test::Flags.new.flagged.should eq(0)
+          flag = false
+          Test::Flags.new.flagged(pointerof(flag)).should eq(1)
+          flag.should be_true
+        end
+
+        it "names a deduced auto return type" do
+          Test::Deduced.new.number.should eq(9)
+          Test::Deduced.new.inner.v.should eq(4)
+        end
+
+        it "drops an operator Crystal can't name" do
+          Test::Arrow.new.ok.should eq(1)
+          Test::Arrow.new.responds_to?(:deref).should be_false
+        end
+
+        it "renames a parameter named like a keyword" do
+          Test::Params.keep(2, 3).should eq(5)
+        end
+
+        it "skips a templated friend operator" do
+          Test::Stream.new.count.should eq(0)
+        end
+
+        it "gives a value struct property methods" do
+          pixel = Test::Pixel.new
+          pixel.x = 3
+          pixel.y = 4
+          pixel.x.should eq(3)
+          pixel.y.should eq(4)
+          other = Test::Pixel2.new
+          other.x = 7
+          other.x.should eq(7)
+        end
+
         it "prefixes a method named like a reserved Crystal method" do
           init = Test::Init.new
           init.check.should be_false

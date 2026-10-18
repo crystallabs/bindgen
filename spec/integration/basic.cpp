@@ -266,3 +266,50 @@ struct Init {
   void initialize() { ready = true; }
   bool check() { return ready; }
 };
+
+// A pointer argument defaulting to `nullptr` defaults to `nil` in Crystal.
+struct Flags {
+  int flagged(bool *flag = nullptr) {
+    if (flag) *flag = true;
+    return flag ? 1 : 0;
+  }
+};
+
+// A deduced `auto` return type is named by the deduced type.
+struct Deduced {
+  struct Inner { int v; };
+  auto inner() { return Inner { 4 }; }
+  auto number() { return 9; }
+};
+
+// An operator Crystal can't name is dropped instead of aborting.
+struct Arrow {
+  int value = 3;
+  Arrow *operator->() { return this; }
+  int ok() { return 1; }
+};
+
+// A parameter named like a Crystal keyword is renamed.
+struct Params {
+  static int keep(int self, int nil) { return self + nil; }
+};
+
+// A templated friend operator has no concrete signature, so it's skipped.
+struct Stream {
+  int n = 0;
+  template <typename T>
+  friend Stream &operator<<(Stream &stream, const T &value) { stream.n++; return stream; }
+  int count() { return n; }
+};
+
+// A copied structure wrapped as a Crystal `struct` gets property methods,
+// and rules shared through a YAML anchor are copied per type.
+struct Pixel {
+  int x;
+  int y;
+};
+
+struct Pixel2 {
+  int x;
+  int y;
+};
