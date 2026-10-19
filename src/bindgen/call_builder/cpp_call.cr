@@ -47,6 +47,25 @@ module Bindgen
         end
       end
 
+      # Body of a constructor allocating a `CrystalGCWrapper`, which stores the
+      # arguments at *indices* in the new object through `bindgen_depends_on`,
+      # so the GC destroys it before them.  See `depends_on:`.
+      class DependsOnBody < Call::Body
+        def initialize(@indices : Array(Int32))
+        end
+
+        def to_code(call : Call, platform : Graph::Platform) : String
+          pass_args = call.arguments.map(&.call).join(", ")
+          dependencies = @indices.join(", ") do |index|
+            arg = call.arguments[index]
+            arg.reference ? "&#{arg.name}" : arg.name
+          end
+
+          code = %[bindgen_depends_on(#{call.name}(#{pass_args}), {#{dependencies}})]
+          call.result.apply_conversion(code)
+        end
+      end
+
       # Body used for brace initialization.  The braces are put right behind
       # the call name, which initializes the aggregate in place.
       #

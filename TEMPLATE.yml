@@ -581,3 +581,17 @@ types:
       ^addWidget$: [0]
       ^insert: true
       ^$: false
+
+    # Constructors whose object refers to some of its arguments from memory the
+    # GC doesn't scan, like through a d-pointer, and uses them when destroyed,
+    # like an iterator unregistering from its container.  The GC finalizes
+    # objects in an order it finds by following pointers, so it may destroy the
+    # argument first, and the destructor crashes.  The C++ glue of these
+    # constructors stores the arguments in the new object, so the GC keeps them
+    # alive as long as it, and destroys them only after it.  Same format as
+    # `keep_alive:`, matched against an empty string for constructors.  Copy
+    # constructors, and the constructors of copied, aggregate, union and `final`
+    # classes, don't allocate the object the GC scans, and are ignored with a
+    # warning.  Defaults to depending on nothing.
+    depends_on:
+      ^$: true

@@ -145,29 +145,14 @@ module Bindgen
         body.pre_hook = KeepAliveHook.new(indices)
       end
 
-      # Returns the indices of the arguments of *method* to keep alive.  Only
-      # instances of wrapped classes, passed by pointer or reference, are kept.
-      # A copy constructor doesn't keep its argument.  Wrappers of `kind: Struct`
-      # are skipped, as they are Crystal structs and their pointer arguments
-      # stay pointers.
+      # Returns the indices of the arguments of *method* to keep alive, see
+      # `TypeDatabase#selected_object_arguments`.  A copy constructor doesn't
+      # keep its argument.
       private def kept_alive_arguments(method : Parser::Method) : Array(Int32)
-        indices = [] of Int32
-        return indices if method.copy_constructor?
-        return indices unless rules = @db[method.class_name]?
+        return [] of Int32 if method.copy_constructor?
+        return [] of Int32 unless rules = @db[method.class_name]?
 
-        rules.keep_alive.each do |pattern, selected|
-          next unless pattern.matches?(method.name)
-          indices.concat(selected || (0...method.arguments.size))
-        end
-
-        indices.uniq.sort!.select do |index|
-          next false unless arg = method.arguments[index]?
-          next false unless arg.pointer == 1
-
-          type_rules = @db[arg]?
-          !!type_rules && type_rules.generate_wrapper? &&
-            type_rules.kind.class? && type_rules.graph_node.is_a?(Graph::Class)
-        end
+        @db.selected_object_arguments(method, rules.keep_alive)
       end
 
       # Pre-hook of a wrapper method passing the arguments at *indices* to

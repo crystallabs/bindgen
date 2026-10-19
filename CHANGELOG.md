@@ -2,10 +2,15 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
-## Unreleased
+## 0.13.0 (2026-10-19)
 
 ### Added
 
+* `depends_on:` of a type names the constructors whose object refers to some
+  of its arguments from memory the GC doesn't scan, and uses them when
+  destroyed, like an iterator unregistering from its container.  The C++ glue
+  stores these arguments in the new object, so the GC keeps them alive as long
+  as it, and destroys them only after it.  Same format as `keep_alive:`.
 * The variables `find_paths` sets, like the version of a version check, can
   be tested by conditions: `if_QT_VERSION_newer_or_6.6:`.  The tool reads the
   configuration again once the paths were found.
@@ -17,6 +22,11 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * A non-member operator taking the class by value, like Qt 6.4's
   `friend bool operator==(QDate lhs, QDate rhs)`, is wrapped like one taking
   it by reference.  A deleted operator is skipped.
+
+## 0.12.0 (2026-10-19)
+
+### Added
+
 * A container instantiation listed in `classes:`, like
   `"QList<QString>": StringList`, is wrapped from its parsed methods and bases
   under that name, on top of the container interface.  This wraps the

@@ -179,6 +179,13 @@ module Bindgen
       @[YAML::Field(converter: Bindgen::TypeDatabase::KeepAliveConverter)]
       property keep_alive = Bindgen::TypeDatabase::KeepAlive.new
 
+      # Constructors whose object refers to some of its arguments from memory
+      # the GC doesn't scan, and uses them when destroyed.  The C++ glue stores
+      # these in the object, so the GC destroys it first.  Same format as
+      # `keep_alive`.
+      @[YAML::Field(converter: Bindgen::TypeDatabase::KeepAliveConverter)]
+      property depends_on = Bindgen::TypeDatabase::KeepAlive.new
+
       # Instance variable configuration.  Each hash key is a regex used to
       # match instance variable names.
       @[YAML::Field(converter: Bindgen::Configuration::InstanceVariablesConverter)]
@@ -204,6 +211,7 @@ module Bindgen
         @generate_binding = true, @generate_superclass = true,
         @builtin = false, @ignore_methods = [] of String,
         @superclass_ignore_methods = Util::FAIL_RX, @keep_alive = KeepAlive.new,
+        @depends_on = KeepAlive.new,
         @instance_variables = InstanceVariableConfig::Collection.new,
         @graph_node = nil, @container_type = nil, @kind_present = false,
       )
@@ -528,6 +536,28 @@ module Bindgen
       return false if element.pointer > 0
 
       try_or(element, false) { |rules| plain_wrapped_class?(rules) }
+    end
+
+    # Returns the indices of the arguments of *method* selected by *rules*, a
+    # `keep_alive:` or `depends_on:` configuration: Those of the patterns
+    # matching the method name, narrowed down to instances of wrapped classes
+    # passed by pointer or reference.  Wrappers of `kind: Struct` are skipped,
+    # as they are Crystal structs and their pointer arguments stay pointers.
+    def selected_object_arguments(method : Parser::Method, rules : KeepAlive) : Array(Int32)
+      indices = [] of Int32
+      rules.each do |pattern, selected|
+        next unless pattern.matches?(method.name)
+        indices.concat(selected || (0...method.arguments.size))
+      end
+
+      indices.uniq.sort!.select do |index|
+        next false unless arg = method.arguments[index]?
+        next false unless arg.pointer == 1
+
+        type_rules = self[arg]?
+        !!type_rules && type_rules.generate_wrapper? &&
+          type_rules.kind.class? && type_rules.graph_node.is_a?(Graph::Class)
+      end
     end
 
     # Is the type of *rules* a named class with a wrapper, without custom

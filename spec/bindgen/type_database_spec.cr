@@ -226,4 +226,16 @@ describe Bindgen::TypeDatabase do
       })
     end
   end
+
+  describe "TypeConfig#depends_on" do
+    config = Bindgen::TypeDatabase::Configuration.from_yaml(<<-YAML)
+      List: { depends_on: [^$] }
+      Hash: { depends_on: { ^$: [0] } }
+      YAML
+
+    it "accepts the format of keep_alive" do
+      config["List"].as(Bindgen::TypeDatabase::TypeConfig).depends_on.should eq({/^$/ => nil})
+      config["Hash"].as(Bindgen::TypeDatabase::TypeConfig).depends_on.should eq({/^$/ => [0]})
+    end
+  end
 end

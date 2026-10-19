@@ -13,6 +13,21 @@ describe "keeping objects passed to C++ alive" do
         GC.collect
       end
 
+      # Collects garbage until the block returns true, or fails.
+      def collect_garbage_until(&)
+        50.times do
+          return if yield
+          collect_garbage
+        end
+        fail "The GC didn't collect the objects in time"
+      end
+
+      # Creates a `Dependent` on a `Counted`, keeping neither.
+      def leave_dependent
+        Test::Dependent.new(Test::Counted.new)
+        nil
+      end
+
       # Stores a new `Inner` in a new `Outer`, which doesn't keep it alive by
       # itself.  Returns if the `Inner` is kept alive.
       def store_inner(x)
@@ -69,6 +84,19 @@ describe "keeping objects passed to C++ alive" do
           inner = Test::Inner.new(1)
           Test::Picky.new.set_none(Test::Outer.new_no_gc, inner)
           Test::BindgenHelper.kept_alive?(inner).should be_false
+        end
+      end
+
+      context "depends_on: [patterns]" do
+        it "destroys the object before the arguments of its constructor" do
+          leave_dependent
+          Test::Counted.alive.should eq(1)
+
+          collect_garbage_until { Test::Dependent.destroyed == 1 }
+          Test::Dependent.counted_alive_at_destruction.should eq(1)
+
+          # The argument is collected once the object depending on it is gone.
+          collect_garbage_until { Test::Counted.alive == 0 }
         end
       end
 

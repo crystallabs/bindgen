@@ -32,11 +32,11 @@ module Bindgen
         when .any_constructor?
           if type_copied?(method.class_name)
             "bg_deref<#{method.class_name}>"
-          elsif type.aggregate_constructor? || uninheritable?(method.class_name)
-            @db.cookbook.plain_constructor_name(method.name, cpp_class_name(method.class_name))
-          else # Support shadow sub-classing.
+          elsif gc_wrapper_constructor?(method, type) # Support shadow sub-classing.
             name = class_name_for_new(method.class_name)
             @db.cookbook.constructor_name(method.name, name)
+          else
+            @db.cookbook.plain_constructor_name(method.name, cpp_class_name(method.class_name))
           end
         when .member_method?, .member_getter?, .member_setter?, .signal?, .operator?,
              .conversion_operator?
@@ -50,6 +50,13 @@ module Bindgen
         else
           raise "BUG: Missing case for method type #{method.type.inspect}"
         end
+      end
+
+      # Is *method* a constructor allocating a `CrystalGCWrapper` of its class,
+      # instead of the class itself?  See `#generate`.
+      def gc_wrapper_constructor?(method : Parser::Method, type : Parser::Method::Type = method.type) : Bool
+        type.any_constructor? && !type_copied?(method.class_name) &&
+          !type.aggregate_constructor? && !uninheritable?(method.class_name)
       end
 
       # Returns the qualified name of a method.

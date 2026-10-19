@@ -10,6 +10,8 @@ processors:
   - sanity_check
 
 classes:
+  Counted: Counted
+  Dependent: Dependent
   Inner: Inner
   Outer: Outer
   Picky: Picky
@@ -30,3 +32,5 @@ types:
       setBoth: [2]
       setNone: false
       ^$: true # Constructors
+  Dependent:
+    depends_on: [^$] # Constructors

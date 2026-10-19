@@ -39,13 +39,36 @@ module Bindgen
         end
 
         braces = method.origin.aggregate_constructor?
-        target = call.build(method.origin, name: method_name, braces: braces)
+        body = depends_on_body(method.origin)
+        target = call.build(method.origin, name: method_name, braces: braces, body: body)
 
         method.calls[PLATFORM] = wrapper.build(
           method: method.origin,
           class_name: cpp_class_name(method.origin.class_name), # An anonymous type by its typedef
           target: target,
         )
+      end
+
+      # Returns the body of a constructor configured in `depends_on:` of its
+      # class, storing the selected arguments in the new object, or `nil` for
+      # the default body.  Only an object allocated as `CrystalGCWrapper` has
+      # room for them: a copy constructor copies, and the constructors of
+      # copied, aggregate, union and `final` classes allocate the class itself.
+      private def depends_on_body(method : Parser::Method) : Call::Body?
+        return if method.copy_constructor?
+        return unless rules = @db[method.class_name]?
+        return if rules.depends_on.empty?
+
+        indices = @db.selected_object_arguments(method, rules.depends_on)
+        return if indices.empty?
+
+        unless Cpp::MethodName.new(@db).gc_wrapper_constructor?(method)
+          what = method.name.empty? ? "a constructor" : method.name
+          Log.warn { "depends_on: of #{method.class_name} ignores #{what}: it doesn't allocate a CrystalGCWrapper" }
+          return
+        end
+
+        CallBuilder::CppCall::DependsOnBody.new(indices)
       end
     end
   end

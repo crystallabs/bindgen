@@ -12,7 +12,7 @@ Add the dependency to `shard.yml`:
 dependencies:
   bindgen:
     github: Papierkorb/bindgen
-    version: ~> 0.11.1
+    version: ~> 0.13.0
 ```
 
 # Table of Contents
@@ -463,6 +463,27 @@ Qt::BindgenHelper.release(label) # Lets the GC collect it again
 ```
 
 See `TEMPLATE.yml` for details.
+
+### Objects destroyed before others
+
+An object may refer to an argument of its constructor from memory the GC
+doesn't scan, like through a d-pointer, and use it when destroyed: Qt's
+`QTreeWidgetItemIterator` unregisters from the model of its tree widget.  The GC
+finalizes objects in an order it finds by following pointers, so it may destroy
+the tree widget first, and the destructor of the iterator crashes.
+
+Configure such constructors in `depends_on:` of the class, in the format of
+`keep_alive:`.  `CppWrapper` makes their C++ glue store the arguments in the
+new object, which the GC scans: it keeps them alive as long as the object, and
+finalizes them only after it.  Nothing needs releasing.  Copy constructors, and
+the constructors of copied, aggregate, union and `final` classes, don't
+allocate the object the GC scans, and are ignored with a warning.
+
+```yaml
+types:
+  QTreeWidgetItemIterator:
+    depends_on: [^$] # The tree widget, or item, passed to the constructors
+```
 
 ## `DefaultConstructor`
 
