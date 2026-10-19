@@ -149,7 +149,9 @@ module Bindgen
       # That's its superclass, and the types named in its included modules.
       private def unwritten_dependency?(klass)
         dependencies = [] of String
-        dependencies << klass.base_class.not_nil! if klass.base_class
+        if base = klass.base_class
+          dependencies << base
+        end
         klass.included_modules.each { |mod| dependencies.concat(constant_paths(mod)) }
 
         dependencies.any? do |path|

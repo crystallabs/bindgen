@@ -31,7 +31,7 @@ describe "nilable_results feature" do
       it "returns the wrapper for a pointer" do
         some = Test::Node.some
         some.should be_a(Test::Node)
-        some.not_nil!.value.should eq(5)
+        some.try(&.value).should eq(5)
         Test::Node.new.self.should be_a(Test::Node) # A reference, never nil
       end
 
@@ -48,7 +48,7 @@ describe "nilable_results feature" do
 
       it "keeps nilable arguments" do
         Test::Node.new.value_of(nil).should eq(-1)
-        Test::Node.new.value_of(Test::Node.some.not_nil!).should eq(5)
+        Test::Node.new.value_of(Test::Node.some.as(Test::Node)).should eq(5)
       end
 
       it "takes a nilable variable as argument" do

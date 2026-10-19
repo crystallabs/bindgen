@@ -13,35 +13,31 @@ module Bindgen
 
         # Support variadic argument
         if arg.is_a?(Call::VariadicArgument)
-          if binding
-            return "..."
-          else
-            return arg.name
-          end
+          return binding ? "..." : arg.name
         end
 
-        value = arg.default_value
-        if value != nil && expose_default
-          # The parser reports a `nullptr` default as `true`: a pointer
-          # argument of any type, like `bool *flag = nullptr`, defaults to nil.
-          stringified = arg.pointer > 0 && value == true ? "nil" : literal(arg.type_name, value)
-
-          if stringified.nil? && value.is_a?(Number)
-            stringified = qualified_enum_name arg.type, enum_value(value)
-          end
-
-          default = " = #{stringified}" if stringified
-        end
-
-        if arg.is_a?(Call::ProcArgument) && arg.block?
-          prefix = "&"
-        end
-
-        if arg.is_a?(Call::TypeArgument)
-          meta = ".class"
-        end
+        default = argument_default(arg) if expose_default
+        prefix = "&" if arg.is_a?(Call::ProcArgument) && arg.block?
+        meta = ".class" if arg.is_a?(Call::TypeArgument)
 
         "#{prefix}#{argument.name(arg, idx)} : #{typer.full arg}#{meta}#{default}"
+      end
+
+      # Formats the default value of *arg* as ` = value`.  Returns `nil` if it
+      # has none, or if it can't be expressed in Crystal.
+      private def argument_default(arg : Call::Argument) : String?
+        value = arg.default_value
+        return if value.nil?
+
+        # The parser reports a `nullptr` default as `true`: a pointer
+        # argument of any type, like `bool *flag = nullptr`, defaults to nil.
+        stringified = arg.pointer > 0 && value == true ? "nil" : literal(arg.type_name, value)
+
+        if stringified.nil? && value.is_a?(Number)
+          stringified = qualified_enum_name arg.type, enum_value(value)
+        end
+
+        " = #{stringified}" if stringified
       end
 
       # Formats *arguments* as `name : type, ...`.  If *binding* is `true`,

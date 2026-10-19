@@ -102,7 +102,7 @@ module Bindgen
         missing = pure.select { |method| filter.filtered?(method) }
 
         unless missing.empty?
-          Log.warn { "#{klass.diagnostics_path} can't be subclassed from Crystal: the pure virtual #{missing.map(&.name).uniq.join(", ")} can't be wrapped" }
+          Log.warn { "#{klass.diagnostics_path} can't be subclassed from Crystal: the pure virtual #{missing.map(&.name).uniq!.join(", ")} can't be wrapped" }
         end
 
         missing.empty?

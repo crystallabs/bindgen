@@ -78,7 +78,7 @@ describe "single and multiple inheritance feature" do
         made = Test::ScalerFactory.make.as(Test::AbstractScaler)
         middle = made.to?(Test::AbstractScalerMiddle)
         middle.should be_a(Test::AbstractScalerMiddleImpl)
-        middle.not_nil!.extra.should eq(7)
+        middle.try(&.extra).should eq(7)
       end
 
       it "reaches a privately overridden method through its base" do
