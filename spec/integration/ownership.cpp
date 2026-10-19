@@ -55,6 +55,7 @@ int Counted::alive_ = 0;
 // `depends_on:` makes the GC destroy it before the `Counted`.
 struct Dependent {
   Dependent(Counted *counted) : d(new Data{counted}) { }
+  Dependent(const Dependent &other) : d(new Data{other.d->counted}) { }
 
   ~Dependent() {
     ++destroyed_;

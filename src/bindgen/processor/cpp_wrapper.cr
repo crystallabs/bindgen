@@ -51,11 +51,12 @@ module Bindgen
 
       # Returns the body of a constructor configured in `depends_on:` of its
       # class, storing the selected arguments in the new object, or `nil` for
-      # the default body.  Only an object allocated as `CrystalGCWrapper` has
-      # room for them: a copy constructor copies, and the constructors of
-      # copied, aggregate, union and `final` classes allocate the class itself.
+      # the default body.  A copy constructor stores the object it copies, so
+      # the copy is destroyed before it, and in turn before its dependencies.
+      # Only an object allocated as `CrystalGCWrapper` has room for them: the
+      # constructors of copied, aggregate, union and `final` classes allocate
+      # the class itself.
       private def depends_on_body(method : Parser::Method) : Call::Body?
-        return if method.copy_constructor?
         return unless rules = @db[method.class_name]?
         return if rules.depends_on.empty?
 

@@ -765,10 +765,10 @@ doesn't scan, like through a d-pointer, and uses them when destroyed, like an
 iterator unregistering from its container.  The C++ glue of these constructors
 stores the arguments in the new object, so the GC keeps them alive as long as
 it, and destroys them only after it.  Same format as [`keep_alive`](#keep_alive),
-matched against an empty string for constructors.  Copy constructors, and the
-constructors of copied, aggregate, union and `final` classes, don't allocate the
-object the GC scans, and are ignored with a warning.  Defaults to depending on
-nothing.
+matched against an empty string for constructors.  A copy made by the copy
+constructor depends on the object it copies.  The constructors of copied,
+aggregate, union and `final` classes don't allocate the object the GC scans, and
+are ignored with a warning.  Defaults to depending on nothing.
 
 ```yaml
 types:

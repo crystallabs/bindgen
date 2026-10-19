@@ -28,6 +28,12 @@ describe "keeping objects passed to C++ alive" do
         nil
       end
 
+      # Creates a `Dependent` on a `Counted` and a copy of it, keeping none.
+      def leave_dependent_copy
+        Test::Dependent.new(Test::Dependent.new(Test::Counted.new))
+        nil
+      end
+
       # Stores a new `Inner` in a new `Outer`, which doesn't keep it alive by
       # itself.  Returns if the `Inner` is kept alive.
       def store_inner(x)
@@ -96,6 +102,16 @@ describe "keeping objects passed to C++ alive" do
           Test::Dependent.counted_alive_at_destruction.should eq(1)
 
           # The argument is collected once the object depending on it is gone.
+          collect_garbage_until { Test::Counted.alive == 0 }
+        end
+
+        it "destroys a copy before the object it copies, and that before the arguments" do
+          leave_dependent_copy
+          Test::Counted.alive.should eq(1)
+
+          collect_garbage_until { Test::Dependent.destroyed == 3 }
+          Test::Dependent.counted_alive_at_destruction.should eq(1)
+
           collect_garbage_until { Test::Counted.alive == 0 }
         end
       end

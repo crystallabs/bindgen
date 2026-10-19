@@ -2,6 +2,14 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## 0.13.1 (2026-10-19)
+
+### Fixed
+
+* `depends_on:` applies to the copy constructor too: a copy depends on the
+  object it copies, so the GC destroys it first, and in turn before what the
+  original depends on.  Copies were destroyed in any order before.
+
 ## 0.13.0 (2026-10-19)
 
 ### Added

@@ -475,8 +475,9 @@ the tree widget first, and the destructor of the iterator crashes.
 Configure such constructors in `depends_on:` of the class, in the format of
 `keep_alive:`.  `CppWrapper` makes their C++ glue store the arguments in the
 new object, which the GC scans: it keeps them alive as long as the object, and
-finalizes them only after it.  Nothing needs releasing.  Copy constructors, and
-the constructors of copied, aggregate, union and `final` classes, don't
+finalizes them only after it.  Nothing needs releasing.  A copy made by the
+copy constructor depends on the object it copies, so it is destroyed before
+it.  The constructors of copied, aggregate, union and `final` classes don't
 allocate the object the GC scans, and are ignored with a warning.
 
 ```yaml
