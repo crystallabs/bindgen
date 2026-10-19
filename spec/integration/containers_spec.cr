@@ -21,6 +21,11 @@ describe "container instantiation feature" do
           pair.first.should eq("x")
           pair.to_tuple.should eq({"x", 4})
         end
+
+        it "looks through an alias template" do
+          Test::Containers.new.aliased_entry.should eq({"two", 2})
+          Test::Containers.new.aliased_weights.to_a.should eq([{2.5, 3}])
+        end
       end
 
       context "sequential container" do

@@ -109,8 +109,30 @@ static clang::QualType desugarInstantiationTypedefs(clang::QualType qt, clang::A
 	return qt;
 }
 
+// Looks through alias template specializations, like Qt's `QPair<T1, T2>`
+// for `std::pair<T1, T2>`: The alias is sugar over the type it names, which
+// the type rules and the containers are keyed by.  A typedef of such a
+// specialization is kept, as it may have rules of its own.
+static clang::QualType desugarAliasTemplates(clang::QualType qt, clang::ASTContext &ctx) {
+	while (true) {
+		const clang::Type *ptr = qt.getTypePtr();
+#if CLANG_VERSION_MAJOR < 22
+		if (const auto *elab = llvm::dyn_cast<clang::ElaboratedType>(ptr)) {
+			ptr = elab->getNamedType().getTypePtr();
+		}
+#endif
+
+		const auto *tmpl = llvm::dyn_cast<clang::TemplateSpecializationType>(ptr);
+		if (!tmpl || !tmpl->isTypeAlias()) break;
+
+		qt = ctx.getQualifiedType(tmpl->getAliasedType(), qt.getLocalQualifiers());
+	}
+
+	return qt;
+}
+
 void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clang::ASTContext &ctx) {
-	clang::QualType qt = desugarInstantiationTypedefs(given, ctx);
+	clang::QualType qt = desugarAliasTemplates(desugarInstantiationTypedefs(given, ctx), ctx);
 
 	// A deduced `auto` is named by the deduced type, fully qualified.
 	if (const auto *autoType = qt->getContainedAutoType()) {

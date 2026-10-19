@@ -7,6 +7,9 @@ typedef std::vector<unsigned char> bytearray;
 typedef std::map<std::string, int> phonebook;
 typedef unsigned int rgb;
 
+// An alias template, like Qt's `QPair`: The parser names the aliased type.
+template <typename A, typename B> using couple = std::pair<A, B>;
+
 // An ignored type: The container of it isn't instantiated.
 enum class Secret { Hidden };
 
@@ -30,6 +33,15 @@ public:
   // The pair appears only inside the list.
   std::vector<std::pair<double, int>> weights() {
     return { { 0.5, 1 }, { 1.5, 2 } };
+  }
+
+  // Pairs spelled by the alias template, on their own and inside a list.
+  couple<std::string, int> aliased_entry() {
+    return { "two", 2 };
+  }
+
+  std::vector<couple<double, int>> aliased_weights() {
+    return { { 2.5, 3 } };
   }
 
   std::vector<int> integers() {

@@ -11,6 +11,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   configuration again once the paths were found.
 * `find_paths` determines the version of a path the user preset, when its
   version check stores one: `QMAKE=/opt/qt/bin/qmake6` sets `QT_VERSION` too.
+* The parser looks through alias template specializations, like Qt 6's
+  `QPair<T1, T2>` for `std::pair<T1, T2>`, so the type rules and containers of
+  the aliased template apply.
 * A container instantiation listed in `classes:`, like
   `"QList<QString>": StringList`, is wrapped from its parsed methods and bases
   under that name, on top of the container interface.  This wraps the
