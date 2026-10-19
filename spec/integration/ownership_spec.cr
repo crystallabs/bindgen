@@ -21,7 +21,8 @@ describe "keeping objects passed to C++ alive" do
         end
         fail "The GC didn't collect the objects in time: " \
              "#{Test::Dependent.destroyed} Dependent destroyed, " \
-             "#{Test::Counted.alive} Counted alive"
+             "#{Test::Counted.alive} Counted alive, " \
+             "#{Test::Mutual.destroyed} Mutual destroyed"
       end
 
       # Overwrites the stack below its caller.  The GC scans the stack
@@ -49,6 +50,11 @@ describe "keeping objects passed to C++ alive" do
       # Creates a `Dependent` on a `Counted` and a copy of it, keeping none.
       def leave_dependent_copy
         leaving { Test::Dependent.new(Test::Dependent.new(Test::Counted.new)) }
+      end
+
+      # Creates *count* pairs of objects owning each other, keeping none.
+      def leave_pairs(count)
+        leaving { count.times { Test::Mutual.new.pair_with(Test::Mutual.new) } }
       end
 
       # Stores a new `Inner` in a new `Outer`, which doesn't keep it alive by
@@ -130,6 +136,18 @@ describe "keeping objects passed to C++ alive" do
           Test::Dependent.counted_alive_at_destruction.should eq(1)
 
           collect_garbage_until { Test::Counted.alive == 0 }
+        end
+      end
+
+      context "objects destroyed by C++" do
+        it "skips the finalizer of an object its owner deleted" do
+          leave_pairs(100)
+
+          # The object of a pair finalized first deletes the other, whose
+          # finalizer is queued: Each is destroyed exactly once.
+          collect_garbage_until { Test::Mutual.destroyed == 200 }
+          collect_garbage
+          Test::Mutual.destroyed.should eq(200)
         end
       end
 

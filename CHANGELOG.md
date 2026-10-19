@@ -2,6 +2,16 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## 0.13.2 (2026-10-19)
+
+### Fixed
+
+* `delete` on a wrapped object, by C++ code owning it like a Qt parent, runs
+  its destructor but leaves the memory to the GC, and the finalizer skips an
+  object C++ destroyed.  Before, when the owner and the object were collected
+  together and the owner was finalized first, the queued finalizer of the
+  object ran on freed memory and crashed.
+
 ## 0.13.1 (2026-10-19)
 
 ### Fixed

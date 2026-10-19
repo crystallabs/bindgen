@@ -1,6 +1,8 @@
 // Objects handed to C++ code which keeps them in memory the GC doesn't scan.
 // See Papierkorb/bindgen#75.
 
+#include <cstdlib>
+
 struct Inner {
   Inner(int x) : x(x) { }
 
@@ -76,6 +78,39 @@ private:
 
 int Dependent::destroyed_ = 0;
 int Dependent::counted_alive_at_destruction_ = -1;
+
+// Two objects owning each other through memory the GC doesn't scan: The one
+// destroyed first deletes the other, like a Qt parent deletes its children.
+// Collected together, the GC queued the finalizers of both, so the deleted one
+// must not be finalized again.  (The link is allocated with `malloc`, as
+// libgccpp replaces `operator new` with GC memory the GC scans.)
+struct Mutual {
+  Mutual() : link(static_cast<Link *>(std::malloc(sizeof(Link)))) { link->other = nullptr; }
+
+  virtual ~Mutual() {
+    ++destroyed_;
+    if (Mutual *other = link->other) {
+      other->link->other = nullptr;
+      delete other;
+    }
+    std::free(link);
+  }
+
+  void pairWith(Mutual *other) {
+    link->other = other;
+    other->link->other = this;
+  }
+
+  static int destroyed() { return destroyed_; }
+
+private:
+  struct Link { Mutual *other; };
+  Link *link;
+
+  static int destroyed_;
+};
+
+int Mutual::destroyed_ = 0;
 
 // Selects the arguments to keep alive.
 struct Picky {

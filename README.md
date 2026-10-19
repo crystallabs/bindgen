@@ -486,6 +486,16 @@ types:
     depends_on: [^$] # The tree widget, or item, passed to the constructors
 ```
 
+### Objects destroyed by C++
+
+C++ code owning an object destroys it with `delete`, like a Qt parent deletes
+its children.  When the owner and the object became unreachable in the same
+collection, the GC queued the finalizers of both already, and the one of the
+object would run on freed memory.  So `delete` on a wrapped object runs its
+destructor but leaves the memory to the GC, and the finalizer
+`CrystalGCCleanupWrapper` registers skips an object C++ destroyed.  Nothing
+needs configuring.
+
 ## `DefaultConstructor`
 
 * **Kind**: Refining
