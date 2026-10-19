@@ -85,9 +85,16 @@ clang::ast_matchers::MatchFinder BindgenASTConsumer::makeDependentMatchFinder() 
 	MatchFinder finder {this->m_matchFinderOpts};
 
 	for (const std::string &className : ClassList) {
-		auto self = RecordMatchHandler::isInstantiation(className)
-			? hasType(references(qualType(isRegisteredAs(className))))
-			: hasType(references(cxxRecordDecl(hasName(className))));
+		// The first parameter is the class, by reference or by value like in
+		// `friend bool operator==(QDate lhs, QDate rhs)`.
+		clang::ast_matchers::internal::Matcher<clang::QualType> selfType = RecordMatchHandler::isInstantiation(className)
+			? clang::ast_matchers::internal::Matcher<clang::QualType>(qualType(anyOf(
+				references(qualType(isRegisteredAs(className))),
+				isRegisteredAs(className))))
+			: clang::ast_matchers::internal::Matcher<clang::QualType>(qualType(anyOf(
+				references(cxxRecordDecl(hasName(className))),
+				hasUnqualifiedDesugaredType(recordType(hasDeclaration(cxxRecordDecl(hasName(className))))))));
+		auto self = hasType(selfType);
 
 		DeclarationMatcher operatorMatcher = functionDecl(
 			isOverloadedOperator(),

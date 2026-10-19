@@ -296,6 +296,20 @@ struct Params {
   static int keep(int self, int nil) { return self + nil; }
 };
 
+// A friend operator taking the class by value, like Qt's
+// `operator==(QDate lhs, QDate rhs)`, is wrapped like one taking a reference.
+struct ValueOps {
+  int n;
+  ValueOps(int n) : n(n) { }
+  friend bool operator==(ValueOps lhs, ValueOps rhs) { return lhs.n == rhs.n; }
+  friend int operator+(ValueOps lhs, int x) { return lhs.n + x; }
+};
+
+// A deleted operator is skipped.
+struct DeletedOps {
+  friend bool operator==(DeletedOps, DeletedOps) = delete;
+};
+
 // A templated friend operator has no concrete signature, so it's skipped.
 struct Stream {
   int n = 0;

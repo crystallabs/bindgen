@@ -14,6 +14,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * The parser looks through alias template specializations, like Qt 6's
   `QPair<T1, T2>` for `std::pair<T1, T2>`, so the type rules and containers of
   the aliased template apply.
+* A non-member operator taking the class by value, like Qt 6.4's
+  `friend bool operator==(QDate lhs, QDate rhs)`, is wrapped like one taking
+  it by reference.  A deleted operator is skipped.
 * A container instantiation listed in `classes:`, like
   `"QList<QString>": StringList`, is wrapped from its parsed methods and bases
   under that name, on top of the container interface.  This wraps the

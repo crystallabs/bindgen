@@ -58,6 +58,16 @@ describe "a basic C++ wrapper" do
           Test::Params.keep(2, 3).should eq(5)
         end
 
+        it "wraps a friend operator taking the class by value" do
+          (Test::ValueOps.new(3) == Test::ValueOps.new(3)).should be_true
+          (Test::ValueOps.new(3) == Test::ValueOps.new(4)).should be_false
+          (Test::ValueOps.new(3) + 4).should eq(7)
+        end
+
+        it "skips a deleted operator" do
+          {{ Test::DeletedOps.methods.map(&.name.stringify) }}.should_not contain("==")
+        end
+
         it "skips a templated friend operator" do
           Test::Stream.new.count.should eq(0)
         end

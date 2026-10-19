@@ -15,6 +15,7 @@ void OperatorMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResu
 	// operator<<(QDataStream &, const T &)`, has no concrete signature.
 	if (op->isTemplated() || op->getTemplatedKind() != clang::FunctionDecl::TK_NonTemplate) return;
 	if (op->getReturnType()->isDependentType()) return;
+	if (op->isDeleted()) return;
 	for (const clang::ParmVarDecl *param : op->parameters()) {
 		if (param->getType()->isDependentType()) return;
 	}

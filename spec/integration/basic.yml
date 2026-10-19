@@ -13,6 +13,8 @@ classes:
   Arrow: Arrow
   Params: Params
   Stream: Stream
+  ValueOps: ValueOps
+  DeletedOps: DeletedOps
   Pixel: Pixel
   Pixel2: Pixel2
   Timing: Timing
