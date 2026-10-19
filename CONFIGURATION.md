@@ -68,7 +68,7 @@ Some values are *templated* strings.  In them:
   set.  The fallback may be `%`: `{LIBRARY_PATH|%}`.
 
 Variables found by [`find_paths`](#find_paths) are environment variables too,
-so templated strings can use them.
+so templated strings and conditions can use them.
 
 ## `module`
 
@@ -195,10 +195,14 @@ into environment variables.  Optional.
 Each key is the name of the environment variable to set.  The searches run in
 the order they are written, so later ones can use the variables set by earlier
 ones.  If the variable is already set and isn't empty, its search is skipped:
-Users can point to non-standard installations that way.
+Users can point to non-standard installations that way.  The version of such
+a preset path is still determined, if its [version check](#version-check)
+stores one in a variable.
 
-Conditions are evaluated before the paths are found, so a condition can't test
-a found path.
+The configuration is read again once the paths were found, so the conditions
+outside this section can test them, like `if_QT_VERSION_newer_or_6.6:` with
+the variable a [version check](#version-check) sets.  The conditions inside
+this section only see the variables set before the search.
 
 Regular expressions in this section are case-sensitive and multi-line (`^`
 matches at the start of each line).
@@ -274,7 +278,7 @@ All checks of `checks:` have to pass for a candidate to be accepted.
 | `regex` | Takes the version out of the candidate's path, from its first capture group.  Defaults to the Debian-style suffix `-([0-9.]+)$`, as in `llvm-config-18`. |
 | `command` | Runs a command, `%` being the candidate, and applies `regex` to its output instead.  It has to exit successfully.  Be careful: This runs commands found on the user's system. |
 | `fallback` | What to do with candidates without a version: `Fail` (default) rejects them, `Accept` accepts them, `Prefer` prefers them over versioned ones. |
-| `variable` | An environment variable set to the version of the picked candidate.  Not set if none was picked. |
+| `variable` | An environment variable set to the version of the picked candidate.  Not set if none was picked.  Set to the version of a preset path too, without checking the range, unless it is already set. |
 
 ```yaml
   LLVM_CONFIG:

@@ -93,6 +93,6 @@ config = Bindgen::ConfigReader.from_file(
 )
 
 # And off we go!
-tool = Bindgen::Tool.new(File.dirname(config_path), config, opts.stats)
+tool = Bindgen::Tool.new(File.dirname(config_path), config, opts.stats, config_path: config_path)
 exit_code = tool.run!
 exit exit_code

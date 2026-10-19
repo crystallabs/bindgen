@@ -517,6 +517,44 @@ describe Bindgen::FindPath do
       errors.empty?.should be_true
       vars.should eq({"TEST" => "#{base}/tool-2.0", "MY_VER" => "2.0"})
     end
+
+    it "stores the version of a preset path, without checking its range" do
+      config = Bindgen::FindPath::Configuration.from_yaml <<-YAML
+        TEST:
+          kind: Executable
+          try: [ "*" ]
+          search_paths: [ "%/bindgen/find_path/fixture" ]
+          version:
+            min: "2.0"
+            variable: MY_VER
+        YAML
+
+      base = "#{root_dir}/bindgen/find_path/fixture"
+      vars = {"TEST" => "#{base}/tool-1.0"}
+      subject = Bindgen::FindPath.new(root_dir, vars)
+      errors = subject.find_all!(config)
+
+      errors.empty?.should be_true
+      vars.should eq({"TEST" => "#{base}/tool-1.0", "MY_VER" => "1.0"})
+    end
+
+    it "keeps the version variable preset along with the path" do
+      config = Bindgen::FindPath::Configuration.from_yaml <<-YAML
+        TEST:
+          kind: Executable
+          try: [ "*" ]
+          search_paths: [ "%/bindgen/find_path/fixture" ]
+          version:
+            variable: MY_VER
+        YAML
+
+      vars = {"TEST" => "elsewhere/tool-1.0", "MY_VER" => "3.0"}
+      subject = Bindgen::FindPath.new(root_dir, vars)
+      errors = subject.find_all!(config)
+
+      errors.empty?.should be_true
+      vars.should eq({"TEST" => "elsewhere/tool-1.0", "MY_VER" => "3.0"})
+    end
   end
 
   context "list feature" do

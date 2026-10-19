@@ -43,7 +43,15 @@ module Bindgen
       errors = [] of Error
 
       config.each do |name, single|
-        next if has_value?(name)
+        if has_value?(name)
+          # The user set the path.  Its version is still wanted if the check
+          # stores it, like `QT_VERSION` of a `QMAKE` the user points to.
+          if found = version_of_preset(name, single)
+            yield(*found)
+          end
+
+          next
+        end
 
         additional = {} of String => String
         if result = find(single, additional)
@@ -118,6 +126,21 @@ module Bindgen
         expanded = Util.template(path, replacement: @root)
         expanded.split(PATH_SEPARATOR)
       end.reject(&.empty?)
+    end
+
+    # Returns the variable the version check of *config* stores the version in
+    # and the version of the preset value of *name*, if there is such a
+    # variable, it isn't set yet, and the version could be determined.  The
+    # preset value isn't checked against the version range: it was the user's
+    # choice.
+    private def version_of_preset(name, config : PathConfig) : {String, String}?
+      return unless version_check = config.version
+      return unless variable = version_check.variable
+      return if has_value?(variable)
+
+      if version = VersionChecker.new(version_check).version_of(@variables[name].to_s)
+        {variable, version}
+      end
     end
 
     # Checks if a key for *name* exists and is non-empty.

@@ -1,0 +1,18 @@
+module: Test
+
+find_paths:
+  BINDGEN_TOOL_SPEC_DIR:
+    kind: Directory
+    try: ["%"]
+
+# Met once the tool read the configuration again after `find_paths` ran.
+if_BINDGEN_TOOL_SPEC_DIR_matches_.:
+  classes:
+    Found: Found
+
+generators: {}
+
+parser:
+  files: [found.hpp]
+  includes: ["%"]
+  flags: [-x, c++, -std=c++17]

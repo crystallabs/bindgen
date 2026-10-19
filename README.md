@@ -913,6 +913,18 @@ Variables are set by the user of the class (probably through
 Variable names are **case-sensitive**.  A missing variable will be treated
 as having an empty value (`""`).
 
+The `bindgen` tool makes the environment and its built-in variables (`os`,
+`architecture`, `libc`, `pointersize`, `endian`) available, plus any `--var`.
+The paths and versions `find_paths` finds are variables too: the tool reads
+the configuration again after finding them, so a condition can test them:
+
+```yaml
+# QT_VERSION is set by the version check of a `find_paths` entry.
+if_QT_VERSION_newer_or_6.6:
+  classes:
+    QNativeIpcKey: NativeIpcKey
+```
+
 ### Examples
 
 ```yaml

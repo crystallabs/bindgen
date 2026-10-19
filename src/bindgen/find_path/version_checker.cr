@@ -42,12 +42,19 @@ module Bindgen
         tuple.last if tuple # Unpack the path if we found anything.
       end
 
-      # Checks *path* by calling out to the configured shell command, expanding
-      # *path* into it.  `STDOUT` is hidden, but `STDERR` is shown.  Only
-      # succeeds if the command returned exit code `0`.
-      def check(path : String) : Bool
+      # Returns the version of *path*: the capture of the configured regex on
+      # *path*, or on the output of the configured shell command with *path*
+      # expanded into it.  `STDOUT` is hidden, but `STDERR` is shown.  Returns
+      # `nil` if the command failed, or nothing matched.
+      def version_of(path : String) : String?
         regex = Regex.new(@config.regex, FindPath::MULTILINE_OPTION)
-        version_string = get_version_number(path, regex, @config.command)
+        get_version_number(path, regex, @config.command)
+      end
+
+      # Checks *path* by its `#version_of`.  Only succeeds if a version was
+      # found and is in the configured range, or if the fallback accepts it.
+      def check(path : String) : Bool
+        version_string = version_of(path)
 
         if version_string # Version string check
           return false unless check_version_string(version_string)

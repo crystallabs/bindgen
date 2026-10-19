@@ -17,36 +17,65 @@ module Bindgen
 
     getter database : TypeDatabase
 
+    # The configuration.  Read again after `find_paths` ran, if `config_path`
+    # was given.
+    getter config : Configuration
+
     # Path to the projects root, commonly the directory the YAML configuration
     # file is contained in.
     getter root_path : String
 
-    def initialize(@root_path : String, @config : Configuration, @show_stats = false)
+    @processors : Processor::Runner
+    @generators : Generator::Runner
+
+    # *config_path* is the file *config* was read from.  If given, the
+    # configuration is read again after `find_paths` ran: the variables it
+    # found are environment variables then, so conditions can test them, like
+    # `if_QT_VERSION_newer_or_6.6:`.
+    def initialize(@root_path : String, @config : Configuration, @show_stats = false, @config_path : String? = nil)
       Log.info &.emit "new bindgen tool", root_path: @root_path, show_stats: @show_stats
 
-      @database = TypeDatabase.new(@config.types, @config.cookbook)
-      @database.nilable_results = @config.nilable_results?
+      @database = build_database(@config)
+      @processors = Processor::Runner.new(@config, @database)
+      @generators = Generator::Runner.new(@config, @database)
+    end
+
+    # Builds the type database of *config*, with its enums and classes.
+    private def build_database(config : Configuration) : TypeDatabase
+      database = TypeDatabase.new(config.types, config.cookbook)
+      database.nilable_results = config.nilable_results?
 
       # Add enum types to the db
-      @config.enums.each do |cpp_name, crystal_name|
-        @database.add_sparse_type cpp_name, crystal_name.destination, Parser::Type::Kind::Enum
+      config.enums.each do |cpp_name, crystal_name|
+        database.add_sparse_type cpp_name, crystal_name.destination, Parser::Type::Kind::Enum
       end
 
       # Add classes too.  Class template instantiations are spelled like the
       # type database spells them, and get a valid identifier as binding type.
-      @config.classes = @config.classes.transform_keys do |cpp_name|
-        Util.template_instantiation?(cpp_name) ? @database.resolve_aliases(cpp_name).full_name : cpp_name
+      config.classes = config.classes.transform_keys do |cpp_name|
+        Util.template_instantiation?(cpp_name) ? database.resolve_aliases(cpp_name).full_name : cpp_name
       end
 
-      @config.classes.each do |cpp_name, crystal_name|
-        @database.add_sparse_type cpp_name, crystal_name, Parser::Type::Kind::Class
+      config.classes.each do |cpp_name, crystal_name|
+        database.add_sparse_type cpp_name, crystal_name, Parser::Type::Kind::Class
 
         if Util.template_instantiation?(cpp_name)
-          @database.get_or_add(cpp_name).binding_type ||= Util.mangle_instantiation_name(cpp_name)
+          database.get_or_add(cpp_name).binding_type ||= Util.mangle_instantiation_name(cpp_name)
         end
       end
 
-      # Build pipelines
+      database
+    end
+
+    # Reads the configuration at `@config_path` again, and rebuilds the type
+    # database and the pipelines from it.  Conditions are evaluated while
+    # reading, so the second reading sees the variables `find_paths` set.
+    private def reread_configuration
+      return unless config_path = @config_path
+
+      Log.info { "read configuration again, with the found paths" }
+      @config = ConfigReader.from_file(klass: Configuration, path: config_path)
+      @database = build_database(@config)
       @processors = Processor::Runner.new(@config, @database)
       @generators = Generator::Runner.new(@config, @database)
     end
@@ -80,6 +109,7 @@ module Bindgen
       Log.info { "find paths" }
       if path_config = @config.find_paths
         stats.measure("Find paths") { find_paths(path_config) }
+        reread_configuration
       end
 
       Log.info { "Parse C++" }

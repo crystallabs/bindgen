@@ -6,6 +6,11 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Added
 
+* The variables `find_paths` sets, like the version of a version check, can
+  be tested by conditions: `if_QT_VERSION_newer_or_6.6:`.  The tool reads the
+  configuration again once the paths were found.
+* `find_paths` determines the version of a path the user preset, when its
+  version check stores one: `QMAKE=/opt/qt/bin/qmake6` sets `QT_VERSION` too.
 * A container instantiation listed in `classes:`, like
   `"QList<QString>": StringList`, is wrapped from its parsed methods and bases
   under that name, on top of the container interface.  This wraps the
