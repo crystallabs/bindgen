@@ -109,6 +109,89 @@ static clang::QualType desugarInstantiationTypedefs(clang::QualType qt, clang::A
 	return qt;
 }
 
+// Puts the template arguments written in the *alias* specialization back into
+// its aliased type *qt*: Clang before 20 substitutes the canonical arguments,
+// which turns the `std::string` of `couple<std::string, int>` into
+// `std::basic_string<char, ...>`, a name the type rules don't know.  Only an
+// argument naming the same type as the substituted one replaces it.
+static clang::QualType resugarAliasArguments(clang::QualType qt, const clang::TemplateSpecializationType *alias, clang::ASTContext &ctx) {
+	const clang::Type *ptr = qt.getTypePtr();
+	clang::Qualifiers quals = qt.getLocalQualifiers();
+
+	if (const auto *subst = llvm::dyn_cast<clang::SubstTemplateTypeParmType>(ptr)) {
+#if CLANG_VERSION_MAJOR >= 16
+		if (subst->getPackIndex()) return qt;
+		const clang::TemplateTypeParmDecl *param = subst->getReplacedParameter();
+		if (!param) return qt;
+		unsigned depth = param->getDepth();
+		unsigned index = subst->getIndex();
+#else
+		unsigned depth = subst->getReplacedParameter()->getDepth();
+		unsigned index = subst->getReplacedParameter()->getIndex();
+#endif
+
+		const clang::TemplateDecl *aliasDecl = alias->getTemplateName().getAsTemplateDecl();
+		if (!aliasDecl || aliasDecl->getTemplateParameters()->getDepth() != depth) return qt;
+
+		auto written = alias->template_arguments();
+		if (index >= written.size() || written[index].getKind() != clang::TemplateArgument::Type) return qt;
+
+		clang::QualType writtenType = written[index].getAsType();
+		if (!ctx.hasSameUnqualifiedType(writtenType, subst->getReplacementType())) return qt;
+
+		return ctx.getQualifiedType(writtenType, quals);
+	}
+
+#if CLANG_VERSION_MAJOR < 22
+	if (const auto *elab = llvm::dyn_cast<clang::ElaboratedType>(ptr)) {
+		clang::QualType named = resugarAliasArguments(elab->getNamedType(), alias, ctx);
+		if (named == elab->getNamedType()) return qt;
+		return ctx.getQualifiedType(ctx.getElaboratedType(elab->getKeyword(), elab->getQualifier(), named, elab->getOwnedTagDecl()), quals);
+	}
+#endif
+
+	if (const auto *pointer = llvm::dyn_cast<clang::PointerType>(ptr)) {
+		clang::QualType pointee = resugarAliasArguments(pointer->getPointeeType(), alias, ctx);
+		if (pointee == pointer->getPointeeType()) return qt;
+		return ctx.getQualifiedType(ctx.getPointerType(pointee), quals);
+	}
+
+	if (const auto *ref = llvm::dyn_cast<clang::LValueReferenceType>(ptr)) {
+		clang::QualType pointee = resugarAliasArguments(ref->getPointeeTypeAsWritten(), alias, ctx);
+		if (pointee == ref->getPointeeTypeAsWritten()) return qt;
+		return ctx.getQualifiedType(ctx.getLValueReferenceType(pointee, ref->isSpelledAsLValue()), quals);
+	}
+
+	if (const auto *ref = llvm::dyn_cast<clang::RValueReferenceType>(ptr)) {
+		clang::QualType pointee = resugarAliasArguments(ref->getPointeeTypeAsWritten(), alias, ctx);
+		if (pointee == ref->getPointeeTypeAsWritten()) return qt;
+		return ctx.getQualifiedType(ctx.getRValueReferenceType(pointee), quals);
+	}
+
+	const auto *tmpl = llvm::dyn_cast<clang::TemplateSpecializationType>(ptr);
+	if (!tmpl || tmpl->isTypeAlias()) return qt;
+
+	bool changed = false;
+	llvm::SmallVector<clang::TemplateArgument, 4> arguments;
+	for (const clang::TemplateArgument &argument : tmpl->template_arguments()) {
+		if (argument.getKind() == clang::TemplateArgument::Type) {
+			clang::QualType type = resugarAliasArguments(argument.getAsType(), alias, ctx);
+			changed = changed || type != argument.getAsType();
+			arguments.push_back(clang::TemplateArgument(type));
+		} else {
+			arguments.push_back(argument);
+		}
+	}
+	if (!changed) return qt;
+
+#if CLANG_VERSION_MAJOR >= 22
+	clang::QualType rebuilt = ctx.getTemplateSpecializationType(tmpl->getKeyword(), tmpl->getTemplateName(), arguments, {});
+#else
+	clang::QualType rebuilt = ctx.getTemplateSpecializationType(tmpl->getTemplateName(), arguments);
+#endif
+	return ctx.getQualifiedType(rebuilt, quals);
+}
+
 // Looks through alias template specializations, like Qt's `QPair<T1, T2>`
 // for `std::pair<T1, T2>`: The alias is sugar over the type it names, which
 // the type rules and the containers are keyed by.  A typedef of such a
@@ -125,7 +208,7 @@ static clang::QualType desugarAliasTemplates(clang::QualType qt, clang::ASTConte
 		const auto *tmpl = llvm::dyn_cast<clang::TemplateSpecializationType>(ptr);
 		if (!tmpl || !tmpl->isTypeAlias()) break;
 
-		qt = ctx.getQualifiedType(tmpl->getAliasedType(), qt.getLocalQualifiers());
+		qt = ctx.getQualifiedType(resugarAliasArguments(tmpl->getAliasedType(), tmpl, ctx), qt.getLocalQualifiers());
 	}
 
 	return qt;

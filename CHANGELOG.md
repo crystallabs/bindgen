@@ -6,6 +6,11 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Fixed
 
+* An alias template specialization like `couple<std::string, int>` is named by
+  the type it aliases with the arguments as written, `std::pair<std::string,
+  int>`, with Clang before 20 too.  Those substitute the canonical arguments,
+  which named `std::basic_string<char, ...>`, a type without rules.
+
 * `depends_on:` applies to the copy constructor too: a copy depends on the
   object it copies, so the GC destroys it first, and in turn before what the
   original depends on.  Copies were destroyed in any order before.
