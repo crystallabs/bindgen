@@ -18,6 +18,11 @@ module Bindgen
         super if specific.platforms.includes? PLATFORM
       end
 
+      def visit_class(klass)
+        warn_unmatched_depends_on(klass)
+        super
+      end
+
       def visit_method(method)
         return if method.calls[PLATFORM]?
         return if method.tag?(Graph::Method::EXPLICIT_BIND_TAG)
@@ -47,6 +52,16 @@ module Bindgen
           class_name: cpp_class_name(method.origin.class_name), # An anonymous type by its typedef
           target: target,
         )
+      end
+
+      # Warns about the `depends_on:` patterns of *klass* matching none of its
+      # constructors or methods.
+      private def warn_unmatched_depends_on(klass)
+        return unless rules = @db[klass.origin.name]?
+
+        unmatched_patterns(klass, rules.depends_on).each do |pattern|
+          Log.warn { "depends_on: of #{klass.origin.name} matches no method: #{pattern.source}.  Is it misspelt, or the method ignored or inherited?" }
+        end
       end
 
       # Returns the body of a constructor configured in `depends_on:` of its

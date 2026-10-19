@@ -16,6 +16,7 @@ module Bindgen
       def visit_class(klass)
         return unless @db.try_or(klass.origin.name, true, &.generate_wrapper?)
         Log.trace { "visiting class #{klass.diagnostics_path}" }
+        warn_unmatched_keep_alive(klass)
 
         # The parent class already has the `@unwrap`
         if klass.base_class.nil? || klass.tag?(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
@@ -133,6 +134,16 @@ module Bindgen
         wrapper_call = wrapper.build(method.origin, target)
         add_keep_alive_hook(wrapper_call)
         wrapper_call
+      end
+
+      # Warns about the `keep_alive:` patterns of *klass* matching none of its
+      # methods.
+      private def warn_unmatched_keep_alive(klass)
+        return unless rules = @db[klass.origin.name]?
+
+        unmatched_patterns(klass, rules.keep_alive).each do |pattern|
+          Log.warn { "keep_alive: of #{klass.origin.name} matches no method: #{pattern.source}.  Is it misspelt, or the method ignored or inherited?" }
+        end
       end
 
       # Keeps the object arguments of the *call* alive, if its class configures

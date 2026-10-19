@@ -744,7 +744,9 @@ keeping nothing.
 
 The expressions are matched against the C++ method name, the name of the data
 member for its setter, and an empty string for constructors.  Copy
-constructors never keep their argument.
+constructors never keep their argument.  An expression matching no method of
+the class, like a misspelt or ignored one, is warned about.  Methods bound from
+a superclass follow the rules of the superclass.
 
 ```yaml
 types:
@@ -768,7 +770,8 @@ it, and destroys them only after it.  Same format as [`keep_alive`](#keep_alive)
 matched against an empty string for constructors.  A copy made by the copy
 constructor depends on the object it copies.  The constructors of copied,
 aggregate, union and `final` classes don't allocate the object the GC scans, and
-are ignored with a warning.  Defaults to depending on nothing.
+are ignored with a warning, as is an expression matching no method of the
+class.  Defaults to depending on nothing.
 
 ```yaml
 types:

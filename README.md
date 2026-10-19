@@ -443,7 +443,8 @@ wrapper each time: any wrapper of it, or its pointer, releases it.  Nothing is
 released automatically, so an object C++ deletes stays in the table until
 released.  If the library notifies of destruction, like Qt's
 `QObject::destroyed`, release it from there: `.release` may run in a GC
-finalizer.
+finalizer.  A pattern matching no method of the class is warned about, so a
+typo, or a method `ignore_methods` drops, isn't silent.
 
 ```yaml
 types:
@@ -478,7 +479,8 @@ new object, which the GC scans: it keeps them alive as long as the object, and
 finalizes them only after it.  Nothing needs releasing.  A copy made by the
 copy constructor depends on the object it copies, so it is destroyed before
 it.  The constructors of copied, aggregate, union and `final` classes don't
-allocate the object the GC scans, and are ignored with a warning.
+allocate the object the GC scans, and are ignored with a warning, as is a
+pattern matching no method of the class.
 
 ```yaml
 types:

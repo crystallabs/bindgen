@@ -575,7 +575,9 @@ types:
     #   `false` for none.
     # The regexes are matched against the C++ method name: the name of the
     # instance variable for its setter, and an empty string for constructors
-    # (except copy constructors, which never keep their argument).
+    # (except copy constructors, which never keep their argument).  A regex
+    # matching no method of the class, like a misspelt or ignored one, is
+    # warned about.  Methods bound from a superclass follow its rules.
     # Defaults to keeping nothing alive.
     keep_alive:
       ^addWidget$: [0]
@@ -592,7 +594,8 @@ types:
     # `keep_alive:`, matched against an empty string for constructors.  A copy
     # made by the copy constructor depends on the object it copies.  The
     # constructors of copied, aggregate, union and `final` classes don't
-    # allocate the object the GC scans, and are ignored with a warning.
+    # allocate the object the GC scans, and are ignored with a warning, as is
+    # a regex matching no method of the class.
     # Defaults to depending on nothing.
     depends_on:
       ^$: true

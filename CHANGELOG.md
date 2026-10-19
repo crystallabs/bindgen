@@ -2,6 +2,14 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## 0.13.3 (2026-10-19)
+
+### Added
+
+* A `keep_alive:` or `depends_on:` pattern matching no method of its class is
+  warned about, so a misspelt method name, or one `ignore_methods` drops, isn't
+  silent.
+
 ## 0.13.2 (2026-10-19)
 
 ### Fixed
