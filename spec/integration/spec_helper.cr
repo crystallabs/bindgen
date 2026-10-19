@@ -55,6 +55,32 @@ private def relocate_line_reports(code, file, base)
   "#<loc:#{file.inspect},#{base},1>\n#{code}"
 end
 
+# Runs the *tool* of `NAME.yml`, and prints its warnings and errors if it fails.
+# They go to the default log backend too, but that one is asynchronous and
+# doesn't say which spec logged them.
+def run_tool(tool, name) : Int32
+  log = Log::MemoryBackend.new
+  Log.builder.bind("bindgen.*", :warn, log)
+
+  code = begin
+    tool.run!
+  ensure
+    Log.builder.unbind("bindgen.*", :warn, log)
+  end
+
+  unless code == 0
+    puts "#{">>> Log of failed tool run:".colorize.mode(:bold)} #{name}.yml"
+    log.entries.each do |entry|
+      STDERR.puts "#{entry.severity} - #{entry.source}: #{entry.message}"
+      if ex = entry.exception
+        STDERR.puts ex.inspect_with_backtrace
+      end
+    end
+  end
+
+  code
+end
+
 # Implementation helper for `.build_and_run`.
 def build_and_run_impl(name, source_start, source_end, source_file)
   config_file = "#{__DIR__}/#{name}.yml"
@@ -79,7 +105,7 @@ def build_and_run_impl(name, source_start, source_end, source_file)
   # Run the tool and then the test program
   Dir.cd(__DIR__) do
     ENV["SPEC_NAME"] = name # For later access from the `.yml`
-    tool.run!.should eq(0)
+    run_tool(tool, name).should eq(0)
     status = Process.run(command, shell: true, output: output, error: output)
   end
 

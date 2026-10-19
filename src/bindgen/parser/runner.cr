@@ -46,7 +46,7 @@ module Bindgen
           Log.trace { "Runner command: #{command}" }
           puts "Runner command: #{command}" if ENV["VERBOSE"]?
           result = `#{command}`
-          raise "clang/parser failed to execute." unless $?.success?
+          raise "clang/parser failed to execute: #{$?}" unless $?.success?
           Log.info { "end" }
           result
         end
