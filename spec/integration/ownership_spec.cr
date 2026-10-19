@@ -19,19 +19,36 @@ describe "keeping objects passed to C++ alive" do
           return if yield
           collect_garbage
         end
-        fail "The GC didn't collect the objects in time"
+        fail "The GC didn't collect the objects in time: " \
+             "#{Test::Dependent.destroyed} Dependent destroyed, " \
+             "#{Test::Counted.alive} Counted alive"
+      end
+
+      # Overwrites the stack below its caller.  The GC scans the stack
+      # conservatively: A pointer to a dead object left in a slot of a frame
+      # keeps the object alive until a later call overwrites the slot, and
+      # which slots later calls overwrite depends on the platform.
+      @[NoInline]
+      def scrub_stack
+        buffer = uninitialized UInt8[65536]
+        buffer.to_slice.fill(0)
+      end
+
+      # Calls *block* in its own stack frame, and scrubs that frame afterwards,
+      # so the GC can collect the objects the block left behind.
+      def leaving(&block : -> Nil) : Nil
+        block.call
+        scrub_stack
       end
 
       # Creates a `Dependent` on a `Counted`, keeping neither.
       def leave_dependent
-        Test::Dependent.new(Test::Counted.new)
-        nil
+        leaving { Test::Dependent.new(Test::Counted.new) }
       end
 
       # Creates a `Dependent` on a `Counted` and a copy of it, keeping none.
       def leave_dependent_copy
-        Test::Dependent.new(Test::Dependent.new(Test::Counted.new))
-        nil
+        leaving { Test::Dependent.new(Test::Dependent.new(Test::Counted.new)) }
       end
 
       # Stores a new `Inner` in a new `Outer`, which doesn't keep it alive by
