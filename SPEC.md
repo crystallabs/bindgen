@@ -1161,3 +1161,11 @@ result type to C++ then.
 `QFlags<EnumT>` is a C++/Qt template type marking a C++ `enum` to be a flags
 type.  Once detected, the `clang` tool will mark the `enum` type as a flags
 type.  See `§5.3 Flag types`.
+
+### §Q.3 Hash and string conversion
+
+A class with a `qHash` method, bound from the free `qHash(const T &, size_t)`
+by `member_functions: [qHash]`, gets `#hash(hasher)` forwarding to it, so its
+instances are `Hash` keys and `Set` elements, equal by `operator==`.  A class
+with a `toString()` method taking no mandatory argument gets `#to_s(io)`
+writing it, and `#inspect(io)` writing `#<Qt::Date 2024-01-15>`.

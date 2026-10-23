@@ -32,7 +32,9 @@ void OperatorMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResu
 bool OperatorMatchHandler::runOnOperator(Method &m, const clang::FunctionDecl *op) {
 	clang::ASTContext &ctx = op->getASTContext();
 
-	m.type = Method::Operator;
+	// A free function of `member_functions`, like `qHash`, is a member method.
+	m.type = op->isOverloadedOperator() ? Method::Operator : Method::MemberMethod;
+	m.isFreeFunction = !op->isOverloadedOperator();
 	m.name = op->getNameAsString();
 	m.access = clang::AS_public;
 	m.isDeprecated = op->hasAttr<clang::DeprecatedAttr>();

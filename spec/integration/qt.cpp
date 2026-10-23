@@ -210,6 +210,25 @@ signals:
   }
 };
 
+// A value type with a free hash function and a string conversion, like
+// `QPoint`: `member_functions: [qHash]` binds `qHash` as a method, and the
+// Qt processor forwards it to `#hash`, and `toString` to `#to_s`.
+#include <cstddef>
+#include <string>
+
+struct Hashed {
+  Hashed(int value) : value(value) { }
+  int value;
+
+  bool operator==(const Hashed &other) const { return value == other.value; }
+  std::string toString() const { return "Hashed " + std::to_string(value); }
+};
+
+inline size_t qHash(const Hashed &key, size_t seed = 0) { return key.value * 31 + seed; }
+
+// Not a member function of any class: `qHash` of an `int` isn't bound.
+inline size_t qHash(int key, size_t seed = 0) { return key + seed; }
+
 // Tests Q_GADGET cleaning
 class SomeGadget {
 public:

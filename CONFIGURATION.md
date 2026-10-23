@@ -27,6 +27,7 @@ What each processor does is described under [Processors](README.md#processors).
    * [enums](#enums)
    * [macros](#macros)
    * [functions](#functions)
+   * [member_functions](#member_functions)
       * [Function classes](#function-classes)
    * [containers](#containers)
    * [parser](#parser)
@@ -443,6 +444,21 @@ functions:
       constructors: [ string_new_empty, string_new_from_string ]
       destructor: string_free
 ```
+
+## `member_functions`
+
+Free functions bound as methods of the class of their first parameter, like
+friend operators are: the parameter, taken by value or reference, becomes
+`self`, and the method is const if it is.  The function may be a friend or
+declared outside the class, and only the wrapped classes get it.  Defaults to
+none.
+
+```yaml
+member_functions: [qHash]
+```
+
+With `qHash`, the `qt` processor forwards the method to `#hash`, see
+[`Qt`](README.md#qt).
 
 ## `containers`
 

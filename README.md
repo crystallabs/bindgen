@@ -830,7 +830,12 @@ Adds Qt specific behaviour:
    enum, under `enums:`.
 3. Removes `#meta_object`, `#qt_metacast`, and `#qt_metacall` from superclass
    wrappers, as these shouldn't be overridden by the user.
-4. Keeps objects given a parent alive, as the parent owns and deletes them, see
+4. Adds `#hash(hasher)` to a class with a `qHash` method, which
+   `member_functions: [qHash]` binds from the free function, so a value type
+   is a `Hash` key or `Set` element with `#==` from its `operator==`; and
+   `#to_s(io)` and `#inspect(io)` to a class with a `toString()` method
+   taking no mandatory argument.
+5. Keeps objects given a parent alive, as the parent owns and deletes them, see
    [Objects kept alive for C++](#objects-kept-alive-for-c).  This applies to
    the classes deriving from `QObject`, `QGraphicsItem` or
    `QGraphicsLayoutItem`, and is hardcoded, not configured by `keep_alive:`:

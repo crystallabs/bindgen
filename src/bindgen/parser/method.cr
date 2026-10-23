@@ -81,6 +81,12 @@ module Bindgen
       @[JSON::Field(key: "isDeprecated")]
       getter? deprecated : Bool = false
 
+      # Is this a free function of `member_functions`, like `qHash`, bound as
+      # a member method of the class of its first argument, which is `self`?
+      # The C++ glue calls it with `*_self_` first.
+      @[JSON::Field(key: "isFreeFunction")]
+      getter? free_function : Bool = false
+
       # Fully qualified name of the class in which the method is defined.
       @[JSON::Field(key: "className")]
       getter class_name : String
@@ -140,7 +146,7 @@ module Bindgen
         @access = AccessSpecifier::Public, @type = Type::MemberMethod,
         @const = false, @virtual = false, @pure = false, @final = false, @extern_c = false,
         @builtin = false, @origin = nil, @crystal_name = nil, @binding_name = nil,
-        @doc = nil, @deprecated = false,
+        @doc = nil, @deprecated = false, @free_function = false,
       )
       end
 
@@ -240,6 +246,7 @@ module Bindgen
             origin: self,
             doc: @doc,
             deprecated: @deprecated,
+            free_function: @free_function,
           )
 
           variant.crystal_name = @crystal_name
@@ -298,6 +305,7 @@ module Bindgen
           builtin: @builtin,
           origin: self,
           deprecated: @deprecated,
+          free_function: @free_function,
         )
       end
 
@@ -554,6 +562,7 @@ module Bindgen
           binding_name: binding_method_name,
           doc: @doc,
           deprecated: @deprecated,
+          free_function: @free_function,
         )
       end
 
@@ -759,6 +768,7 @@ module Bindgen
           builtin: @builtin,
           doc: @doc || other.doc,
           deprecated: @deprecated || other.deprecated?,
+          free_function: @free_function,
         )
       end
 
@@ -793,6 +803,7 @@ module Bindgen
           final: @final,
           doc: @doc,
           deprecated: @deprecated,
+          free_function: @free_function,
         )
       end
 
@@ -818,6 +829,7 @@ module Bindgen
           final: @final,
           doc: @doc,
           deprecated: @deprecated,
+          free_function: @free_function,
         )
       end
     end

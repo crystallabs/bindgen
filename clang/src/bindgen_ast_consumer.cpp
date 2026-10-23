@@ -12,6 +12,7 @@
 
 static llvm::cl::list<std::string> ClassList("c", llvm::cl::desc("Classes to inspect"), llvm::cl::value_desc("class"));
 static llvm::cl::list<std::string> EnumList("e", llvm::cl::desc("Enums to inspect"), llvm::cl::value_desc("enum"));
+static llvm::cl::list<std::string> MemberFunctionList("F", llvm::cl::desc("Free functions bound as methods of the class of their first parameter"), llvm::cl::value_desc("function"));
 
 // we don't support `operator,` and `operator->*`
 AST_MATCHER(clang::FunctionDecl, isOverloadedOperator) {
@@ -96,14 +97,26 @@ clang::ast_matchers::MatchFinder BindgenASTConsumer::makeDependentMatchFinder() 
 				hasUnqualifiedDesugaredType(recordType(hasDeclaration(cxxRecordDecl(hasName(className))))))));
 		auto self = hasType(selfType);
 
+		auto handler = std::make_unique<OperatorMatchHandler>(m_document, className);
+
 		DeclarationMatcher operatorMatcher = functionDecl(
 			isOverloadedOperator(),
 			unless(cxxMethodDecl()),
 			hasParameter(0, self)).bind("operatorDecl");
-
-		auto handler = std::make_unique<OperatorMatchHandler>(m_document, className);
-
 		finder.addMatcher(operatorMatcher, handler.get());
+
+		// Free functions configured in `member_functions`, like `qHash`, are
+		// bound as methods of the class of their first parameter, like the
+		// operators above.
+		if (!MemberFunctionList.empty()) {
+			std::vector<llvm::StringRef> names(MemberFunctionList.begin(), MemberFunctionList.end());
+			DeclarationMatcher memberFunctionMatcher = functionDecl(
+				hasAnyName(names),
+				unless(cxxMethodDecl()),
+				hasParameter(0, self)).bind("operatorDecl");
+			finder.addMatcher(memberFunctionMatcher, handler.get());
+		}
+
 		this->m_operatorHandlers.push_back(std::move(handler));
 	}
 

@@ -357,6 +357,11 @@ functions:
 # is wrapped from its parsed methods and bases under that name, on top of the
 # container methods.  A class deriving from an instantiation, like
 # `QPolygon : public QList<QPoint>`, inherits from the container wrapper.
+# Free functions bound as methods of the class of their first parameter, like
+# friend operators are: `qHash(const QPoint &, size_t)` becomes
+# `Point#q_hash(seed)`, which the `qt` processor forwards to `#hash`.
+member_functions: [qHash]
+
 containers:
   - class: Name of the C++ class
     # "Pair" is for `std::pair` and `QPair`, converted to and from a `Tuple`.

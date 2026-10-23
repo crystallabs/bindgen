@@ -16,6 +16,9 @@ module Bindgen
         if method.operator?
           name ||= self_var
           body ||= OperatorBody.new
+        elsif method.free_function?
+          name ||= method.name
+          body ||= FreeFunctionBody.new(self_var)
         else
           method_name = Cpp::MethodName.new(@db)
           name ||= method_name.generate(method, self_var)
@@ -103,6 +106,18 @@ module Bindgen
                  end
 
           call.result.apply_conversion(code)
+        end
+      end
+
+      # Body invoking a free function of `member_functions` with the object as
+      # its first argument: `qHash(*_self_, seed)`.
+      class FreeFunctionBody < Call::Body
+        def initialize(@self_var : String)
+        end
+
+        def to_code(call : Call, platform : Graph::Platform) : String
+          pass_args = ["*#{@self_var}"].concat(call.arguments.map(&.call)).join(", ")
+          call.result.apply_conversion(%[#{call.name}(#{pass_args})])
         end
       end
 

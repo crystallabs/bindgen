@@ -280,6 +280,27 @@ describe "Qt-specific wrapper features" do
         end
       end
 
+      context "hash and string conversion" do
+        it "binds qHash as a method" do
+          Test::Hashed.new(2).q_hash(0).should eq(62)
+          Test::Hashed.new(2).q_hash(1).should eq(63)
+        end
+
+        it "forwards qHash to #hash, with #== from operator==" do
+          Test::Hashed.new(2).hash.should eq(Test::Hashed.new(2).hash)
+          Test::Hashed.new(2).hash.should_not eq(Test::Hashed.new(3).hash)
+          table = {Test::Hashed.new(2) => "two"}
+          table[Test::Hashed.new(2)].should eq("two")
+          Set{Test::Hashed.new(1), Test::Hashed.new(1)}.size.should eq(1)
+        end
+
+        it "forwards toString to #to_s and #inspect" do
+          Test::Hashed.new(7).to_s.should eq("Hashed 7")
+          Test::Hashed.new(7).inspect.should eq("#<Test::Hashed Hashed 7>")
+          "#{Test::Hashed.new(8)}".should eq("Hashed 8")
+        end
+      end
+
       context "Q_GADGET behaviour" do
         it "removes the gadget checker" do
           {{ Test::SomeGadget.methods.map(&.name.stringify) }}.includes?("qt_check_for_QGADGET_macro").should be_false

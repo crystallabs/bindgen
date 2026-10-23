@@ -13,8 +13,11 @@ processors:
   - crystal_binding
   - sanity_check
 
+member_functions: [qHash]
+
 classes:
   "QMetaObject::Connection": SignalConnection
+  Hashed: Hashed
   SomeObject: SomeObject
   SomeGadget: SomeGadget
   Conv: Conv

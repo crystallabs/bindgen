@@ -189,6 +189,7 @@ module Bindgen
         enums: @config.enums.keys,
         macros: @config.macros.keys,
         functions: @config.functions.keys,
+        member_functions: @config.member_functions,
         config: @config.parser,
         project_root: @root_path,
       )

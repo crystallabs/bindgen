@@ -19,6 +19,13 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   selected, to `BindgenHelper.release`.  `BindgenHelper.release(nil)` does
   nothing, like `keep_alive(nil)`.
 
+* `member_functions:` binds free functions, like `qHash`, as methods of the
+  class of their first parameter, like friend operators: `Point#q_hash(seed)`.
+  The `Qt` processor forwards `qHash` to `#hash(hasher)`, so value types are
+  `Hash` keys and `Set` elements with `#==` from `operator==`, and a
+  `toString()` without mandatory arguments to `#to_s(io)` and `#inspect(io)`.
+  `Parser::Method#free_function?` marks these methods; the clang tool takes
+  them as `-F`.
 * Exception boundary of callbacks from C++: a Crystal override of a virtual
   method, or the block of a Qt signal, runs in `BindgenHelper.rescued`.  An
   exception it raises goes to `BindgenHelper.on_exception`, printing it with

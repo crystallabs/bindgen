@@ -6,6 +6,7 @@ module Bindgen
     # * Support for private signals
     # * Remove `Q_OBJECT` internal methods in superclass wrappers
     # * Keep objects given a parent alive, as the parent owns them
+    # * `#hash` from `qHash`, `#to_s` and `#inspect` from `toString`
     class Qt < Base
       # Type of the result of a Qt-sinal connect call.
       CONNECTION_HANDLE_TYPE = Parser::Type.parse("QMetaObject::Connection")
@@ -40,6 +41,13 @@ module Bindgen
       # Name of the constructor argument giving the object a parent.
       PARENT_ARGUMENT = "parent"
 
+      # The hash function of a value type, bound as a method by
+      # `member_functions: [qHash]`, forwarded to `#hash`.
+      HASH_FUNCTION = "qHash"
+
+      # The string conversion of a value type, forwarded to `#to_s`.
+      TO_STRING_METHOD = "toString"
+
       def visit_class(klass)
         # The signals still in the graph: Those removed before, like by
         # `ignore_methods` through `Processor::FilterMethods`, get no connection
@@ -73,12 +81,90 @@ module Bindgen
         end
 
         mark_parent_owned(klass) if parent_owned?(klass.origin.name)
+        add_hash_method(klass)
+        add_to_s_methods(klass)
 
         # Remove `Q_OBJECT` internals from the generated superclass wrappers.
         rules = @db.get_or_add(klass.origin.name)
         rules.superclass_ignore_methods += Q_OBJECT_IGNORED_METHODS_RX
 
         super # Proceed.
+      end
+
+      # Adds `#hash(hasher)` to *klass* if it has a `qHash` method, which
+      # `member_functions: [qHash]` binds from the free function: a wrapped
+      # value type is then a `Hash` key or `Set` element, with `#==` from its
+      # `operator==`.
+      private def add_hash_method(klass)
+        return unless hash = find_method(klass, HASH_FUNCTION) { |m| m.arguments.size <= 1 }
+
+        seed = "(0)" if hash.arguments.size == 1 # The seed, whose default may not be exposed
+        add_crystal_method(klass, "hash", <<-CRYSTAL)
+          def hash(hasher)
+            #{hash.crystal_name}#{seed}.hash(hasher)
+          end
+          CRYSTAL
+      end
+
+      # Adds `#to_s(io)` and `#inspect(io)` to *klass* if it has a
+      # `toString()` method taking no mandatory argument.
+      private def add_to_s_methods(klass)
+        return unless to_string = find_method(klass, TO_STRING_METHOD) { |m| m.arguments.all?(&.has_default?) }
+
+        add_crystal_method(klass, "to_s", <<-CRYSTAL)
+          def to_s(io : IO) : Nil
+            io << #{to_string.crystal_name}
+          end
+          CRYSTAL
+        add_crystal_method(klass, "inspect", <<-CRYSTAL)
+          def inspect(io : IO) : Nil
+            io << "#<" << self.class.name << ' '
+            to_s(io)
+            io << '>'
+          end
+          CRYSTAL
+      end
+
+      # Finds the member method *name* of *klass* the block accepts.
+      private def find_method(klass, name : String, &) : Parser::Method?
+        klass.nodes.each do |node|
+          next unless node.is_a?(Graph::Method)
+          method = node.origin
+          next unless method.name == name && method.member_method? && !method.static?
+          return method if yield method
+        end
+      end
+
+      # Adds a Crystal method of *name* to *klass*, written as *code*.
+      private def add_crystal_method(klass, name : String, code : String)
+        origin = Parser::Method.build(
+          name: name,
+          class_name: klass.origin.name,
+          return_type: Parser::Type::VOID,
+          arguments: [] of Parser::Argument,
+        )
+        method = Graph::Method.new(
+          origin: origin,
+          name: name,
+          parent: klass.platform_specific(Graph::Platform::Crystal),
+        )
+        method.calls[Graph::Platform::Crystal] = Call.new(
+          origin: origin,
+          name: name,
+          result: Call::Result.new(type: Parser::Type::VOID, type_name: "Nil", reference: false, pointer: 0),
+          arguments: [] of Call::Argument,
+          body: CodeBody.new(code),
+        )
+      end
+
+      # A method written out as given.
+      class CodeBody < Call::Body
+        def initialize(@code : String)
+        end
+
+        def to_code(call : Call, platform : Graph::Platform) : String
+          @code
+        end
       end
 
       # Is the class *name*, or a base of it, one of `PARENT_OWNED_CLASSES`?

@@ -17,6 +17,7 @@ module Bindgen
       def initialize(
         @classes : Array(String), @enums : Array(String), @macros : Array(String),
         @functions : Array(String), @config : Configuration, @project_root : String,
+        @member_functions : Array(String) = [] of String,
       )
         @binary_path = ENV["BINDGEN_BIN"]? || @config.binary || BINARY_PATH
 
@@ -27,6 +28,7 @@ module Bindgen
       def arguments(input_file)
         classes = @classes.flat_map { |x| ["-c", Process.quote(x)] }
         enums = @enums.flat_map { |x| ["-e", "#{x}"] }
+        member_functions = @member_functions.flat_map { |x| ["-F", Process.quote(x)] }
         flags = @config.flags.map { |x| Util.template(x, replacement: nil) }
         flags << "-fparse-all-comments" if @config.all_comments?
         defines = @config.defines.map { |x| "-D#{x}" }
@@ -34,7 +36,7 @@ module Bindgen
         macros = ["-m", @macros.join('|').inspect]
         functions = ["-f", @functions.join('|').inspect]
 
-        [input_file] + classes + enums + macros + functions + ["--"] + flags + defines + includes
+        [input_file] + classes + enums + member_functions + macros + functions + ["--"] + flags + defines + includes
       end
 
       # Calls the clang tool and returns its output as string.

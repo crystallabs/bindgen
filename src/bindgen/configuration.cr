@@ -256,6 +256,11 @@ module Bindgen
     @[YAML::Field(converter: Bindgen::Configuration::GenericConverter(Bindgen::Configuration::Function))]
     property functions : Hash(String, Bindgen::Configuration::Function) = Hash(String, Bindgen::Configuration::Function).new
 
+    # Free functions bound as methods of the class of their first parameter,
+    # like friend operators are: `[qHash]`.  The parameter becomes `self`, the
+    # method is const if it is.
+    property member_functions : Array(String) = Array(String).new
+
     # Which templates to instantiate
     property containers : Array(Bindgen::Configuration::Container) = Array(Bindgen::Configuration::Container).new
 

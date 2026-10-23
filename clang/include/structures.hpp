@@ -118,6 +118,7 @@ struct Method {
 	bool isFinal = false; // Virtual, but can't be overridden?
 	bool isExternC = false; // Does the function use C ABI?
 	bool isDeprecated = false; // Is it declared `[[deprecated]]`?
+	bool isFreeFunction = false; // A free function of `member_functions`, taking `self` as its first argument
 	std::string className; // Name of the class.
 	std::vector<Argument> arguments; // Arguments
 	int firstDefaultArgument = -1;
