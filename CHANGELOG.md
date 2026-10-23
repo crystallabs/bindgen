@@ -13,6 +13,17 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   nothing needs releasing.  The method does nothing on an object C++ created.
   Static methods, and the methods of copied, aggregate, union and `final`
   classes, are ignored with a warning.
+* The `Qt` processor keeps an object given a parent alive, as the parent owns
+  it, in the classes deriving from `QObject`, `QGraphicsItem` or
+  `QGraphicsLayoutItem`: a constructor with a `parent` argument given one, and
+  `setParent`, `setParentItem` and `setParentLayoutItem` given an object, pass
+  `self` to `BindgenHelper.keep_alive`.  Given `nil`, the setters release it.
+  Their argument is nilable now.  Before, `Qt::Label.new("x", window)` was
+  collected once Crystal dropped it, and taken out of the window.  As a parent
+  deleting its children releases them since 0.14.0, this doesn't leak.
+* `Call::HookableBody#add_post_hook` adds a hook after the one set already.
+  `VirtualOverride` uses it for the jump table, after the hook above, and set
+  none before if a constructor had a post-hook.
 
 ### Changed
 
@@ -22,7 +33,6 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `GC_base`, see `bindgen_gc_object`.  The `T` of a wrapper constructed from
   Crystal is now never at its start, also for a dynamic `T`: code assuming that
   the `T *` is the address of the allocation needs `GC_base`.
-
 * The `keep_alive:` and `depends_on:` rules of a class apply to the methods its
   subclasses re-declare, like an override of a setter: `QTreeView::setModel`
   keeps its model as `QAbstractItemView::setModel` is configured to.  Before,
@@ -36,6 +46,11 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   through the Crystal superclass were searched, so its `widget` stayed
   mandatory, and Crystal rejected the class for not implementing the abstract
   method.
+
+### Fixed
+
+* A post-hook of a wrapper method returning `Void` no longer assigns the
+  result, which Crystal rejects.
 
 ## 0.14.0 (2026-10-23)
 

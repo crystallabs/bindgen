@@ -77,7 +77,7 @@ module Bindgen
             if post
               b << "result = " << code << "\n"
               b << post.to_code(call, platform)
-              b << "result" # Implicit return
+              b << "\nresult" # Implicit return
             else
               b << code
             end

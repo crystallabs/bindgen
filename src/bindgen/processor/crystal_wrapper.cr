@@ -133,6 +133,7 @@ module Bindgen
 
         wrapper_call = wrapper.build(method.origin, target)
         add_keep_alive_hook(wrapper_call)
+        add_owner_hook(method, wrapper_call)
         wrapper_call
       end
 
@@ -167,6 +168,38 @@ module Bindgen
         return [] of Int32 if rules.empty?
 
         @db.selected_object_arguments(method, rules)
+      end
+
+      # Keeps the object of the *call* alive while the argument owning it isn't
+      # `nil`, if `Processor::Qt` tagged the *method*, see
+      # `Graph::Method::OWNED_BY_ARGUMENT_TAG`.  A post-hook: the object is
+      # kept by the address of its C++ object, which a constructor sets first.
+      private def add_owner_hook(method : Graph::Method, call)
+        return unless index = method.tag?(Graph::Method::OWNED_BY_ARGUMENT_TAG)
+
+        body = call.body.as(Call::HookableBody)
+        body.add_post_hook(OwnerHook.new(index.to_i, method.origin.any_constructor?))
+      end
+
+      # Post-hook of a wrapper method keeping `self` alive while its argument at
+      # *index*, the owner, isn't `nil`.  Unless in a *constructor*, `nil`
+      # releases `self`, which nothing owns then.
+      class OwnerHook < Call::Body
+        def initialize(@index : Int32, @constructor : Bool)
+        end
+
+        def to_code(call : Call, platform : Graph::Platform) : String
+          arg = call.arguments[@index]
+          keep = "BindgenHelper.keep_alive(self)"
+
+          if !arg.nilable?
+            keep
+          elsif @constructor
+            "#{keep} if #{arg.name}"
+          else
+            "if #{arg.name}\n  #{keep}\nelse\n  BindgenHelper.release(self)\nend"
+          end
+        end
       end
 
       # Pre-hook of a wrapper method passing the arguments at *indices* to

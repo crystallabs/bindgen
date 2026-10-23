@@ -446,10 +446,11 @@ module Bindgen
         # Sanity checks
         body = call.try(&.body)
         return unless body.is_a?(Call::HookableBody)
-        return unless body.post_hook.nil?
+        return if body.post_hook?(JumptableHook)
 
-        # Add the hook body, and we're done for now.
-        body.post_hook = JumptableHook.new(@db, klass, crystal_struct, setter)
+        # Add the hook body, after the one `CrystalWrapper` may have added
+        # keeping a Qt object with a parent alive.
+        body.add_post_hook(JumptableHook.new(@db, klass, crystal_struct, setter))
       end
 
       # Name of the jumptable structure for both C++ and Crystal.

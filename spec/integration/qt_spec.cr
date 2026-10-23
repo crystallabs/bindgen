@@ -23,6 +23,132 @@ describe "Qt-specific wrapper features" do
         end
       end
 
+      # Collects garbage, and allocates objects meanwhile, so the memory of
+      # collected objects is reused.
+      def collect_garbage
+        10.times do
+          GC.collect
+          10.times { Test::QObject.new }
+        end
+        GC.collect
+      end
+
+      # Collects garbage until the block returns true, or fails.
+      def collect_garbage_until(&)
+        50.times do
+          return if yield
+          collect_garbage
+        end
+        fail "The GC didn't collect the objects in time"
+      end
+
+      # Overwrites the stack below its caller, so pointers to dead objects
+      # left in it don't keep them alive.
+      @[NoInline]
+      def scrub_stack
+        buffer = uninitialized UInt8[65536]
+        buffer.to_slice.fill(0)
+      end
+
+      # Calls *block* in its own stack frame, and scrubs that frame afterwards,
+      # so the GC can collect the objects the block left behind.
+      def leaving(&block : -> Nil) : Nil
+        block.call
+        scrub_stack
+      end
+
+      # Overrides a virtual method, so its constructor sets a jump table too.
+      class KindObject < Test::QObject
+        def kind : Int32
+          2
+        end
+      end
+
+      context "parent ownership" do
+        it "keeps a child alive while its parent owns it" do
+          window = Test::QObject.new
+          leaving { Test::Label.new("child".to_unsafe, window); nil }
+
+          collect_garbage
+          window.child_count.should eq(1)
+        end
+
+        it "keeps an object given a parent by its constructor" do
+          window = Test::QObject.new
+          label = Test::Label.new("child".to_unsafe, window)
+          child = Test::QObject.new(window)
+
+          Test::BindgenHelper.kept_alive?(label).should be_true
+          Test::BindgenHelper.kept_alive?(child).should be_true
+          Test::BindgenHelper.kept_alive?(window).should be_false
+          window.child_count.should eq(2)
+        end
+
+        it "doesn't keep an object without parent" do
+          Test::BindgenHelper.kept_alive?(Test::QObject.new).should be_false
+          Test::BindgenHelper.kept_alive?(Test::Label.new("orphan".to_unsafe)).should be_false
+          Test::BindgenHelper.kept_alive?(Test::QObject.new(nil)).should be_false
+        end
+
+        it "keeps an object given a parent, and releases it given none" do
+          window = Test::QObject.new
+          label = Test::Label.new("orphan".to_unsafe)
+
+          label.parent = window
+          Test::BindgenHelper.kept_alive?(label).should be_true
+          window.child_count.should eq(1)
+
+          label.parent = nil
+          Test::BindgenHelper.kept_alive?(label).should be_false
+          window.child_count.should eq(0)
+        end
+
+        it "releases the children of a deleted parent" do
+          window = Test::QObject.new
+          label = Test::Label.new("child".to_unsafe, window)
+
+          Test::QObject.delete_object(window)
+          Test::BindgenHelper.kept_alive?(label).should be_false
+        end
+
+        it "releases the children of a parent the GC finalized" do
+          label = nil
+          leaving { label = Test::Label.new("child".to_unsafe, Test::QObject.new); nil }
+          Test::BindgenHelper.kept_alive?(label.not_nil!).should be_true
+
+          collect_garbage_until { !Test::BindgenHelper.kept_alive?(label.not_nil!) }
+        end
+
+        it "keeps a subclass overriding a virtual method alive" do
+          window = Test::QObject.new
+          object = KindObject.new(window)
+
+          object.call_kind.should eq(2)
+          Test::BindgenHelper.kept_alive?(object).should be_true
+        end
+
+        it "keeps a graphics item given a parent item" do
+          parent = Test::QGraphicsItem.new
+          item = Test::QGraphicsItem.new(parent)
+          Test::BindgenHelper.kept_alive?(item).should be_true
+
+          item.parent_item = nil
+          Test::BindgenHelper.kept_alive?(item).should be_false
+
+          item.parent_item = parent
+          Test::BindgenHelper.kept_alive?(item).should be_true
+        end
+
+        it "ignores classes not deriving from an owning class" do
+          window = Test::QObject.new
+          unowned = Test::Unowned.new(window)
+          Test::BindgenHelper.kept_alive?(unowned).should be_false
+
+          unowned.parent = window
+          Test::BindgenHelper.kept_alive?(unowned).should be_false
+        end
+      end
+
       context "signal behaviour" do
         it "creates a on_X method" do
           subject = Test::SomeObject.new

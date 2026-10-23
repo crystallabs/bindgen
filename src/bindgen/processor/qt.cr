@@ -5,6 +5,7 @@ module Bindgen
     # * Adding signal connection methods
     # * Support for private signals
     # * Remove `Q_OBJECT` internal methods in superclass wrappers
+    # * Keep objects given a parent alive, as the parent owns them
     class Qt < Base
       # Type of the result of a Qt-sinal connect call.
       CONNECTION_HANDLE_TYPE = Parser::Type.parse("QMetaObject::Connection")
@@ -19,6 +20,15 @@ module Bindgen
       # into superclass wrapper structs.
       Q_OBJECT_IGNORED_METHODS_RX = Regex.union(
         /^metaObject$/, /^qt_metacast$/, /^qt_metacall$/)
+
+      # Classes whose instances belong to their parent, which deletes them.
+      PARENT_OWNED_CLASSES = {"QObject", "QGraphicsItem", "QGraphicsLayoutItem"}
+
+      # Methods giving the object a new parent, or none with `nullptr`.
+      SET_PARENT_METHODS = {"setParent", "setParentItem", "setParentLayoutItem"}
+
+      # Name of the constructor argument giving the object a parent.
+      PARENT_ARGUMENT = "parent"
 
       def visit_class(klass)
         # The signals still in the graph: Those removed before, like by
@@ -52,11 +62,67 @@ module Bindgen
           handle_signal(klass, method)
         end
 
+        mark_parent_owned(klass) if parent_owned?(klass.origin.name)
+
         # Remove `Q_OBJECT` internals from the generated superclass wrappers.
         rules = @db.get_or_add(klass.origin.name)
         rules.superclass_ignore_methods += Q_OBJECT_IGNORED_METHODS_RX
 
         super # Proceed.
+      end
+
+      # Is the class *name*, or a base of it, one of `PARENT_OWNED_CLASSES`?
+      private def parent_owned?(name : String) : Bool
+        seen = Set(String).new
+        pending = [name]
+
+        while name = pending.shift?
+          next unless seen.add?(name)
+          return true if PARENT_OWNED_CLASSES.includes?(name)
+          @doc.try(&.classes[name]?).try(&.bases.each { |base| pending << base.name })
+        end
+
+        false
+      end
+
+      # Tags the methods of *klass* giving the object a parent, so the parent
+      # owning the object keeps it alive: `CrystalWrapper` adds the hooks.
+      private def mark_parent_owned(klass)
+        klass.nodes.each do |node|
+          next unless node.is_a?(Graph::Method)
+          next if node.tag?(Graph::Method::OWNED_BY_ARGUMENT_TAG)
+          next unless index = parent_argument(node.origin)
+          node.set_tag(Graph::Method::OWNED_BY_ARGUMENT_TAG, index.to_s)
+          make_parent_nilable(node.origin, index) unless node.origin.any_constructor?
+        end
+      end
+
+      # Lets the parent argument at *index* of the setter *method* be `nil`, as
+      # `nullptr` takes the object from its parent.
+      private def make_parent_nilable(method : Parser::Method, index : Int32)
+        arg = method.arguments[index]
+        return if arg.nilable?
+        return unless type = arg.make_pointer_nilable
+
+        arguments = method.arguments.dup
+        arguments[index] = Parser::Argument.new(arg.name, type, arg.has_default?, arg.value)
+        method.arguments = arguments
+      end
+
+      # Returns the index of the argument of *method* giving the object a
+      # parent, if any: The argument named `parent` of a constructor, or the
+      # one object argument of `SET_PARENT_METHODS`, if it's a pointer to a
+      # wrapped class.
+      private def parent_argument(method : Parser::Method) : Int32?
+        if method.any_constructor?
+          return if method.copy_constructor?
+          index = method.arguments.index(&.name.== PARENT_ARGUMENT)
+        elsif SET_PARENT_METHODS.includes?(method.name) && !method.static?
+          indices = method.arguments.each_index.select { |i| @db.object_argument?(method.arguments[i]) }.to_a
+          index = indices.first if indices.size == 1
+        end
+
+        index if index && @db.object_argument?(method.arguments[index])
       end
 
       # Checks if *signal* is marked private through the private
