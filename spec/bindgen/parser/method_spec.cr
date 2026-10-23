@@ -99,3 +99,52 @@ describe Bindgen::Parser::Method do
     end
   end
 end
+
+describe Bindgen::Parser::Method do
+  describe ".from_signature" do
+    it "parses a member method" do
+      method = Bindgen::Parser::Method.from_signature("QMenu *menu() const", "QAction")
+      method.name.should eq("menu")
+      method.class_name.should eq("QAction")
+      method.member_method?.should be_true
+      method.const?.should be_true
+      method.return_type.full_name.should eq("QMenu *")
+      method.arguments.should be_empty
+      method.crystal_name.should eq("menu")
+    end
+
+    it "parses arguments with defaults" do
+      method = Bindgen::Parser::Method.from_signature(
+        "static Foo *make(const std::vector<int> &values, QMenu *menu = nullptr, int count = 2, bool flag = false, double scale = 1.5, Foo other = Foo())",
+        "Foo",
+      )
+      method.static_method?.should be_true
+      method.const?.should be_false
+      method.arguments.map(&.name).should eq(%w[values menu count flag scale other])
+      method.arguments.map(&.full_name).should eq(["const std::vector<int> &", "QMenu *", "int", "bool", "double", "Foo"])
+      method.arguments.map(&.has_default?).should eq([false, true, true, true, true, true])
+      method.arguments.map(&.value).should eq([nil, true, 2_i64, false, 1.5, nil])
+      method.first_default_argument.should eq(1)
+      method.arguments[2].builtin?.should be_true
+      method.arguments[0].builtin?.should be_false
+    end
+
+    it "names a boolean getter" do
+      method = Bindgen::Parser::Method.from_signature("bool isReady() const", "Foo")
+      method.return_type.builtin?.should be_true
+      method.crystal_name.should eq("ready?")
+    end
+
+    it "rejects unnamed arguments and malformed declarations" do
+      expect_raises(ArgumentError, /argument 1 needs a name/) do
+        Bindgen::Parser::Method.from_signature("void setMenu(QMenu *)", "QAction")
+      end
+      expect_raises(ArgumentError, /no argument list/) do
+        Bindgen::Parser::Method.from_signature("QMenu *menu", "QAction")
+      end
+      expect_raises(ArgumentError, /no method name/) do
+        Bindgen::Parser::Method.from_signature("menu()", "QAction")
+      end
+    end
+  end
+end

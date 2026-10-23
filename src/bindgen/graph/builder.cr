@@ -59,8 +59,13 @@ module Bindgen
           origin: klass,
         )
 
-        # Add all (in theory) wrappable methods
+        # Add all (in theory) wrappable methods, and those declared in the
+        # configuration, see the `declare_methods:` type rule.
         rules = @db[klass.name]?
+        rules.try &.declare_methods.each do |signature|
+          klass.methods << Parser::Method.from_signature(signature, klass.name)
+        end
+
         klass.wrap_methods.each do |method|
           apply_method_rules(method, rules) if rules
           build_method(method, graph_class)

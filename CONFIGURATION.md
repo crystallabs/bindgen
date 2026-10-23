@@ -53,6 +53,7 @@ What each processor does is described under [Processors](README.md#processors).
       * [generate_binding](#generate_binding)
       * [generate_superclass](#generate_superclass)
       * [ignore_methods](#ignore_methods)
+      * [declare_methods](#declare_methods)
       * [rename](#rename)
       * [nilable](#nilable)
       * [superclass_ignore_methods](#superclass_ignore_methods)
@@ -755,6 +756,23 @@ Methods of this type to ignore.  An entry is one of:
       - someMethod
       - "operator-(const QDateTime &, const QDateTime &)"
       - "/^operator\\*\\(.*QVector3D/"
+```
+
+### `declare_methods`
+
+C++ declarations of methods the parser doesn't report, as written in a
+header, which the generated C++ calls like any other method.  This binds the
+instantiations of template members, like `QAction::menu` and `setMenu` in Qt
+6, which are templates over the menu type, or `QMutex::tryLockFor`.  Every
+argument is named, like in a declaration; a default is exposed to Crystal if
+it's a literal number, boolean or `nullptr`.  `static` and `const` are
+understood; constructors and operators aren't.
+
+```yaml
+    declare_methods:
+      - "QMenu *menu() const"
+      - "void setMenu(QMenu *menu)"
+      - "bool tryLockFor(std::chrono::milliseconds duration)"
 ```
 
 ### `rename`

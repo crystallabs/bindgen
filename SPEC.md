@@ -7,6 +7,14 @@ Rules **should** have one (or more) examples, showcasing its implications.
 
 ## §1. C/C++ Parsing
 
+### §1.1 Declared methods
+
+The `declare_methods:` type rule adds methods the parser doesn't report, from
+their C++ declarations: `QMenu *menu() const`, `void setMenu(QMenu *menu)`.
+A template member instantiated by the call, like these in Qt 6, is bound this
+way.  The methods are wrapped like any other, with named arguments and the
+defaults Crystal can express.
+
 ## §2. Crystal wrappers
 
 ### §2.1 Name rewriting

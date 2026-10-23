@@ -237,6 +237,12 @@ module Bindgen
         @ignore_methods.any?(&.matches?(method))
       end
 
+      # C++ declarations of methods the parser doesn't report, like the
+      # instantiations of template members: `QMenu *menu() const`,
+      # `void setMenu(QMenu *menu)`.  Parsed by `Parser::Method.from_signature`
+      # and added to the class, the C++ glue calls them like any method.
+      property declare_methods = [] of String
+
       # Crystal names of methods, by `MethodPattern` entries like
       # `ignore_methods`: `raise: raise_`.  The first matching entry names the
       # method, and all of its overloads if it's a plain name.
@@ -323,6 +329,7 @@ module Bindgen
         @bit_fields = BitFields::Accessors, @generate_wrapper = true,
         @generate_binding = true, @generate_superclass = true,
         @builtin = false, @ignore_methods = [] of MethodPattern,
+        @declare_methods = [] of String,
         @rename = {} of MethodPattern => String,
         @nilable = {} of MethodPattern => Bool | Array(Int32),
         @superclass_ignore_methods = Util::FAIL_RX, @keep_alive = KeepAlive.new,

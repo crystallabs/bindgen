@@ -564,6 +564,13 @@ types:
     ignore_methods:
       - some_method_name
 
+    # C++ declarations of methods the parser doesn't report, like the
+    # instantiations of template members, called like any other method.
+    # Arguments are named; literal defaults are exposed.
+    declare_methods:
+      - "QMenu *menu() const"
+      - "void setMenu(QMenu *menu)"
+
     # Crystal names of methods, by name, signature or /regex/ like
     # `ignore_methods`.  A renamed virtual is overridden under its new name.
     rename:

@@ -430,3 +430,19 @@ describe Bindgen::Parser::Type do
     end
   end
 end
+
+describe Bindgen::Parser::Type do
+  describe ".parse" do
+    it "marks fundamental types as built-in" do
+      %w[int bool void char double float].each do |name|
+        Bindgen::Parser::Type.parse(name).builtin?.should be_true
+      end
+      ["unsigned int", "long long", "unsigned long long int", "signed char", "long double", "char16_t", "const int &", "unsigned char *"].each do |name|
+        Bindgen::Parser::Type.parse(name).builtin?.should be_true
+      end
+      ["QString", "std::string", "Foo *", "std::vector<int>", "int32_t", "size_t"].each do |name|
+        Bindgen::Parser::Type.parse(name).builtin?.should be_false
+      end
+    end
+  end
+end

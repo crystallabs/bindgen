@@ -368,3 +368,24 @@ struct Mode {
   enum Kind { Fast, Slow };
   static int pick(Kind kind) { return kind; }
 };
+
+// Template members, which the parser doesn't report: `declare_methods`
+// declares their instantiations, which the generated C++ instantiates.
+struct Declared {
+  int m_value = 0;
+  Declared *m_other = nullptr;
+
+  template <typename T = Declared *>
+  T other() const { return m_other; }
+
+  template <typename T>
+  void setOther(T other) { m_other = other; }
+
+  template <typename T>
+  T scaled(T factor, int times = 2) const { return factor * times; }
+
+  template <typename T>
+  static T twice(T value) { return value * 2; }
+
+  bool isReady() const { return m_other != nullptr; }
+};

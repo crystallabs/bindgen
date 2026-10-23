@@ -33,6 +33,7 @@ classes:
   PlainStruct: PlainStruct
   Copyable: Copyable
   Undestructible: Undestructible
+  Declared: Declared
 
 enums:
   Mode::Kind: Mode::Kind
@@ -88,6 +89,14 @@ types:
     crystal_type: Int32
     cpp_type: int
     builtin: true
+  Declared:
+    declare_methods:
+      - "Declared *other() const"
+      - "void setOther(Declared *other)"
+      - "double scaled(double factor, int times = 2) const"
+      - "static int twice(int value)"
+    nilable:
+      other: true
   PlainStruct:
     generate_binding: false
     generate_wrapper: false

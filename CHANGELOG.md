@@ -56,6 +56,13 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   setters, signals and operators keep dropping such arguments.  See SPEC.md
   §2.2.5.
 
+* `declare_methods:` type rule: C++ declarations of methods the parser
+  doesn't report, like the instantiations of template members
+  (`QAction::menu` and `setMenu` in Qt 6, `QMutex::tryLockFor`), bound like
+  any other method: `declare_methods: ["QMenu *menu() const", "void
+  setMenu(QMenu *menu)"]`.  `Parser::Method.from_signature` parses them.
+  `Parser::Type.parse` marks the fundamental types, like `unsigned int`, as
+  built-in, as the clang tool does.
 * `rename:` and `nilable:` type rules, by the entries of `ignore_methods`:
   `rename: { raise: raise_ }` names a method, and its overrides in Crystal;
   `nilable: { menuBar: false, setModel: [0] }` makes a pointer result `T`

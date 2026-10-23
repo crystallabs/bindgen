@@ -16,6 +16,10 @@ module Bindgen
         # list.
         NEITHER_RX = /[^<>]+/
 
+        # The fundamental types of C++, which the clang tool reports as
+        # built-in: `unsigned long int`, `char16_t`, `long double`.
+        FUNDAMENTAL_RX = /^(?:(?:(?:signed|unsigned)\s+)?(?:char|short(?:\s+int)?|int|long(?:\s+int)?|long\s+long(?:\s+int)?)|signed|unsigned|bool|void|float|double|long\s+double|wchar_t|char8_t|char16_t|char32_t)$/
+
         def parse(type_name : String, pointer_depth : Int32 = 0)
           parse_type(type_name, pointer_depth)
         end
@@ -89,7 +93,7 @@ module Bindgen
             const: const,
             move: false,
             reference: reference,
-            builtin: false, # Oh well
+            builtin: FUNDAMENTAL_RX.matches?(name),
             void: (name == "void"),
             pointer: pointer_depth,
             extents: extents,
