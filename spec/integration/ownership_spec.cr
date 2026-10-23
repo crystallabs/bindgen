@@ -160,6 +160,81 @@ describe "keeping objects passed to C++ alive" do
         end
       end
 
+      context "depends_on: of a method" do
+        # Holds dependents, so a spec can drop them without leaving pointers
+        # to them on the stack.
+        dependents = [] of Test::Dependent | Test::VirtualDependent
+
+        it "replaces the dependencies of the object" do
+          Test::Counted.alive.should eq(0)
+          destroyed = Test::Dependent.destroyed
+          leaving { dependents << Test::Dependent.new(Test::Counted.new) }
+          leaving { dependents[0].retarget(Test::Counted.new) }
+          Test::Counted.alive.should eq(2)
+
+          # The old argument is collected, the new one lives on with the object.
+          collect_garbage_until { Test::Counted.alive == 1 }
+          collect_garbage
+          Test::Counted.alive.should eq(1)
+          Test::Dependent.destroyed.should eq(destroyed)
+
+          # Dropped, the object is destroyed before the new argument.
+          dependents.clear
+          scrub_stack
+          collect_garbage_until { Test::Dependent.destroyed == destroyed + 1 }
+          Test::Dependent.counted_alive_at_destruction.should eq(1)
+          collect_garbage_until { Test::Counted.alive == 0 }
+        end
+
+        it "clears the dependencies with a null argument" do
+          leaving { dependents << Test::Dependent.new(Test::Counted.new) }
+          # Through the binding, as the wrapper takes no `nil`.
+          leaving { Test::Binding.bg_Dependent_retarget_Counted_X(dependents[0].as(Test::Dependent), Pointer(Test::Binding::Counted).null) }
+          collect_garbage_until { Test::Counted.alive == 0 }
+          dependents.clear
+        end
+
+        it "works through the wrapper of a shadow subclass" do
+          Test::Counted.alive.should eq(0)
+          destroyed = Test::VirtualDependent.destroyed
+          leaving { dependents << Test::VirtualDependent.new.tap(&.retarget(Test::Counted.new)) }
+          leaving { dependents[0].retarget(Test::Counted.new) }
+          leaving do
+            dependent = dependents[0].as(Test::VirtualDependent)
+            dependent.call_kind.should eq(1)
+            Test::Layout.at_base(dependent).should be_true
+          end
+
+          collect_garbage_until { Test::Counted.alive == 1 }
+          collect_garbage
+          Test::VirtualDependent.destroyed.should eq(destroyed)
+
+          dependents.clear
+          scrub_stack
+          collect_garbage_until { Test::VirtualDependent.destroyed == destroyed + 1 }
+          Test::VirtualDependent.counted_alive_at_destruction.should eq(1)
+          collect_garbage_until { Test::Counted.alive == 0 }
+        end
+
+        it "finds the object at the start of its allocation" do
+          counted = Test::Counted.new
+          dependent = Test::Dependent.new(counted)
+          Test::Layout.at_base(dependent).should be_true
+          Test::Layout.is_binding_object(dependent).should be_true
+        end
+
+        it "does nothing on an object C++ created" do
+          counted = Test::Counted.new
+          other = Test::Counted.new
+          dependent = Test::Dependent.new_no_gc(counted)
+          Test::Layout.is_binding_object(dependent).should be_false
+
+          dependent.retarget(other)
+          dependent.target.to_unsafe.should eq(other.to_unsafe)
+          Test::Dependent.targets(dependent, other).should be_true
+        end
+      end
+
       context "objects destroyed by C++" do
         it "skips the finalizer of an object its owner deleted" do
           leave_pairs(100)
@@ -233,5 +308,8 @@ describe "keeping objects passed to C++ alive" do
         end
       end
     end
+
+    # Static methods have no object to store dependencies in.
+    ToolLog.warnings.should contain("depends_on: of Dependent ignores targets: it has no object")
   end
 end

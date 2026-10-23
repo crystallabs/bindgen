@@ -5,6 +5,7 @@ processors:
   - instance_properties
   - filter_methods
   - crystal_wrapper
+  - virtual_override
   - cpp_wrapper
   - crystal_binding
   - sanity_check
@@ -12,6 +13,8 @@ processors:
 classes:
   Counted: Counted
   Dependent: Dependent
+  VirtualDependent: VirtualDependent
+  Layout: Layout
   Inner: Inner
   Outer: Outer
   SubOuter: SubOuter
@@ -36,6 +39,8 @@ types:
       setNone: false
       ^$: true # Constructors
   Dependent:
-    depends_on: [^$] # Constructors
+    depends_on: [^$, ^retarget$, ^targets$] # Constructors, a method, and a static one
+  VirtualDependent:
+    depends_on: [^retarget$]
   Owner:
     keep_alive: [^adopt$]

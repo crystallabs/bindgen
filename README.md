@@ -474,21 +474,38 @@ An object may refer to an argument of its constructor from memory the GC
 doesn't scan, like through a d-pointer, and use it when destroyed: Qt's
 `QTreeWidgetItemIterator` unregisters from the model of its tree widget.  The GC
 finalizes objects in an order it finds by following pointers, so it may destroy
-the tree widget first, and the destructor of the iterator crashes.
+the tree widget first, and the destructor of the iterator crashes.  A method
+may make the object use its argument from then on, without owning it:
+`QTextStream::setDevice`, `QPainter::begin`.
 
-Configure such constructors in `depends_on:` of the class, in the format of
-`keep_alive:`.  `CppWrapper` makes their C++ glue store the arguments in the
-new object, which the GC scans: it keeps them alive as long as the object, and
-finalizes them only after it.  Nothing needs releasing.  A copy made by the
-copy constructor depends on the object it copies, so it is destroyed before
-it.  The constructors of copied, aggregate, union and `final` classes don't
-allocate the object the GC scans, and are ignored with a warning, as is a
-pattern matching no method of the class.
+Configure such constructors and methods in `depends_on:` of the class, in the
+format of `keep_alive:`.  `CppWrapper` makes their C++ glue store the arguments
+in the object, which the GC scans: it keeps them alive as long as the object,
+and finalizes them only after it.  Nothing needs releasing, unlike with
+`keep_alive:`, which keeps the argument until it's released.  A copy made by
+the copy constructor depends on the object it copies, so it is destroyed before
+it.  A method replaces the dependencies of the object by its arguments before
+it runs, so the arguments of an earlier call, or of the constructor, are
+collectable again, and a null argument leaves none.
+
+The dependencies are kept in `BindgenGCObject`, the first base of the
+`CrystalGCCleanupWrapper<T>` an object constructed from Crystal is allocated
+as.  It is its primary base, at the start of the allocation also for a dynamic
+`T` and for the shadow subclass of [`VirtualOverride`](#virtualoverride), so
+the glue of a method finds it from the `T *` by `GC_base`.  A check value
+stored in it tells it from other memory of the GC: an object C++ created, also
+with the `operator new` of `libgccpp`, isn't one, and the method leaves its
+dependencies alone.  The constructors of copied, aggregate, union and `final`
+classes don't allocate the object the GC scans, and are ignored with a
+warning, as are the methods of these classes, static methods, and a pattern
+matching no method of the class.
 
 ```yaml
 types:
   QTreeWidgetItemIterator:
     depends_on: [^$] # The tree widget, or item, passed to the constructors
+  QTextStream:
+    depends_on: [^setDevice$] # The device, released with the stream
 ```
 
 ### Objects destroyed by C++

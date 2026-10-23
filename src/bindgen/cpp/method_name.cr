@@ -55,8 +55,15 @@ module Bindgen
       # Is *method* a constructor allocating a `CrystalGCWrapper` of its class,
       # instead of the class itself?  See `#generate`.
       def gc_wrapper_constructor?(method : Parser::Method, type : Parser::Method::Type = method.type) : Bool
-        type.any_constructor? && !type_copied?(method.class_name) &&
-          !type.aggregate_constructor? && !uninheritable?(method.class_name)
+        type.any_constructor? && !type.aggregate_constructor? &&
+          gc_wrapper_class?(method.class_name)
+      end
+
+      # Do the constructors of *class_name*, but an aggregate constructor,
+      # allocate a `CrystalGCWrapper`?  Not those of a copied type, a C++ union
+      # or a `final` class.
+      def gc_wrapper_class?(class_name : String) : Bool
+        !type_copied?(class_name) && !uninheritable?(class_name)
       end
 
       # Returns the qualified name of a method.

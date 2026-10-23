@@ -64,13 +64,15 @@ module Bindgen
         end
       end
 
-      # Returns the body of a constructor configured in `depends_on:` of its
-      # class, storing the selected arguments in the new object, or `nil` for
-      # the default body.  A copy constructor stores the object it copies, so
-      # the copy is destroyed before it, and in turn before its dependencies.
+      # Returns the body of a constructor or member method configured in
+      # `depends_on:` of its class, storing the selected arguments in the
+      # object, or `nil` for the default body.  A copy constructor stores the
+      # object it copies, so the copy is destroyed before it, and in turn before
+      # its dependencies.  A method replaces the dependencies the object had.
       # Only an object allocated as `CrystalGCWrapper` has room for them: the
       # constructors of copied, aggregate, union and `final` classes allocate
-      # the class itself.
+      # the class itself, and so methods of these classes are ignored too, as
+      # are static methods, which have no object.
       private def depends_on_body(method : Parser::Method) : Call::Body?
         rules = inherited_rules(method.class_name, &.depends_on)
         return if rules.empty?
@@ -78,13 +80,37 @@ module Bindgen
         indices = @db.selected_object_arguments(method, rules)
         return if indices.empty?
 
-        unless Cpp::MethodName.new(@db).gc_wrapper_constructor?(method)
-          what = method.name.empty? ? "a constructor" : method.name
-          Log.warn { "depends_on: of #{method.class_name} ignores #{what}: it doesn't allocate a CrystalGCWrapper" }
-          return
-        end
+        if method.any_constructor?
+          unless Cpp::MethodName.new(@db).gc_wrapper_constructor?(method)
+            warn_ignored_depends_on(method, "it doesn't allocate a CrystalGCWrapper")
+            return
+          end
 
-        CallBuilder::CppCall::DependsOnBody.new(indices)
+          CallBuilder::CppCall::DependsOnBody.new(indices)
+        elsif !method.needs_instance? || method.signal?
+          warn_ignored_depends_on(method, "it has no object")
+        elsif !gc_wrapped_class?(method.class_name)
+          warn_ignored_depends_on(method, "its objects aren't allocated as CrystalGCWrapper")
+        else
+          body = method.operator? ? CallBuilder::CppCall::OperatorBody.new : CallBuilder::CppCall::Body.new
+          CallBuilder::CppCall::MethodDependsOnBody.new(indices, body)
+        end
+      end
+
+      private def warn_ignored_depends_on(method : Parser::Method, reason : String) : Nil
+        what = method.name.empty? ? "a constructor" : method.name
+        Log.warn { "depends_on: of #{method.class_name} ignores #{what}: #{reason}" }
+      end
+
+      # Are all objects of *class_name* constructed from Crystal allocated as a
+      # `CrystalGCWrapper`, which has room for dependencies?  Not those of a
+      # copied, union or `final` class, nor of one with an aggregate
+      # constructor, which allocates the class itself.
+      private def gc_wrapped_class?(class_name : String) : Bool
+        return false unless Cpp::MethodName.new(@db).gc_wrapper_class?(class_name)
+
+        klass = @db[class_name]?.try(&.graph_node.as?(Graph::Class))
+        !klass.try(&.nodes.any? { |node| node.as?(Graph::Method).try(&.origin.aggregate_constructor?) })
       end
     end
   end

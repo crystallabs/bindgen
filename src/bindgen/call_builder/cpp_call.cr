@@ -56,13 +56,31 @@ module Bindgen
 
         def to_code(call : Call, platform : Graph::Platform) : String
           pass_args = call.arguments.map(&.call).join(", ")
-          dependencies = @indices.join(", ") do |index|
+          dependencies = DependsOnBody.dependencies(call, @indices)
+          code = %[bindgen_depends_on(#{call.name}(#{pass_args}), {#{dependencies}})]
+          call.result.apply_conversion(code)
+        end
+
+        # The arguments at *indices* of *call*, as pointers.
+        def self.dependencies(call : Call, indices : Array(Int32)) : String
+          indices.join(", ") do |index|
             arg = call.arguments[index]
             arg.reference ? "&#{arg.name}" : arg.name
           end
+        end
+      end
 
-          code = %[bindgen_depends_on(#{call.name}(#{pass_args}), {#{dependencies}})]
-          call.result.apply_conversion(code)
+      # Body of a member method, which replaces the dependencies of the object
+      # *self_var* by the arguments at *indices* through `bindgen_depends_on`,
+      # and then runs the call of *body*.  See `depends_on:`.
+      class MethodDependsOnBody < Call::Body
+        def initialize(@indices : Array(Int32), @body : Call::Body, @self_var = "_self_")
+        end
+
+        def to_code(call : Call, platform : Graph::Platform) : String
+          dependencies = DependsOnBody.dependencies(call, @indices)
+          code = @body.to_code(call, platform)
+          %[(bindgen_depends_on(#{@self_var}, {#{dependencies}}), #{code})]
         end
       end
 
