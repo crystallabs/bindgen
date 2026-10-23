@@ -764,21 +764,26 @@ See [Objects kept alive for C++](README.md#objects-kept-alive-for-c).
 
 ### `depends_on`
 
-Constructors whose object refers to some of its arguments from memory the GC
-doesn't scan, like through a d-pointer, and uses them when destroyed, like an
-iterator unregistering from its container.  The C++ glue of these constructors
-stores the arguments in the new object, so the GC keeps them alive as long as
-it, and destroys them only after it.  Same format as [`keep_alive`](#keep_alive),
-matched against an empty string for constructors.  A copy made by the copy
-constructor depends on the object it copies.  The constructors of copied,
-aggregate, union and `final` classes don't allocate the object the GC scans, and
-are ignored with a warning, as is an expression matching no method of the
-class.  Defaults to depending on nothing.
+Constructors and member methods whose object refers to some of their
+arguments from memory the GC doesn't scan, like through a d-pointer, and uses
+them when destroyed, like an iterator unregistering from its container, or a
+stream writing to its device.  The C++ glue stores the arguments in the object,
+so the GC keeps them alive as long as it, and destroys them only after it.
+Same format as [`keep_alive`](#keep_alive), matched against an empty string for
+constructors.  A copy made by the copy constructor depends on the object it
+copies.  A method replaces the dependencies the object had by its arguments,
+before it runs; a null argument leaves none.  A method does nothing on an
+object C++ created.  The constructors and methods of copied, aggregate, union
+and `final` classes are ignored with a warning, as these don't allocate the
+object the GC scans, and so are static methods and an expression matching no
+method of the class.  Defaults to depending on nothing.
 
 ```yaml
 types:
   QTreeWidgetItemIterator:
     depends_on: [ ^$ ]
+  QPainter:
+    depends_on: [ ^$, ^begin$ ] # The paint device
 ```
 
 See [Objects destroyed before others](README.md#objects-destroyed-before-others).

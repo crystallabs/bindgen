@@ -4,7 +4,24 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ## 0.15.0 (unreleased)
 
+### Added
+
+* `depends_on:` applies to member methods, like `QTextStream::setDevice` or
+  `QPainter::begin`: the call replaces the dependencies of the object by its
+  selected arguments, so the GC destroys the object before them, and they're
+  collectable again with it or after a later call.  Unlike `keep_alive:`,
+  nothing needs releasing.  The method does nothing on an object C++ created.
+  Static methods, and the methods of copied, aggregate, union and `final`
+  classes, are ignored with a warning.
+
 ### Changed
+
+* `CrystalGCCleanupWrapper<T>` keeps `bindgen_dependencies` and
+  `bindgen_destroyed` in its new first base `BindgenGCObject`, at the start of
+  the allocation for every `T`, so the glue of a method finds them by
+  `GC_base`, see `bindgen_gc_object`.  The `T` of a wrapper constructed from
+  Crystal is now never at its start, also for a dynamic `T`: code assuming that
+  the `T *` is the address of the allocation needs `GC_base`.
 
 * The `keep_alive:` and `depends_on:` rules of a class apply to the methods its
   subclasses re-declare, like an override of a setter: `QTreeView::setModel`

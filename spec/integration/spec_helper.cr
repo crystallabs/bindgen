@@ -55,9 +55,15 @@ private def relocate_line_reports(code, file, base)
   "#<loc:#{file.inspect},#{base},1>\n#{code}"
 end
 
+# The log of the last tool run by `.run_tool`.
+module ToolLog
+  class_property warnings = [] of String
+end
+
 # Runs the *tool* of `NAME.yml`, and prints its warnings and errors if it fails.
 # They go to the default log backend too, but that one is asynchronous and
-# doesn't say which spec logged them.
+# doesn't say which spec logged them.  The messages of the warnings are kept in
+# `ToolLog.warnings`, for a spec to check.
 def run_tool(tool, name) : Int32
   log = Log::MemoryBackend.new
   Log.builder.bind("bindgen.*", :warn, log)
@@ -67,6 +73,8 @@ def run_tool(tool, name) : Int32
   ensure
     Log.builder.unbind("bindgen.*", :warn, log)
   end
+
+  ToolLog.warnings = log.entries.select(&.severity.warn?).map(&.message)
 
   unless code == 0
     puts "#{">>> Log of failed tool run:".colorize.mode(:bold)} #{name}.yml"

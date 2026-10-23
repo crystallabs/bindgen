@@ -64,7 +64,8 @@ int Counted::alive_ = 0;
 
 // Refers to its constructor argument through memory the GC doesn't scan, and
 // uses it when destroyed, like an iterator unregistering from its container.
-// `depends_on:` makes the GC destroy it before the `Counted`.
+// `depends_on:` makes the GC destroy it before the `Counted`.  `retarget`
+// replaces it, like `QTextStream::setDevice`.
 struct Dependent {
   Dependent(Counted *counted) : d(new Data{counted}) { }
   Dependent(const Dependent &other) : d(new Data{other.d->counted}) { }
@@ -74,6 +75,15 @@ struct Dependent {
     counted_alive_at_destruction_ = Counted::alive();
     delete d;
   }
+
+  // Not constructed from Crystal: `depends_on:` of a method does nothing.
+  static Dependent *newNoGc(Counted *counted) { return new Dependent(counted); }
+
+  void retarget(Counted *counted) { d->counted = counted; }
+  Counted *target() const { return d->counted; }
+
+  // Matched by `depends_on:`, which ignores it as it has no object.
+  static bool targets(const Dependent *dependent, Counted *counted) { return dependent->d->counted == counted; }
 
   static int destroyed() { return destroyed_; }
   static int countedAliveAtDestruction() { return counted_alive_at_destruction_; }
@@ -88,6 +98,74 @@ private:
 
 int Dependent::destroyed_ = 0;
 int Dependent::counted_alive_at_destruction_ = -1;
+
+// Like `Dependent`, with a virtual method: Crystal constructs the shadow
+// subclass of `Processor::VirtualOverride`, like a Qt widget.
+struct VirtualDependent {
+  VirtualDependent() : d(new Data{nullptr}) { }
+
+  virtual ~VirtualDependent() {
+    ++destroyed_;
+    counted_alive_at_destruction_ = Counted::alive();
+    delete d;
+  }
+
+  virtual int kind() { return 1; }
+  int callKind() { return kind(); }
+
+  void retarget(Counted *counted) { d->counted = counted; }
+  Counted *target() const { return d->counted; }
+
+  static int destroyed() { return destroyed_; }
+  static int countedAliveAtDestruction() { return counted_alive_at_destruction_; }
+
+private:
+  struct Data { Counted *counted; };
+  Data *d;
+
+  static int destroyed_;
+  static int counted_alive_at_destruction_;
+};
+
+int VirtualDependent::destroyed_ = 0;
+int VirtualDependent::counted_alive_at_destruction_ = -1;
+
+// Checks where the `BindgenGCObject` of an object constructed from Crystal is,
+// which the glue of a method configured in `depends_on:` finds by `GC_base`.
+// The parser doesn't see `bindgen_helper.hpp`, only the compiler does.
+struct Layout {
+  // At the start of the allocation of a `CrystalGCCleanupWrapper<Dependent>`.
+  static bool atBase(Dependent *dependent);
+
+  // At the start of the allocation of the wrapper of the shadow subclass of
+  // `VirtualDependent`, also a dynamic class, which the glue found.
+  static bool atBase(VirtualDependent *dependent);
+
+  // Is *dependent* constructed from Crystal?
+  static bool isBindingObject(Dependent *dependent);
+};
+
+#ifdef BINDGEN_HELPER_HPP
+bool Layout::atBase(Dependent *dependent) {
+  auto *wrapper = static_cast<CrystalGCCleanupWrapper<Dependent> *>(dependent);
+  return reinterpret_cast<BindgenGCObject *>(GC_base(dependent)) == static_cast<BindgenGCObject *>(wrapper) &&
+         bindgen_gc_object(dependent) == static_cast<BindgenGCObject *>(wrapper);
+}
+
+bool Layout::atBase(VirtualDependent *dependent) {
+  BindgenGCObject *object = bindgen_gc_object(dependent);
+  return object != nullptr && reinterpret_cast<BindgenGCObject *>(GC_base(dependent)) == object &&
+         static_cast<void *>(object) != static_cast<void *>(dependent);
+}
+
+bool Layout::isBindingObject(Dependent *dependent) {
+  return bindgen_gc_object(dependent) != nullptr;
+}
+#else
+bool Layout::atBase(Dependent *) { return false; }
+bool Layout::atBase(VirtualDependent *) { return false; }
+bool Layout::isBindingObject(Dependent *) { return false; }
+#endif
 
 // Two objects owning each other through memory the GC doesn't scan: The one
 // destroyed first deletes the other, like a Qt parent deletes its children.
