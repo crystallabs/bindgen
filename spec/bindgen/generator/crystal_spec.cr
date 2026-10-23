@@ -36,11 +36,14 @@ describe Bindgen::Generator::Crystal do
       generate(root).should eq <<-CRYSTAL
         module Test
           module N
+            @[BindgenWrapper]
             class A
             end
+            @[BindgenWrapper]
             class C
             end
           end
+          @[BindgenWrapper]
           class B < N::A
           end
         end
@@ -57,12 +60,16 @@ describe Bindgen::Generator::Crystal do
 
       generate(root).should eq <<-CRYSTAL
         module Test
+          @[BindgenWrapper]
           class A
           end
+          @[BindgenWrapper]
           class B < A
           end
+          @[BindgenWrapper]
           class C < B
           end
+          @[BindgenWrapper]
           class D
           end
         end
@@ -85,26 +92,33 @@ describe Bindgen::Generator::Crystal do
       generate(root).should eq <<-CRYSTAL
         module Test
           module N
+            @[BindgenWrapper]
             class A
             end
             module M
             end
           end
+          @[BindgenWrapper]
           class Outer
           end
+          @[BindgenWrapper]
           class B < N::A
           end
           module N
+            @[BindgenWrapper]
             class C < B
             end
             module M
+              @[BindgenWrapper]
               class D < C
               end
             end
           end
+          @[BindgenWrapper]
           class Later < Outer
           end
           class Outer
+            @[BindgenWrapper]
             class Inner < Later
             end
           end

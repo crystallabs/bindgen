@@ -26,6 +26,15 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   the result type (`BindgenHelper.zero_value`).  Before, the exception unwound
   through the C++ frames.
 
+* `super` works in a Crystal override of a C++ virtual method: the wrapper
+  method it reaches forwards to the `Superclass` wrapper on an instance of a
+  Crystal subclass, told apart from the generated classes by their
+  `BindgenWrapper` annotation, as Crystal's dispatch ran the overrides of the
+  subclass already.  Before, `super` re-entered the override through the
+  virtual method, overflowing the stack.  The `Superclass` forwarders get
+  the `keep_alive:`, `release:` and parent-ownership hooks of the wrapper
+  methods, so `super` keeps what the wrapper keeps.
+
 ### Changed
 
 * `BindgenHelper.keep_alive`, `release`, `kept_alive?` and the destroyed hook

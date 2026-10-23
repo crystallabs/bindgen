@@ -924,11 +924,18 @@ class MyAdder < VirtualCalculator
 end
 ```
 
-**Do NOT call `super` in the body of a Crystal method that overrides a concrete
-C++ virtual method!**  Due to Bindgen's limitations, doing so will result in a
-stack overflow immediately.  Instead, Bindgen provides a _private_ `#superclass`
-method in every concrete abstract class; it wraps the calling instance so that
-the original C++ methods can be called, bypassing Crystal's overrides.
+`super` in the body of a Crystal method that overrides a concrete C++ virtual
+method calls the C++ implementation of the class the Crystal class derives
+from, as it would in C++.  The wrapper method it reaches knows it runs on an
+instance of a Crystal subclass (the generated classes carry the
+`BindgenWrapper` annotation, a subclass doesn't), whose overrides Crystal's
+dispatch ran already, and calls the C++ method non-virtually through
+`#superclass`, so it doesn't re-enter the override.  The same happens when a
+Crystal subclass doesn't override the method.
+
+Bindgen also provides a _private_ `#superclass` method in every concrete
+abstract class; it wraps the calling instance so that the original C++
+methods can be called from any method, bypassing Crystal's overrides.
 
 ```crystal
 class MyLogger < Calculator
@@ -944,8 +951,7 @@ class MyLogger < Calculator
 
   def add_memory(m) : Nil
     puts "M += #{m}"
-    # unlike `super`, all arguments are mandatory
-    superclass.add_memory(m)
+    super # Same as `superclass.add_memory(m)`, whose arguments are all mandatory
   end
 end
 ```

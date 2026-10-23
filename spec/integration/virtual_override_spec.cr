@@ -107,6 +107,23 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      # Calls the C++ implementation by `super`, like `#superclass`.
+      class SuperThing < Test::Subclass
+        def calc(a, b) : Int32
+          super + 1
+        end
+      end
+
+      class SubSuperThing < SuperThing
+        def calc(a, b) : Int32
+          super * 2
+        end
+      end
+
+      # Overrides nothing: the wrapper methods call the C++ implementation.
+      class PlainThing < Test::Subclass
+      end
+
       # Test calling superclass method from overridden method
       class OverrideThing < Test::Base
         def calc(a, b)
@@ -289,6 +306,21 @@ describe "C++ virtual overriding from Crystal feature" do
         it "can call superclass method from overridden method" do
           OverrideThing.new.calc(10, 4).should eq(196)
           SubOverrideThing.new.calc(10, 4).should eq(1600)
+        end
+
+        it "can call super from an overridden method" do
+          # `Subclass::calc` multiplies: `super` reaches the C++ class the
+          # Crystal class derives from, not `Base::calc`.
+          SuperThing.new.calc(7, 6).should eq(43)
+          SuperThing.new.call_virtual(7, 6).should eq(43) # From C++
+          SubSuperThing.new.calc(7, 6).should eq(86)
+          SubSuperThing.new.call_virtual(7, 6).should eq(86)
+        end
+
+        it "calls the C++ implementation on a subclass not overriding it" do
+          PlainThing.new.calc(7, 6).should eq(42)
+          PlainThing.new.call_virtual(7, 6).should eq(42)
+          Test::Subclass.new.calc(7, 6).should eq(42)
         end
 
         it "can override implicitly inherited method" do

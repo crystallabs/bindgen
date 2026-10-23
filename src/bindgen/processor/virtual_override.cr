@@ -1,8 +1,11 @@
+require "./wrapper_hooks"
+
 module Bindgen
   module Processor
     # Allows to override C++ `virtual` methods in Crystal sub-classes.
     class VirtualOverride < Base
       include TypeHelper
+      include WrapperHooks
 
       # Name of the superclass wrapper structs.
       SUPERCLASS_NAME = "Superclass"
@@ -254,7 +257,14 @@ module Bindgen
           )
 
           superclass_method.calls[Graph::Platform::Crystal] =
-            build_superclass_forwarder(node.origin, method_clone, klass.origin, superclass.origin)
+            build_superclass_forwarder(node, method_clone, klass.origin, superclass.origin)
+
+          # The wrapper method forwards to it on an instance of a Crystal
+          # subclass, so `super` works.  Not for a block argument, which the
+          # forwarding can't pass on.
+          if (call = node.calls[Graph::Platform::Crystal]?) && (body = call.body).is_a?(CallBuilder::CrystalWrapper::Body)
+            body.super_forwarder = call.arguments.none? { |arg| arg.is_a?(Call::ProcArgument) || arg.is_a?(Call::VariadicArgument) }
+          end
         end
       end
 
@@ -309,15 +319,21 @@ module Bindgen
         )
       end
 
+      # Builds the `Superclass` forwarder of the method *node*, with the hooks
+      # of the wrapper method: a Crystal subclass reaches it by `super`.
       private def build_superclass_forwarder(
-        orig_method : Parser::Method, target_method : Parser::Method,
+        node : Graph::Method, target_method : Parser::Method,
         klass : Parser::Class, superclass : Parser::Class,
       ) : Call
         call = CallBuilder::CrystalBinding.new(@db)
         wrapper = CallBuilder::CrystalWrapper.new(@db)
         target = call.build(target_method, superclass.as_type,
           CallBuilder::CrystalBinding::InvokeBody, myself_type: klass.as_type)
-        wrapper.build(orig_method, target)
+        forwarder = wrapper.build(node.origin, target)
+        add_keep_alive_hook(forwarder)
+        add_release_hook(forwarder)
+        add_owner_hook(node, forwarder)
+        forwarder
       end
 
       # Adds the `BgJumptable` struct for Crystal to *klass*.

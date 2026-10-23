@@ -26,7 +26,32 @@ module Bindgen
       end
 
       abstract class Body < Call::HookableBody
+        # Does the method forward to `#superclass` on an instance of a Crystal
+        # subclass?  Set by `Processor::VirtualOverride` for the virtual
+        # methods with a `Superclass` forwarder: a Crystal subclass, which the
+        # `BindgenWrapper` annotation of the generated classes tells apart,
+        # reaches the wrapper method by `super`, or by not overriding it, so
+        # Crystal's dispatch ran its overrides already.  Calling the C++
+        # implementation under the shadow class then, instead of the virtual
+        # method, doesn't re-enter the override: `super` works.
+        property super_forwarder = false
+
         def initialize(@db : TypeDatabase, @target : Call)
+        end
+
+        # The forwarding to `#superclass`, see `#super_forwarder`.  Only a
+        # subclass of a class with a `Superclass` wrapper, whose wrapper has
+        # the method (`superclass_ignore_methods` may leave it out), forwards.
+        private def superclass_forwarding(call) : String
+          args = call.arguments.map(&.name).join(", ")
+
+          %[{% unless @type.annotation(BindgenWrapper) %}\n] \
+          %[  {% if @type.has_method?("superclass") %}\n] \
+          %[    if (_superclass_ = superclass).responds_to?(:#{call.name})\n] \
+          %[      return _superclass_.#{call.name}(#{args})\n] \
+          %[    end\n] \
+          %[  {% end %}\n] \
+          %[{% end %}\n]
         end
 
         # Generates the call itself.
@@ -61,6 +86,7 @@ module Bindgen
           method = Crystal::Method.new(@db)
           code = @target.body.to_code(@target, platform)
           code = encapsulate_and_hook(call, platform, code)
+          code = superclass_forwarding(call) + code if @super_forwarder
 
           # Crystal doesn't like `#initialize` methods having an explicit return
           # type.

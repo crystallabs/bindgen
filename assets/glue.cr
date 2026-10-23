@@ -78,6 +78,13 @@ lib Binding
   fun bindgen_kept_key(object : Void*) : Void*
 end
 
+# Marks the generated wrapper classes.  A method of a wrapped class called on
+# an instance of a Crystal subclass, which has none, knows that Crystal's
+# dispatch ran the overrides of the subclass already, and calls the C++
+# implementation of a virtual method through `#superclass`, so `super` works.
+annotation BindgenWrapper
+end
+
 # Helpers for bindings.  Required.
 module BindgenHelper
   # Wraps `Proc` to a `Binding::CrystalProc`, which can then passed on to C++.

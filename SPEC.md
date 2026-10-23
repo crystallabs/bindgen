@@ -284,9 +284,15 @@ look and behave the same to C++ as any other virtual C++ method.
 A virtual method marked `final` can't be overridden, and no method of a class
 marked `final` can be overridden.
 
-**Note**: Calling `super` in the body of a Crystal method that overrides a
-concrete C++ virtual method is not supported.  **The process will crash due to
-a stack overflow!**
+`super` in the body of a Crystal method that overrides a concrete C++ virtual
+method calls the C++ implementation of the class the Crystal class derives
+from: the wrapper method it reaches runs on an instance of a Crystal subclass,
+which lacks the `BindgenWrapper` annotation of the generated classes, and
+forwards to the base-class wrapper of `§2.3.5` instead of calling the virtual
+method, which would re-enter the override.  A Crystal subclass not overriding
+the method calls the C++ implementation the same way.  A wrapper of the
+generated class itself, like one a getter returned, calls the virtual method,
+and so reaches the Crystal override of the object's class.
 
 #### §2.3.5 Base-class wrapper
 
@@ -325,15 +331,17 @@ This allows sub-classes of `Foo` to do the following:
 ```crystal
 class MyFoo < Foo
   def bar(x)
-    superclass.bar(x) + superclass.bar(x - 1)
-    # equivalent to: super + super(x - 1)
+    super + superclass.bar(x - 1)
+    # `super` is `superclass.bar(x)`, whose arguments are all mandatory
   end
 end
 ```
 
 **Note**: The wrapped methods always refer to the C++ methods.  If another class
-inherits from `MyFoo` and overrides `#bar`, the overriding method may refer to
-`MyFoo#bar` using `super` directly.
+inherits from `MyFoo` and overrides `#bar`, `super` in the overriding method
+refers to `MyFoo#bar`, as in any Crystal class.  The base-class wrapper of a
+method `superclass_ignore_methods` leaves out isn't reached by `super`, which
+then calls the virtual method.
 
 #### §2.3.6 Casting
 
