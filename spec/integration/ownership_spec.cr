@@ -57,6 +57,21 @@ describe "keeping objects passed to C++ alive" do
         leaving { count.times { Test::Mutual.new.pair_with(Test::Mutual.new) } }
       end
 
+      # Releases *objects* while the table of kept objects is changing, as C++
+      # deleting them in a GC finalizer run meanwhile would.  The releases are
+      # queued, and done once the change is over.
+      def Test::BindgenHelper.release_while_busy(objects)
+        @@kept_alive_mutex.synchronize do
+          change_kept_alive { objects.each { |object| release(object.to_unsafe) } }
+        end
+      end
+
+      # Hands *counted* to a new `Owner`, which keeps it alive, and leaves the
+      # owner behind.
+      def leave_owner_of(counted)
+        leaving { Test::Owner.new.adopt(counted) }
+      end
+
       # Stores a new `Inner` in a new `Outer`, which doesn't keep it alive by
       # itself.  Returns if the `Inner` is kept alive.
       def store_inner(x)
@@ -149,6 +164,28 @@ describe "keeping objects passed to C++ alive" do
           collect_garbage
           Test::Mutual.destroyed.should eq(200)
         end
+
+        it "releases an object its owner deleted" do
+          owner = Test::Owner.new
+          counted = Test::Counted.new
+          owner.adopt(counted)
+          Test::BindgenHelper.kept_alive?(counted).should be_true
+
+          alive = Test::Counted.alive
+          owner.disown
+          Test::Counted.alive.should eq(alive - 1)
+          Test::BindgenHelper.kept_alive?(counted).should be_false
+        end
+
+        it "releases an object the finalizer of its owner deleted" do
+          counted = Test::Counted.new
+          leave_owner_of(counted)
+          Test::BindgenHelper.kept_alive?(counted).should be_true
+
+          alive = Test::Counted.alive
+          collect_garbage_until { Test::Counted.alive == alive - 1 }
+          Test::BindgenHelper.kept_alive?(counted).should be_false
+        end
       end
 
       context "BindgenHelper" do
@@ -168,6 +205,14 @@ describe "keeping objects passed to C++ alive" do
 
           Test::BindgenHelper.release(inside)
           Test::BindgenHelper.kept_alive?(Test::Outer.last.inside).should be_false
+        end
+
+        it "queues releases while the table changes" do
+          objects = Array.new(200) { |i| Test::BindgenHelper.keep_alive(Test::Inner.new(i)) }
+          objects.all? { |object| Test::BindgenHelper.kept_alive?(object) }.should be_true
+
+          Test::BindgenHelper.release_while_busy(objects)
+          objects.any? { |object| Test::BindgenHelper.kept_alive?(object) }.should be_false
         end
 
         it "releases by pointer" do

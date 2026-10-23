@@ -565,8 +565,9 @@ types:
     # Methods which keep a pointer to some of their arguments, like a setter
     # storing an object in a data member.  Wrapper methods pass these arguments
     # to `BindgenHelper.keep_alive`, so the GC doesn't collect objects C++ code
-    # still uses.  `BindgenHelper.release` lets the GC collect one again.  Only
-    # instances of wrapped classes passed by pointer or reference are kept.
+    # still uses.  `BindgenHelper.release` lets the GC collect one again, and
+    # so does C++ deleting it.  Only instances of wrapped classes passed by
+    # pointer or reference are kept.
     # It accepts a list or a hash:
     # * List: Each element is a regex, all arguments of the matched methods are
     #   kept alive.  Like `keep_alive: [^addWidget$, ^set]`.

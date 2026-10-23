@@ -20,7 +20,7 @@ private def generate(root)
   io = IO::Memory.new
   generator.write_all(root, io)
 
-  glue = "  " + Bindgen::GlueReader.read.gsub("\n", "\n  ") + "\n"
+  glue = "  " + Bindgen::GlueReader.read(cpp: false).gsub("\n", "\n  ") + "\n"
   io.to_s.sub(glue, "")
 end
 

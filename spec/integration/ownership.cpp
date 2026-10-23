@@ -39,10 +39,12 @@ struct Outer {
 // Defined out of line, as inline variables need C++17
 Outer *Outer::last_ = nullptr;
 
-// Counts its live instances, to see when the GC destroys them.
+// Counts its live instances, to see when the GC destroys them.  The destructor
+// is virtual, so `delete` through a `Counted *` destroys the wrapper, as it
+// does for a Qt object.
 struct Counted {
   Counted() { ++alive_; }
-  ~Counted() { --alive_; }
+  virtual ~Counted() { --alive_; }
 
   static int alive() { return alive_; }
 
@@ -111,6 +113,22 @@ private:
 };
 
 int Mutual::destroyed_ = 0;
+
+// Owns the `Counted` handed to it, like a Qt parent owns its children, and
+// deletes it when destroyed or told to.  `keep_alive:` keeps the `Counted` for
+// it, and the delete releases it again.
+struct Owner {
+  ~Owner() { delete child; }
+
+  void adopt(Counted *counted) { child = counted; }
+
+  void disown() {
+    delete child;
+    child = nullptr;
+  }
+
+  Counted *child = nullptr;
+};
 
 // Selects the arguments to keep alive.
 struct Picky {

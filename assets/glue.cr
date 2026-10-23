@@ -67,6 +67,10 @@ lib Binding
     element_size : LibC::Int
     assign : Void*, Void* -> Void
   end
+
+  # Registers a function C++ calls with the address of a wrapped object it
+  # destroys.  Defined in `bindgen_helper.hpp`.
+  fun bindgen_add_destroyed_hook(hook : Void* -> Void) : Void
 end
 
 # Helpers for bindings.  Required.
@@ -112,9 +116,14 @@ module BindgenHelper
   @@kept_alive_mutex = ::Mutex.new(:reentrant) # A wrapped class may be named `Mutex`
 
   # Set while `@@kept_alive` changes.  Releases meanwhile are queued in
-  # `@@pending_releases`, which doesn't allocate, and done afterwards.
+  # `@@pending_releases` and done afterwards.
   @@kept_alive_busy = false
-  @@pending_releases = StaticArray(UInt64, 64).new(0_u64)
+
+  # The addresses to release once `@@kept_alive` is free again.  In memory of
+  # `malloc`, which the GC doesn't manage: a release may run in a GC finalizer,
+  # and queueing it must not run more finalizers.  Grown as needed.
+  @@pending_releases = Pointer(UInt64).null
+  @@pending_release_capacity = 0
   @@pending_release_count = 0
 
   # Changes `@@kept_alive` in the block, then does the queued releases.  Call
@@ -130,11 +139,26 @@ module BindgenHelper
     @@kept_alive_busy = false
   end
 
-  # Keeps *object* alive until it's passed to `.release`.  Wrapper methods call
-  # this on arguments of methods configured in `keep_alive:`, as C++ keeps a
-  # pointer to them in memory the GC doesn't scan.  The wrapper references the
-  # C++ object, so neither is collected.  If its C++ object is kept alive
-  # already, the wrapper kept first stays.  Returns *object*.
+  # Queues the release of *address* until `@@kept_alive` is free again.  Call
+  # with `@@kept_alive_mutex` locked.
+  private def self.queue_release(address : UInt64) : Nil
+    if @@pending_release_count == @@pending_release_capacity
+      capacity = Math.max(64, @@pending_release_capacity * 2)
+      buffer = LibC.realloc(@@pending_releases.as(Void*), LibC::SizeT.new(capacity * sizeof(UInt64)))
+      return if buffer.null? # Out of memory: the object stays kept alive, which is safe
+      @@pending_releases = buffer.as(UInt64*)
+      @@pending_release_capacity = capacity
+    end
+    @@pending_releases[@@pending_release_count] = address
+    @@pending_release_count += 1
+  end
+
+  # Keeps *object* alive until it's passed to `.release`, or C++ deletes it, if
+  # it was constructed from Crystal.  Wrapper methods call this on arguments of
+  # methods configured in `keep_alive:`, as C++ keeps a pointer to them in
+  # memory the GC doesn't scan.  The wrapper references the C++ object, so
+  # neither is collected.  If its C++ object is kept alive already, the wrapper
+  # kept first stays.  Returns *object*.
   def self.keep_alive(object : Reference)
     address = object.to_unsafe.address
     @@kept_alive_mutex.synchronize do
@@ -150,25 +174,26 @@ module BindgenHelper
   end
 
   # Lets the GC collect *object* again, once it's no longer referenced.  Call
-  # this when C++ no longer uses the object passed to `.keep_alive`.  Any
-  # wrapper of the same C++ object releases it.  Returns *object*.
+  # this when C++ no longer uses the object passed to `.keep_alive`, but didn't
+  # delete it, or deleted an object it created itself: C++ deleting an object
+  # constructed from Crystal releases it.  Any wrapper of the same C++ object
+  # releases it.  Returns *object*.
   def self.release(object : Reference)
     release(object.to_unsafe)
     object
   end
 
   # Releases the C++ object at *pointer*, like `.release(object)`.  For code
-  # which only has the pointer, like a callback run as C++ destroys an object,
+  # which only has the pointer: C++ calls this as it destroys a wrapped object,
   # which may happen in a GC finalizer.
   def self.release(pointer : Pointer) : Nil
     address = pointer.address
     @@kept_alive_mutex.synchronize do
-      if !@@kept_alive_busy
+      if @@kept_alive_busy
+        queue_release(address)
+      else
         change_kept_alive { @@kept_alive.delete(address) }
-      elsif @@pending_release_count < @@pending_releases.size
-        @@pending_releases[@@pending_release_count] = address
-        @@pending_release_count += 1
-      end # Else the object stays kept alive, which is safe.
+      end
     end
   end
 
@@ -177,6 +202,15 @@ module BindgenHelper
   def self.kept_alive?(object : Reference) : Bool
     @@kept_alive_mutex.synchronize { @@kept_alive.has_key?(object.to_unsafe.address) }
   end
+
+  ########## IF CPP ##########
+  # C++ releases the objects it destroys: `CrystalGCCleanupWrapper` in
+  # `bindgen_helper.hpp` calls the hook from its destructor, so an object its
+  # owner deleted, like the child of a Qt parent, doesn't stay kept alive.  Not
+  # a closure, as C++ calls it without a context.  Only with C++ glue, which
+  # defines the hook list; a C library has neither.
+  Binding.bindgen_add_destroyed_hook(->(pointer : Void*) { BindgenHelper.release(pointer) })
+  ########## END IF ##########
 
   # Yields *value*.  Used by conversion templates using `%` more than once, so
   # that the expression is evaluated only once.

@@ -732,9 +732,9 @@ Regular expressions of method names to leave out of the `Superclass` wrapper.
 Methods which keep a pointer to some of their arguments, like a setter storing
 an object in a data member.  Their wrapper methods pass these arguments to
 `BindgenHelper.keep_alive`, so the GC doesn't collect objects still used by
-C++.  `BindgenHelper.release` lets the GC collect one again.  Only instances
-of wrapped classes passed by pointer or reference are kept.  Defaults to
-keeping nothing.
+C++.  `BindgenHelper.release` lets the GC collect one again, and so does C++
+deleting it.  Only instances of wrapped classes passed by pointer or reference
+are kept.  Defaults to keeping nothing.
 
 * A list: Each element is a regular expression; all arguments of the matched
   methods are kept.

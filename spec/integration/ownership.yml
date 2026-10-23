@@ -14,6 +14,7 @@ classes:
   Dependent: Dependent
   Inner: Inner
   Outer: Outer
+  Owner: Owner
   Mutual: Mutual
   Picky: Picky
   Plain: Plain
@@ -35,3 +36,5 @@ types:
       ^$: true # Constructors
   Dependent:
     depends_on: [^$] # Constructors
+  Owner:
+    keep_alive: [^adopt$]

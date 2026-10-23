@@ -295,8 +295,9 @@ module Bindgen
         code_block "module", ns.name do
           unless @wrote_glue
             # The first module we visit is our main module.  Dump the helper
-            # glue code into it.
-            puts GlueReader.read
+            # glue code into it.  Without a C++ generator, like for a C
+            # library, the glue leaves out what needs the C++ glue.
+            puts GlueReader.read(cpp: user_config.generators.has_key?("cpp"))
             @wrote_glue = true
           end
 

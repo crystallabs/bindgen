@@ -2,6 +2,22 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## 0.14.0 (2026-10-23)
+
+### Changed
+
+* C++ deleting an object constructed from Crystal, like a Qt parent deleting
+  its children, releases it from `keep_alive`: the destructor of
+  `CrystalGCCleanupWrapper` tells the generated module, which registered
+  `BindgenHelper.release` with `bindgen_add_destroyed_hook` of
+  `bindgen_helper.hpp`.  Before, nothing was released automatically, and the
+  program had to release an object C++ deleted, like from `QObject::destroyed`.
+  An object C++ created, which Crystal only wraps, still needs that.  A binding
+  without a `cpp` generator leaves the registration out.
+* The releases a GC finalizer asks for while the table of kept objects changes
+  are queued in memory of `malloc`, grown as needed.  The queue held 64, and
+  further objects stayed kept alive.
+
 ## 0.13.3 (2026-10-19)
 
 ### Added

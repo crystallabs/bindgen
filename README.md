@@ -439,12 +439,13 @@ stores the wrapper, which refers to the C++ object, until it's passed to
 `BindgenHelper.release`.  `BindgenHelper` is part of the generated module.
 
 Objects are kept by the address of their C++ object, as getters return a new
-wrapper each time: any wrapper of it, or its pointer, releases it.  Nothing is
-released automatically, so an object C++ deletes stays in the table until
-released.  If the library notifies of destruction, like Qt's
-`QObject::destroyed`, release it from there: `.release` may run in a GC
-finalizer.  A pattern matching no method of the class is warned about, so a
-typo, or a method `ignore_methods` drops, isn't silent.
+wrapper each time: any wrapper of it, or its pointer, releases it.  An object
+constructed from Crystal is released as C++ deletes it, like a Qt parent
+deletes its children, see [Objects destroyed by C++](#objects-destroyed-by-c).
+So `.release` is for an object C++ stops using without deleting it, like a
+widget taken out of a layout, and for an object C++ created, which Crystal only
+wraps.  A pattern matching no method of the class is warned about, so a typo,
+or a method `ignore_methods` drops, isn't silent.
 
 ```yaml
 types:
@@ -495,8 +496,20 @@ its children.  When the owner and the object became unreachable in the same
 collection, the GC queued the finalizers of both already, and the one of the
 object would run on freed memory.  So `delete` on a wrapped object runs its
 destructor but leaves the memory to the GC, and the finalizer
-`CrystalGCCleanupWrapper` registers skips an object C++ destroyed.  Nothing
-needs configuring.
+`CrystalGCCleanupWrapper` registers skips an object C++ destroyed.
+
+The destructor of `CrystalGCCleanupWrapper` also tells the generated module,
+which releases the object from `keep_alive`.  Only objects constructed from
+Crystal are wrapped in it: an object C++ created and Crystal only wraps isn't
+reported, and stays kept alive until released.  `BindgenHelper` registers
+`.release` with `bindgen_add_destroyed_hook` as the program starts.  The hooks
+of all bindings of a program share one list, and each releases the addresses it
+knows.  An object the GC finalizes isn't told about, as nothing kept it alive,
+or it wouldn't be collected; the objects its destructor deletes in turn are.
+The hook runs Crystal code: an object deleted on a thread Crystal doesn't know,
+like a Qt thread, corrupts the program like any call into Crystal from such a
+thread.  A binding without a `cpp` generator, like one of a C library, has no
+hooks.  Nothing needs configuring.
 
 ## `DefaultConstructor`
 
