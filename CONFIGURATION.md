@@ -54,6 +54,7 @@ What each processor does is described under [Processors](README.md#processors).
       * [ignore_methods](#ignore_methods)
       * [superclass_ignore_methods](#superclass_ignore_methods)
       * [keep_alive](#keep_alive)
+      * [release](#release)
       * [depends_on](#depends_on)
 
 <!--te-->
@@ -772,6 +773,26 @@ types:
 ```
 
 See [Objects kept alive for C++](README.md#objects-kept-alive-for-c).
+
+### `release`
+
+Methods handing an object back, which C++ stops using without deleting it,
+like a widget taken out of a layout.  Their wrapper methods pass the selected
+object arguments, and the result when all arguments are selected (a list
+entry, or `true`), to `BindgenHelper.release`, so the GC may collect an
+object `keep_alive` kept.  Same format and matching as
+[`keep_alive`](#keep_alive); constructors are ignored.  Defaults to releasing
+nothing.
+
+```yaml
+types:
+  QLayout:
+    keep_alive: [^addWidget$, ^addItem$]
+    release:
+      ^takeAt$: true       # The result
+      ^removeWidget$: true # The argument
+      ^replaceWidget$: [0] # The first argument only
+```
 
 ### `depends_on`
 

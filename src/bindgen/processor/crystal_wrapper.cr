@@ -17,6 +17,7 @@ module Bindgen
         return unless @db.try_or(klass.origin.name, true, &.generate_wrapper?)
         Log.trace { "visiting class #{klass.diagnostics_path}" }
         warn_unmatched_keep_alive(klass)
+        warn_unmatched_release(klass)
 
         # The parent class already has the `@unwrap`
         if klass.base_class.nil? || klass.tag?(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
@@ -133,6 +134,7 @@ module Bindgen
 
         wrapper_call = wrapper.build(method.origin, target)
         add_keep_alive_hook(wrapper_call)
+        add_release_hook(wrapper_call)
         add_owner_hook(method, wrapper_call)
         wrapper_call
       end
@@ -144,6 +146,47 @@ module Bindgen
 
         unmatched_patterns(klass, rules.keep_alive).each do |pattern|
           Log.warn { "keep_alive: of #{klass.origin.name} matches no method: #{pattern.source}.  Is it misspelt, or the method ignored or inherited?" }
+        end
+      end
+
+      # Warns about the `release:` patterns of *klass* matching none of its
+      # methods.
+      private def warn_unmatched_release(klass)
+        return unless rules = @db[klass.origin.name]?
+
+        unmatched_patterns(klass, rules.release).each do |pattern|
+          Log.warn { "release: of #{klass.origin.name} matches no method: #{pattern.source}.  Is it misspelt, or the method ignored or inherited?" }
+        end
+      end
+
+      # Releases the object arguments of the *call*, and its object result if
+      # all arguments are selected, if its class configures its method in
+      # `release:`.  A post-hook: C++ handed the objects back by then.
+      private def add_release_hook(call)
+        method = call.origin
+        return if method.any_constructor?
+
+        rules = inherited_rules(method.class_name, &.release)
+        return if rules.empty?
+
+        indices = @db.selected_object_arguments(method, rules)
+        result = @db.selects_all_arguments?(method, rules) && @db.object_type?(method.return_type)
+        return if indices.empty? && !result
+
+        body = call.body.as(Call::HookableBody)
+        body.add_post_hook(ReleaseHook.new(indices, result))
+      end
+
+      # Post-hook of a wrapper method passing the arguments at *indices*, and
+      # the *result*, to `BindgenHelper.release`.
+      class ReleaseHook < Call::Body
+        def initialize(@indices : Array(Int32), @result : Bool)
+        end
+
+        def to_code(call : Call, platform : Graph::Platform) : String
+          lines = @indices.map { |index| "BindgenHelper.release(#{call.arguments[index].name})" }
+          lines << "BindgenHelper.release(result)" if @result
+          lines.join('\n')
         end
       end
 

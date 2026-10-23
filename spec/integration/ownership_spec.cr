@@ -137,6 +137,49 @@ describe "keeping objects passed to C++ alive" do
         end
       end
 
+      context "release:" do
+        it "releases the result of a method handing an object back" do
+          owner = Test::Owner.new
+          child = Test::Counted.new
+          owner.adopt(child)
+          Test::BindgenHelper.kept_alive?(child).should be_true
+
+          taken = owner.take_child
+          taken.to_unsafe.should eq(child.to_unsafe)
+          Test::BindgenHelper.kept_alive?(child).should be_false
+
+          owner.adopt(taken)
+          owner.disown # Deletes it, so later counts of `Counted` are unaffected
+        end
+
+        it "releases the argument of a method handing an object back" do
+          owner = Test::Owner.new
+          child = Test::Counted.new
+          owner.adopt(child)
+
+          owner.remove_child(child)
+          Test::BindgenHelper.kept_alive?(child).should be_false
+
+          owner.adopt(child)
+          owner.disown
+        end
+
+        it "releases the selected arguments, keeping others" do
+          owner = Test::Owner.new
+          old = Test::Counted.new
+          replacement = Test::Counted.new
+          owner.adopt(old)
+
+          owner.swap_child(old, replacement).to_unsafe.should eq(old.to_unsafe)
+          Test::BindgenHelper.kept_alive?(old).should be_false
+          Test::BindgenHelper.kept_alive?(replacement).should be_true
+
+          owner.disown
+          owner.adopt(old)
+          owner.disown
+        end
+      end
+
       context "depends_on: [patterns]" do
         it "destroys the object before the arguments of its constructor" do
           leave_dependent

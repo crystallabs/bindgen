@@ -183,6 +183,10 @@ module BindgenHelper
     object
   end
 
+  # `Nil` version, does nothing.
+  def self.release(nothing : Nil) : Nil
+  end
+
   # Releases the C++ object at *pointer*, like `.release(object)`.  For code
   # which only has the pointer: C++ calls this as it destroys a wrapped object,
   # which may happen in a GC finalizer.

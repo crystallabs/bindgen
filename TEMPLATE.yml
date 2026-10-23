@@ -586,6 +586,17 @@ types:
       ^insert: true
       ^$: false
 
+    # Methods handing an object back, which C++ stops using without deleting
+    # it, like `QLayout::takeAt` or `removeWidget`.  Wrapper methods pass the
+    # selected object arguments, and the result when all arguments are
+    # selected, to `BindgenHelper.release`, so the GC may collect an object
+    # `keep_alive:` kept.  Same format as `keep_alive:`; constructors are
+    # ignored.  Defaults to releasing nothing.
+    release:
+      ^takeAt$: true       # The result
+      ^removeWidget$: true # The argument
+      ^replaceWidget$: [0] # The first argument only
+
     # Constructors and member methods whose object refers to some of their
     # arguments from memory the GC doesn't scan, like through a d-pointer, and
     # uses them when destroyed, like an iterator unregistering from its

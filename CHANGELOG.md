@@ -13,6 +13,12 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   name drops every overload as before.  `Parser::Method#signature` prints the
   signature matched.
 
+* `release:` type rule, the counterpart of `keep_alive:` for methods handing
+  an object back, like `QLayout::takeAt` or `removeWidget`: the wrapper passes
+  the selected object arguments, and the result when all arguments are
+  selected, to `BindgenHelper.release`.  `BindgenHelper.release(nil)` does
+  nothing, like `keep_alive(nil)`.
+
 ### Fixed
 
 * The `Qt` processor connects signals with a context object and a connection

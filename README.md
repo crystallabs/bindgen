@@ -445,26 +445,33 @@ constructed from Crystal is released as C++ deletes it, like a Qt parent
 deletes its children, see [Objects destroyed by C++](#objects-destroyed-by-c).
 So `.release` is for an object C++ stops using without deleting it, like a
 widget taken out of a layout, and for an object C++ created, which Crystal only
-wraps.  The rules of a class apply to the methods of its subclasses too: an
-override of `QAbstractItemView::setModel` in `QTreeView` keeps its model like
-the base's does.  A pattern matching no method of the class is warned about, so
-a typo, or a method `ignore_methods` drops, isn't silent.
+wraps.  Configure the methods handing an object back in `release:`, the
+counterpart of `keep_alive:`: their wrappers release the selected arguments,
+and the result when all arguments are selected.  The rules of a class apply to
+the methods of its subclasses too: an override of
+`QAbstractItemView::setModel` in `QTreeView` keeps its model like the base's
+does.  A pattern matching no method of the class is warned about, so a typo,
+or a method `ignore_methods` drops, isn't silent.
 
 ```yaml
 types:
   QStatusBar:
     keep_alive: [^addWidget$, ^addPermanentWidget$, ^insert]
+    release: [^removeWidget$]
   Outer:
     keep_alive:
       ^inside$: true # The setter of the `inside` member
       ^$: [0]        # Only the first argument of constructors
+  QLayout:
+    release:
+      ^takeAt$: true # The result
 ```
 
 ```crystal
 label = Qt::Label.new("Ready")
-status_bar.add_widget(label) # Keeps the label alive
-status_bar.remove_widget(label)
-Qt::BindgenHelper.release(label) # Lets the GC collect it again
+status_bar.add_widget(label)    # Keeps the label alive
+status_bar.remove_widget(label) # Lets the GC collect it again
+item = layout.take_at(0)        # Released: Crystal owns it now
 ```
 
 See `TEMPLATE.yml` for details.

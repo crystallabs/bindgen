@@ -213,6 +213,25 @@ struct Owner {
     child = nullptr;
   }
 
+  // Hand the child back without deleting it, like `QLayout::takeAt` or
+  // `QLayout::removeWidget`: `release:` releases the result or the argument.
+  Counted *takeChild() {
+    Counted *taken = child;
+    child = nullptr;
+    return taken;
+  }
+
+  void removeChild(Counted *counted) {
+    if (child == counted) child = nullptr;
+  }
+
+  // Hands `old` back and keeps `replacement`: `release:` and `keep_alive:`.
+  Counted *swapChild(Counted *old, Counted *replacement) {
+    if (child != old) return nullptr;
+    child = replacement;
+    return old;
+  }
+
   Counted *child = nullptr;
 };
 

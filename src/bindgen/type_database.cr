@@ -248,6 +248,13 @@ module Bindgen
       @[YAML::Field(converter: Bindgen::TypeDatabase::KeepAliveConverter)]
       property keep_alive = Bindgen::TypeDatabase::KeepAlive.new
 
+      # Methods handing an object back, which C++ stops using: their selected
+      # object arguments, and their object result if all arguments are
+      # selected, are passed to `BindgenHelper.release`.  Same format as
+      # `keep_alive`.
+      @[YAML::Field(converter: Bindgen::TypeDatabase::KeepAliveConverter)]
+      property release = Bindgen::TypeDatabase::KeepAlive.new
+
       # Constructors whose object refers to some of its arguments from memory
       # the GC doesn't scan, and uses them when destroyed.  The C++ glue stores
       # these in the object, so the GC destroys it first.  Same format as
@@ -280,7 +287,7 @@ module Bindgen
         @generate_binding = true, @generate_superclass = true,
         @builtin = false, @ignore_methods = [] of MethodPattern,
         @superclass_ignore_methods = Util::FAIL_RX, @keep_alive = KeepAlive.new,
-        @depends_on = KeepAlive.new,
+        @release = KeepAlive.new, @depends_on = KeepAlive.new,
         @instance_variables = InstanceVariableConfig::Collection.new,
         @graph_node = nil, @container_type = nil, @kind_present = false,
       )
@@ -625,12 +632,24 @@ module Bindgen
       end
     end
 
+    # Does a rule of *rules* matching the *method* select all of its arguments?
+    # `release:` releases the result of such a method too.
+    def selects_all_arguments?(method : Parser::Method, rules : KeepAlive) : Bool
+      rules.any? { |pattern, selected| selected.nil? && pattern.matches?(method.name) }
+    end
+
     # Is *arg* an instance of a wrapped class passed by pointer or reference?
     # Wrappers of `kind: Struct` don't count, see `#selected_object_arguments`.
     def object_argument?(arg : Parser::Argument) : Bool
-      return false unless arg.pointer == 1
+      object_type?(arg)
+    end
 
-      type_rules = self[arg]?
+    # Is *type* a wrapped class passed by pointer or reference, like an object
+    # argument or a result handing an object back?
+    def object_type?(type : Parser::Type) : Bool
+      return false unless type.pointer == 1
+
+      type_rules = self[type]?
       !!type_rules && type_rules.generate_wrapper? &&
         type_rules.kind.class? && type_rules.graph_node.is_a?(Graph::Class)
     end

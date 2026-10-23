@@ -43,4 +43,10 @@ types:
   VirtualDependent:
     depends_on: [^retarget$]
   Owner:
-    keep_alive: [^adopt$]
+    keep_alive:
+      ^adopt$: true
+      ^swapChild$: [1]
+    release:
+      ^takeChild$: true # The result
+      ^removeChild$: true # The argument
+      ^swapChild$: [0] # The first argument only, not the result
