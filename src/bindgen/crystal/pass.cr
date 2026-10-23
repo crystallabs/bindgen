@@ -22,10 +22,40 @@ module Bindgen
             variadic_argument
           elsif outs.includes?(idx)
             out_argument_to_binding(arg, argument.name(arg, idx))
+          elsif @db.storage_reference?(arg)
+            storage_reference_to_binding(arg).to_argument(argument.name(arg, idx))
           else
             to_binding(arg).to_argument(argument.name(arg, idx))
           end
         end
+      end
+
+      # Passes a reference or pointer to a copied structure with a wrapper, see
+      # `TypeDatabase#storage_reference?`, as the pointer to its storage: the
+      # hosted structure, `#to_unsafe`, of a wrapper class, or the pointer to
+      # a `kind: Struct` wrapper cast to its structure; null for `nil`.
+      private def storage_reference_to_binding(arg : Parser::Argument) : Call::Result
+        typer = Typename.new(@db)
+        type_name, in_lib = typer.binding(arg)
+        binding_pointer = "Pointer(#{typer.qualified(type_name, in_lib)})"
+
+        template = if @db.struct_wrapper?(arg)
+                     wrapper_pointer = "Pointer(#{typer.qualified(*typer.wrapper(arg))})"
+                     value = arg.nilable? ? "(% || #{wrapper_pointer}.null)" : "%"
+                     Template.from_string("#{value}.as(#{binding_pointer})", simple: true)
+                   elsif arg.nilable?
+                     Template.from_string("(%.try(&.to_unsafe) || #{binding_pointer}.null)", simple: true)
+                   else
+                     Template.from_string("%.to_unsafe", simple: true)
+                   end
+
+        Call::Result.new(
+          type: arg,
+          type_name: type_name,
+          reference: false,
+          pointer: 1,
+          conversion: template,
+        )
       end
 
       # Builds the out argument *arg* of a `lib` function and of its call from
@@ -78,6 +108,9 @@ module Bindgen
           if outs.includes?(idx)
             next unless arg.reference? # An out-only argument
             result = to_wrapper(arg.dereferenced)
+          elsif @db.storage_reference?(arg) && @db.struct_wrapper?(arg)
+            # A pointer to the Crystal `struct`, which the method writes into.
+            result = to_wrapper(arg).copy_with(pointer: 1)
           else
             result = to_wrapper(arg)
           end

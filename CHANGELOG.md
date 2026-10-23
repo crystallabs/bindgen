@@ -63,6 +63,13 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   setMenu(QMenu *menu)"]`.  `Parser::Method.from_signature` parses them.
   `Parser::Type.parse` marks the fundamental types, like `unsigned int`, as
   built-in, as the clang tool does.
+* A copied structure passed by value (`copy_structure` with `pass_by:
+  Value`, like `QPoint`) taken by non-const reference or non-const pointer
+  is passed as a pointer to its storage, so the method writes into it: the
+  object of a wrapper class hosting the structure, `stream >> point`, or the
+  Crystal `struct` of a `kind: Struct` wrapper, taken by pointer, `stream >>
+  pointerof(point)`.  Such methods were dropped before.  A pointer takes
+  `nil` under the `nilable:` rule.
 * `containers:` kind `Optional`, for `std::optional<T>`: converted to and
   from a `T?`, the value or `nil`, like a pair to a `Tuple`.  The wrapper
   class (`Std::Optional.of(T)`) has `#has_value?`, `#to_nilable`, `#value=`

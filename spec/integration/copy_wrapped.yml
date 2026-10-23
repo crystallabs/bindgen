@@ -15,12 +15,22 @@ classes:
   Duo: Duo
   Wide: Wide
   Transformer: Transformer
+  Coord: Coord
+  CoordUser: CoordUser
+  Cell: Cell
+  CellUser: CellUser
 
 functions:
   "pod_(.*)": { destination: "Funcs", name: "\\1" }
 
 types:
   Pod: { copy_structure: true }
+  Coord: { copy_structure: true, pass_by: Value }
+  CoordUser:
+    nilable: { fill: [0] } # The pointer to the structure may be null
+  Cell: { copy_structure: true, pass_by: Value, kind: Struct }
+  CellUser:
+    nilable: { fillCell: [0] }
   Vec: { copy_structure: true }
   Segment: { copy_structure: true }
   Triple: { copy_structure: true }

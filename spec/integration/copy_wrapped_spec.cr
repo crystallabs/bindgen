@@ -17,6 +17,33 @@ describe "wrapper classes of copied structures" do
         end
       end
 
+      context "structure passed by value" do
+        it "is written into through a reference or pointer" do
+          user = Test::CoordUser.new
+          coord = Test::Coord.new(x: 1, y: 2)
+          user.shift(coord)
+          {coord.x, coord.y}.should eq({2, 4})
+          user.fill(coord).should be_true
+          {coord.x, coord.y}.should eq({7, 8})
+          user.fill(nil).should be_false
+          user.sum_ref(coord).should eq(15)
+          user.twice(coord).x.should eq(14)
+          user.responds_to?(:grow).should be_false
+          user.responds_to?(:sum).should be_false # A const pointer
+        end
+
+        it "is written into through a pointer to the Crystal struct" do
+          user = Test::CellUser.new
+          cell = Test::Cell.new(v: 1)
+          user.bump(pointerof(cell))
+          cell.v.should eq(2)
+          user.fill_cell(pointerof(cell)).should be_true
+          cell.v.should eq(9)
+          user.fill_cell(nil).should be_false
+          user.cell_value(cell).should eq(9)
+        end
+      end
+
       context "aggregate" do
         it "hosts the structure" do
           subject = Test::Pod.new(a: 1, b: 2)

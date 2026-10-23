@@ -519,6 +519,7 @@ module Bindgen
         pass_by_value_violation = @arguments.any? do |arg|
           next false unless passed_by_value?(db, arg)
           next false if takes_out_arguments? && db.converted_out_argument?(arg)
+          next false if takes_storage_references? && db.storage_reference?(arg)
           next true if arg.reference? && !arg.const? # Not const-ref - Violation!
 
           by_pointer?(arg) # Violation!
@@ -549,6 +550,13 @@ module Bindgen
           arg = @arguments[index]
           db.converted_out_argument?(arg) || db.builtin_out_argument?(arg)
         end.to_a
+      end
+
+      # Can this method take a pointer to the structure a wrapper hosts, see
+      # `TypeDatabase#storage_reference?`?  Not a virtual method, whose Crystal
+      # override would get a copy, nor a signal or a constructor.
+      def takes_storage_references? : Bool
+        !virtual? && !signal? && !any_constructor?
       end
 
       # Can this method have out arguments?  A constructor usually keeps the

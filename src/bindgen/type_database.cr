@@ -758,6 +758,27 @@ module Bindgen
       end
     end
 
+    # Is *type* a non-const reference or pointer to a copied structure passed
+    # by value (`pass_by: Value`) with a wrapper, like `QPoint &` or
+    # `QPointF *`?  The wrapper passes a pointer to the structure's storage,
+    # so the method writes into it: into the object of a wrapper class
+    # hosting the structure (`stream >> point`), or into the Crystal `struct`
+    # of a `kind: Struct` wrapper, taken by pointer (`stream >>
+    # pointerof(point)`).  A pointer may be null: `nil`.
+    def storage_reference?(type : Parser::Type) : Bool
+      return false unless type.pointer == 1 && type.extents.empty? && !type.move? && !type.void? && !type.const?
+
+      try_or(type, false) do |rules|
+        rules.pass_by.value? && rules.copy_structure? && rules.generate_wrapper? &&
+          (rules.kind.class? || rules.kind.struct?) && rules.graph_node.is_a?(Graph::Class)
+      end
+    end
+
+    # Is the wrapper of *type* a Crystal `struct`, see `#storage_reference?`?
+    def struct_wrapper?(type : Parser::Type) : Bool
+      try_or(type, false, &.kind.struct?)
+    end
+
     # Is *type* a non-const lvalue reference or a single pointer to a value,
     # which a method can write through?
     private def out_indirection?(type : Parser::Type) : Bool

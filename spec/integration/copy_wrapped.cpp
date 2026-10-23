@@ -81,3 +81,45 @@ public:
   Duo callDuo(int n, Duo d) { return duo(n, d); }
   Wide callWide(Wide w, int n) { return wide(w, n); }
 };
+
+// A copied structure passed by value (`pass_by: Value`), like Qt's QPoint:
+// a method taking it by non-const reference or pointer writes into the
+// structure the Crystal wrapper hosts.
+struct Coord {
+  int x;
+  int y;
+};
+
+class CoordUser {
+public:
+  void shift(Coord &coord) { coord.x += 1; coord.y += 2; }
+  bool fill(Coord *coord) {
+    if (!coord) return false;
+    coord->x = 7;
+    coord->y = 8;
+    return true;
+  }
+  int sum(const Coord *coord) { return coord ? coord->x + coord->y : -1; } // Still dropped
+  int sumRef(const Coord &coord) { return coord.x + coord.y; }
+  Coord twice(Coord coord) { return Coord{ coord.x * 2, coord.y * 2 }; }
+
+  // Stays dropped: an override would get a copy.
+  virtual void grow(Coord &coord) { coord.x *= 2; }
+};
+
+// Like Coord, but wrapped as a Crystal struct (`kind: Struct`): a method
+// writing into it takes a pointer to the Crystal struct.
+struct Cell {
+  int v;
+};
+
+class CellUser {
+public:
+  void bump(Cell &cell) { cell.v += 1; }
+  bool fillCell(Cell *cell) {
+    if (!cell) return false;
+    cell->v = 9;
+    return true;
+  }
+  int cellValue(Cell cell) { return cell.v; }
+};

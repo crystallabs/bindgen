@@ -656,6 +656,11 @@ with such an argument are dropped, as are methods taking a `const` pointer or
 a pointer to a pointer to it.  A method keeping the pointer, like
 `QTextStream::setString`, has to be listed in `ignore_methods`.
 
+A copied structure passed by `Value` with a wrapper, like `QPoint`, is taken
+by non-const reference or pointer as a pointer to its storage, which the
+method writes into: the wrapper object, or a `kind: Struct` wrapper by
+`pointerof` (SPEC.md §2.2.1).
+
 ### `wrapper_pass_by`
 
 Like `pass_by`, only in the Crystal wrapper.  Defaults to `pass_by`.

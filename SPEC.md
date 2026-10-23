@@ -139,6 +139,16 @@ C++, or if the `nilable:` type rule lists the argument: `nilable: { setModel:
 result `T?` or `T` regardless of `nilable_results`: `nilable: { menuBar:
 false }`.
 
+A copied structure passed by value (`copy_structure` with `pass_by: Value`,
+like Qt's `QPoint`) taken by non-const reference or non-const pointer is
+passed as a pointer to its storage, so the method writes into it: into the
+object of a wrapper class hosting the structure, `stream >> point`, or into
+the Crystal `struct` of a `kind: Struct` wrapper, which is taken by pointer
+like a built-in type, `stream >> pointerof(point)`.  A pointer accepts `nil`
+where the `nilable:` rule or a `nullptr` default says so.  Virtual methods
+keep dropping such arguments, as a Crystal override would get a copy, and a
+const pointer stays dropped.
+
 A view type, like `QStringView`, converts like the type it views when its
 rules build a temporary of that type for the call, which lives until the call
 returns, and copy a result out of the view.  The `shadowed_by:` rule of the

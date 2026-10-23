@@ -81,9 +81,10 @@ module Bindgen
         end
 
         # A hosted structure is copied, from a structure or a pointer to it.
-        if @db.try_or(origin.name, false) { |rules| structure_hosted?(rules) }
+        # One passed by value is never seen by pointer.
+        if (rules = @db[origin.name]?) && structure_hosted?(rules)
           add_unwrap_initialize(klass, origin.as_type(pointer: 0), dereference: false)
-          add_unwrap_initialize(klass, origin.as_type, dereference: true)
+          add_unwrap_initialize(klass, origin.as_type, dereference: true) unless rules.pass_by.value?
         else
           add_unwrap_initialize(klass, origin.as_type, dereference: false)
         end

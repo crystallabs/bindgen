@@ -18,10 +18,25 @@ module Bindgen
 
           if @db.converted_out_argument?(arg)
             out_argument_to_cpp(arg, name)
+          elsif @db.storage_reference?(arg)
+            storage_reference_to_cpp(arg).to_argument(name)
           else
             to_cpp(arg).to_argument(name)
           end
         end
+      end
+
+      # Passes a reference or pointer to a copied structure hosted by its
+      # wrapper as is, see `TypeDatabase#storage_reference?`: the wrapper
+      # passes the pointer to the hosted structure, which the method writes
+      # into.
+      private def storage_reference_to_cpp(type : Parser::Type) : Call::Result
+        Call::Result.new(
+          type: type,
+          type_name: @db[type]?.try(&.cpp_type) || type.base_name,
+          reference: type.reference?,
+          pointer: type.reference? ? 0 : 1,
+        )
       end
 
       # Builds the out argument *arg* of a C++ wrapper function, see
