@@ -4,7 +4,8 @@ module Bindgen
     #
     # Right now, methods can be ignored by any of:
     # 1. Ignoring a type the method uses as argument or result type
-    # 2. By adding the name to `type.CLASS.ignore_methods`
+    # 2. By adding the name, the signature or a regular expression over it to
+    #    `type.CLASS.ignore_methods` (See `TypeDatabase::MethodPattern`)
     # 3. Methods using anonymous types are ignored, unless the type is named by
     #    a `typedef` (See `InstanceProperties`)
     # 4. Methods using unknown template instantiations are always ignored
@@ -33,9 +34,7 @@ module Bindgen
         remove = m.filtered?(@db)
 
         # Rule 2: Explicitly ignored method
-        if ignored = @db[m.class_name]?.try(&.ignore_methods)
-          remove ||= ignored.includes?(m.name)
-        end
+        remove ||= @db[m.class_name]?.try(&.ignore_method?(m)) || false
 
         # Rule 3: Anonymous types
         remove ||= type_ignored?(m.class_name)

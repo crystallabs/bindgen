@@ -66,9 +66,9 @@ module Bindgen
         # Add signals, ignoring default argument values towards the emission
         # method.  Also honour `ignore_methods` in case `filter_methods` runs
         # after this processor.
-        ignored = @db[klass.origin.name]?.try(&.ignore_methods)
+        config = @db[klass.origin.name]?
         signals.each do |method|
-          next if ignored.try(&.includes?(method.name))
+          next if config.try(&.ignore_method?(method))
           handle_signal(klass, method)
         end
 

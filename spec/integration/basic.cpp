@@ -22,6 +22,10 @@ public:
   }
 
   void ignoreByName() { }
+  int ignoreBySignature(int x) { return x; } // Kept
+  int ignoreBySignature(int x, int y) { return x + y; } // Ignored by signature
+  int ignoreByRegex(int x) { return x; } // Kept
+  int ignoreByRegex(const char *s) { return -1; } // Ignored by regular expression
   void ignoreByArgument(IgnoreMe me) { }
   void ignoreByArgumentRef(IgnoreMe &me) { }
   void ignoreByArgumentPtr(IgnoreMe *me) { }

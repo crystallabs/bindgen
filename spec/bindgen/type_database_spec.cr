@@ -239,3 +239,49 @@ describe Bindgen::TypeDatabase do
     end
   end
 end
+
+private def build_method(name, args, const = false)
+  arguments = args.map_with_index { |t, i| Bindgen::Parser::Argument.new("a#{i}", t) }
+  Bindgen::Parser::Method.new(name, "Klass", parse("int"), arguments, const: const)
+end
+
+describe Bindgen::TypeDatabase::MethodPattern do
+  int = parse("int")
+  str_ref = parse("const QString &")
+  ptr = parse("int *")
+
+  describe ".normalize" do
+    it "writes the signature like Parser::Method#signature" do
+      norm = ->Bindgen::TypeDatabase::MethodPattern.normalize(String)
+      norm.call("f(int,const QString&)").should eq("f(int, const QString &)")
+      norm.call("f( int * , int**& )const").should eq("f(int *, int **&) const")
+      norm.call("operator*(const QVector3D &, const QMatrix4x4 &)").should eq("operator*(const QVector3D &, const QMatrix4x4 &)")
+      norm.call("f()").should eq("f()")
+    end
+  end
+
+  describe "#matches?" do
+    it "matches every overload by name" do
+      pattern = Bindgen::TypeDatabase::MethodPattern.new("f")
+      pattern.matches?(build_method("f", [int])).should be_true
+      pattern.matches?(build_method("f", [int, ptr])).should be_true
+      pattern.matches?(build_method("g", [int])).should be_false
+    end
+
+    it "matches one overload by signature" do
+      pattern = Bindgen::TypeDatabase::MethodPattern.new("f(int, const QString&)")
+      pattern.matches?(build_method("f", [int, str_ref])).should be_true
+      pattern.matches?(build_method("f", [int])).should be_false
+      pattern.matches?(build_method("f", [int, str_ref], const: true)).should be_false
+      Bindgen::TypeDatabase::MethodPattern.new("f(int, const QString&) const")
+        .matches?(build_method("f", [int, str_ref], const: true)).should be_true
+    end
+
+    it "matches the signature by a regular expression" do
+      pattern = Bindgen::TypeDatabase::MethodPattern.new("/^f\\(.*QString/")
+      pattern.matches?(build_method("f", [int, str_ref])).should be_true
+      pattern.matches?(build_method("f", [str_ref, int])).should be_true
+      pattern.matches?(build_method("f", [int])).should be_false
+    end
+  end
+end

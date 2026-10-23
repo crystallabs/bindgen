@@ -4,6 +4,15 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ## Unreleased
 
+### Added
+
+* `ignore_methods:` entries match a C++ signature, dropping one overload:
+  `operator-(const QDateTime &, const QDateTime &)`, with ` const` after the
+  parentheses for a const method, spacing normalized; or a regular expression
+  between slashes over the signature: `/^operator\*\(.*QVector3D/`.  A plain
+  name drops every overload as before.  `Parser::Method#signature` prints the
+  signature matched.
+
 ### Fixed
 
 * The `Qt` processor connects signals with a context object and a connection

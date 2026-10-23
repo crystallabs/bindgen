@@ -288,6 +288,20 @@ describe "a basic C++ wrapper" do
         it "removes argument value type" do
           methods.includes?("ignoreByArgument").should be_false
         end
+
+        it "removes all overloads of a name" do
+          methods.includes?("ignore_by_name").should be_false
+        end
+
+        it "removes the overload of a signature" do
+          {{ Test::AdderWrap.methods.select(&.name.== "ignore_by_signature").map(&.args.size) }}.should eq([1])
+          Test::AdderWrap.new(1).ignore_by_signature(3).should eq(3)
+        end
+
+        it "removes the overloads matching a regular expression" do
+          {{ Test::AdderWrap.methods.select(&.name.== "ignore_by_regex").map(&.args.size) }}.should eq([1])
+          Test::AdderWrap.new(1).ignore_by_regex(3).should eq(3)
+        end
       end
 
       context "copy structure" do

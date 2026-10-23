@@ -115,8 +115,8 @@ declared `[[deprecated]]`.  Defaults to `false`.
 ignore_deprecated: true
 ```
 
-Unlike `ignore_methods` of a type rule, which drops all overloads of a name,
-this drops exactly the deprecated overloads.  Qt declares its deprecated API
+Unlike `ignore_methods` of a type rule, this needs no signature to drop
+exactly the deprecated overloads.  Qt declares its deprecated API
 with `QT_DEPRECATED_VERSION_X`, which hides the API deprecated before
 `QT_DISABLE_DEPRECATED_BEFORE` and marks the rest `[[deprecated]]`, so set
 this instead of listing them.
@@ -713,10 +713,21 @@ Defaults to `true`.
 
 ### `ignore_methods`
 
-The C++ names of methods of this type to ignore.
+Methods of this type to ignore.  An entry is one of:
+
+* A C++ name, dropping every overload of it: `someMethod`
+* A C++ signature, dropping that overload only: `operator-(const QDateTime &,
+  const QDateTime &)`, or `validate(QString &, int &) const` for a const
+  method.  The argument types are written like the parser prints them, with a
+  space before `*` and `&` and after commas; other spacing is normalized.
+* A regular expression between slashes, matched against that signature:
+  `/^operator\*\(.*QVector3D/`
 
 ```yaml
-    ignore_methods: [ someMethod, otherMethod ]
+    ignore_methods:
+      - someMethod
+      - "operator-(const QDateTime &, const QDateTime &)"
+      - "/^operator\\*\\(.*QVector3D/"
 ```
 
 ### `superclass_ignore_methods`

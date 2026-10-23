@@ -26,6 +26,69 @@ module Bindgen
       end
     end
 
+    # An entry of `TypeConfig#ignore_methods`.  Matches a method by:
+    # * Its name, dropping every overload: `operator-`
+    # * Its C++ signature, dropping that overload only:
+    #   `operator-(const QDateTime &, const QDateTime &)`, with ` const` after
+    #   the parentheses for a const method.  Spaces before `*` and `&`, and
+    #   after commas, are normalized, so `f(QString&,int*)` works too.
+    # * A regular expression between slashes, matched against the signature
+    #   as `Parser::Method#signature` prints it: `/^operator\*\(.*QVector3D/`
+    struct MethodPattern
+      # The entry as configured.
+      getter source : String
+
+      @name : String?
+      @signature : String?
+      @regex : Regex?
+
+      def initialize(@source : String)
+        if @source.size > 1 && @source.starts_with?('/') && @source.ends_with?('/')
+          @regex = Regex.new(@source[1...-1])
+        elsif @source.includes?('(')
+          @signature = MethodPattern.normalize(@source)
+        else
+          @name = @source
+        end
+      end
+
+      def self.new(ctx : YAML::ParseContext, node : YAML::Nodes::Node)
+        new(String.new(ctx, node))
+      end
+
+      # Does *method* match this entry?
+      def matches?(method : Parser::Method) : Bool
+        if name = @name
+          method.name == name
+        elsif signature = @signature
+          method.signature == signature
+        else
+          @regex.not_nil!.matches?(method.signature)
+        end
+      end
+
+      # Writes the *signature* like `Parser::Method#signature` does: One space
+      # before a run of `*` and `&`, none around parentheses, `, ` between the
+      # arguments and ` const` after them.
+      def self.normalize(signature : String) : String
+        name, _, arguments = signature.strip.partition('(')
+        arguments = arguments
+          .gsub(/\s+/, " ")
+          .gsub(/\s*([*&])\s*/, "\\1")
+          .gsub(/([^\s*&])([*&])/, "\\1 \\2")
+          .gsub(/\s*\)/, ")")
+          .gsub(/\s*,\s*/, ", ")
+          .gsub(/\)\s*const$/, ") const")
+          .lstrip
+
+        "#{name.rstrip}(#{arguments}"
+      end
+
+      def to_s(io : IO) : Nil
+        io << @source
+      end
+    end
+
     # Methods keeping some of their arguments alive, used in
     # `TypeConfig#keep_alive`.  Maps method name patterns to the indices of the
     # kept arguments, or to `nil` for all of them.
@@ -165,8 +228,14 @@ module Bindgen
       # If to generate a superclass wrapper in Crystal.
       property? generate_superclass = true
 
-      # Which methods to filter out.
-      property ignore_methods = [] of String
+      # Which methods to filter out, by name, signature or regular expression.
+      # See `MethodPattern`.
+      property ignore_methods = [] of MethodPattern
+
+      # Does an entry of `ignore_methods` match the *method*?
+      def ignore_method?(method : Parser::Method) : Bool
+        @ignore_methods.any?(&.matches?(method))
+      end
 
       # Which methods to filter out in the superclass wrapper.  A method is
       # ignored if it matches any of the regex patterns specified.
@@ -209,7 +278,7 @@ module Bindgen
         @sub_class = true, @copy_structure = false,
         @bit_fields = BitFields::Accessors, @generate_wrapper = true,
         @generate_binding = true, @generate_superclass = true,
-        @builtin = false, @ignore_methods = [] of String,
+        @builtin = false, @ignore_methods = [] of MethodPattern,
         @superclass_ignore_methods = Util::FAIL_RX, @keep_alive = KeepAlive.new,
         @depends_on = KeepAlive.new,
         @instance_variables = InstanceVariableConfig::Collection.new,

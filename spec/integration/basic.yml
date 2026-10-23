@@ -65,9 +65,11 @@ types:
     to_cpp: "Elapsed{%}"
   IgnoreMe: # Ignore by type
     ignore: true
-  Adder: # Ignore by method name
+  Adder: # Ignore by method name, signature or regular expression
     ignore_methods:
       - ignoreByName
+      - "ignoreBySignature(int,int)" # Spacing is normalized
+      - "/^ignoreByRegex\\(const char/"
   "char *": # Also matches "cosnt char *" through type decay
     crystal_type: String
     wrapper_pass_by: Value

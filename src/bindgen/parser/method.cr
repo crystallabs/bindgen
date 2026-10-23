@@ -98,6 +98,19 @@ module Bindgen
       # Arguments of the method.
       property arguments : Array(Argument)
 
+      # C++ signature of the method, naming its overload: `name(type, type)`,
+      # with ` const` appended for a const method.  The argument types are
+      # written like the parser prints them, `const QString &`, `int *`.
+      # `TypeDatabase::MethodPattern` matches `ignore_methods` against it.
+      def signature : String
+        String.build do |b|
+          b << @name << '('
+          @arguments.join(b, ", ") { |arg, io| io << arg.full_name }
+          b << ')'
+          b << " const" if @const
+        end
+      end
+
       # The index of the first argument with a default value, if any.
       @[JSON::Field(key: "firstDefaultArgument")]
       getter first_default_argument : Int32?
