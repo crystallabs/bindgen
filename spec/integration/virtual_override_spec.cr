@@ -173,6 +173,20 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      # Implements only the pure method, taking the default of the C++ base.
+      class CrystalGreeter < Test::AbstractGreeter
+        def greet(who : Test::Named? = nil) : Int32
+          who ? who.id * 2 : -2
+        end
+      end
+
+      # The pure method comes from the second C++ base, like `QGraphicsObject`.
+      class CrystalGreeterObject < Test::GreeterObject
+        def greet(who : Test::Named? = nil) : Int32
+          who ? who.id * 3 : -3
+        end
+      end
+
       # Must be reopened because this type is private
       class Test::Subclass::Superclass
         def has_random_number?
@@ -370,6 +384,25 @@ describe "C++ virtual overriding from Crystal feature" do
             {% method = Test::UnnamedArgument.methods.find(&.name.== "unnamed") %}
             {{ method.args.first.name.stringify }}.should eq("unnamed_arg_0")
           {% end %}
+        end
+      end
+
+      context "override without the default argument of the overridden method" do
+        it "takes the default of the overridden method" do
+          named = Test::Named.new(4)
+
+          Test::PoliteGreeter.new.greet.should eq(-10)
+          Test::PoliteGreeter.new.greet(named).should eq(40)
+          Test::TextGreeter.new.greet.should eq(-100)
+          Test::TextGreeter.new.greet(nil).should eq(-100)
+          Test::TextGreeter.new.greet(named).should eq(400)
+          Test::TextGreeter.new.greet_nobody.should eq(-100)
+        end
+
+        it "lets a Crystal subclass implement only the pure method" do
+          CrystalGreeter.new.greet_nobody.should eq(-2)
+          CrystalGreeterObject.new.greet_nobody.should eq(-3)
+          CrystalGreeterObject.new.greet.should eq(-3)
         end
       end
 

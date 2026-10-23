@@ -37,9 +37,12 @@ module Bindgen
         super
 
         @casts = {} of Graph::Class => ToBody
+        @all_classes = Parser::Class::Collection.new
+        @unified = Set(UInt64).new # `object_id`s of the unified methods
       end
 
       def process(graph : Graph::Container, doc : Parser::Document)
+        @all_classes = doc.classes
         super
 
         # Casts not handled by a class are passed on to its Crystal superclass.
@@ -71,10 +74,10 @@ module Bindgen
           add_conversion_methods(klass, others)
 
           copy_base_methods(klass, superclass, others)
-
-          # Unify the argument types for all virtual methods
-          unify_virtual_methods(klass)
         end
+
+        # Unify the arguments of all virtual methods with the overridden ones
+        unify_virtual_methods(klass.origin)
 
         add_downcast_methods(klass)
 
@@ -454,25 +457,46 @@ module Bindgen
         )
       end
 
-      private def unify_virtual_methods(klass)
-        klass.origin.wrappable_methods.select(&.virtual?).each do |method|
-          # Find the same virtual method in some parent class
-          current = klass
-          while base = split_bases(current.origin)[0]
-            # Search more equivalent method in base class
-            if base_method = base.origin.wrappable_methods
-                 .each
-                 .select(&.virtual?)
-                 .find(&.equals_virtually?(method))
-              # Found, so unify the arguments ...
-              method.merge_args!(base_method)
-              # ... and stop (no need to go further up the inheritance tree)
-              break
-            end
-            # Method not found, try next ancestor
-            current = base
+      # Unifies the arguments of the virtual methods of *klass* with those of
+      # the methods they override: An override is named like the overridden
+      # method, and takes its default values where it has none, like
+      # `QGraphicsTextItem::paint` dropping the `widget = nullptr` of
+      # `QGraphicsItem::paint`.  C++ takes the default from the static type,
+      # and Crystal requires an implementation of an abstract method to accept
+      # its calls.  All C++ ancestors count, wrapped or not, through all bases.
+      private def unify_virtual_methods(klass : Parser::Class)
+        klass.wrappable_methods.each do |method|
+          unify_virtual_method(klass, method) if method.virtual?
+        end
+      end
+
+      # Unifies the arguments of *method* of *klass* with the method it
+      # overrides, which first gets unified with its overridden one.
+      private def unify_virtual_method(klass : Parser::Class, method : Parser::Method)
+        return unless @unified.add?(method.object_id)
+        return unless found = overridden_method(klass, method)
+
+        base, base_method = found
+        unify_virtual_method(base, base_method)
+        method.merge_args!(base_method)
+      end
+
+      # Finds the nearest method *method* of *klass* overrides, searching the
+      # bases depth-first in their declaration order.
+      private def overridden_method(klass : Parser::Class, method : Parser::Method) : {Parser::Class, Parser::Method}?
+        klass.bases.each do |base|
+          next unless base_class = @all_classes[base.name]?
+
+          if found = base_class.methods.find { |m| m.virtual? && m.equals_virtually?(method) }
+            return {base_class, found}
+          end
+
+          if found = overridden_method(base_class, method)
+            return found
           end
         end
+
+        nil
       end
 
       # C++ body doing a `static_cast<T*>(_self_)`, or another *cast*.

@@ -41,6 +41,13 @@ classes:
   NamedArgument: NamedArgument
   UnnamedArgument: UnnamedArgument
   OnlyFilteredVirtuals: OnlyFilteredVirtuals
+  Named: Named
+  Greeter: Greeter
+  PoliteGreeter: PoliteGreeter
+  AbstractGreeter: AbstractGreeter
+  OtherBase: OtherBase
+  GreeterObject: GreeterObject
+  TextGreeter: TextGreeter
 
 types:
   Triple: # A built-in structure, like Qt's CrystalVariant; declared in the spec

@@ -11,6 +11,14 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   keeps its model as `QAbstractItemView::setModel` is configured to.  Before,
   only the methods of the class itself, and those bound from it into
   subclasses, followed its rules, so an override escaped them.
+* An override of a virtual method takes the default values of the method it
+  overrides where it has none, and is named like it, also when that one comes
+  from a base other than the Crystal superclass, or from a further ancestor:
+  `QGraphicsTextItem#paint(painter, option, widget : Widget? = nil)` like the
+  pure `QGraphicsItem::paint`, which it implements.  Before, only the bases
+  through the Crystal superclass were searched, so its `widget` stayed
+  mandatory, and Crystal rejected the class for not implementing the abstract
+  method.
 
 ## 0.14.0 (2026-10-23)
 

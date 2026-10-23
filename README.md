@@ -611,6 +611,15 @@ the other bases are reached through `#as_X`, and their methods are wrapped in
 the derived class too.  Also handles abstract classes in that it adds an `Impl`
 class, so code can return instances to the (otherwise) abstract class.
 
+The arguments of an override of a virtual method are named like those of the
+method it overrides, found through all C++ bases, and take its default values
+where the override has none.  C++ takes a default from the static type, so
+`QGraphicsTextItem::paint(QPainter *, const QStyleOptionGraphicsItem *, QWidget
+*widget) override` is called with the `widget = nullptr` of the pure
+`QGraphicsItem::paint` through the base, and Crystal accepts the override,
+`#paint(painter, option, widget : Widget? = nil)`, as the implementation of the
+abstract method.
+
 A container instantiation is a wrapped base too: a class like
 `QPolygon : public QList<QPoint>` inherits the container wrapper, so it is an
 `Indexable` and is accepted where C++ expects the container.

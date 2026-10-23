@@ -367,3 +367,39 @@ struct Painter {
 struct SolidPainter : public Painter {
   void draw(Hidden hidden) override { }
 };
+
+/* An override without the default argument of the overridden method, like
+ * `QGraphicsTextItem::paint` dropping the `widget = nullptr` of the pure
+ * `QGraphicsItem::paint`.  C++ takes the default from the static type. */
+struct Named {
+  Named(int value) : value(value) { }
+  int id() const { return value; }
+  int value;
+};
+
+struct Greeter {
+  virtual ~Greeter() { }
+  virtual int greet(Named *who = nullptr) { return who ? who->id() : -1; }
+};
+
+struct PoliteGreeter : Greeter {
+  int greet(Named *who) override { return who ? who->id() * 10 : -10; }
+};
+
+struct AbstractGreeter {
+  virtual ~AbstractGreeter() { }
+  virtual int greet(Named *who = nullptr) = 0;
+  int greetNobody() { return greet(); }
+};
+
+struct OtherBase {
+  virtual ~OtherBase() { }
+  int other = 3;
+};
+
+// The pure method comes from the second base, like `QGraphicsObject`.
+struct GreeterObject : public OtherBase, public AbstractGreeter { };
+
+struct TextGreeter : public GreeterObject {
+  int greet(Named *who) override { return who ? who->id() * 100 : -100; }
+};
