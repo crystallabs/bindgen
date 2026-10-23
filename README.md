@@ -288,10 +288,11 @@ containers: # At the top-level of the config
 * **Run after**: `CrystalWrapper`, `Qt`
 * **Run before**: No specific dependency
 
-Adds type parameters to ambiguous Crystal methods that take a single block
-argument, so that these methods can be overloaded by passing the parameter types
-of that argument to the method.  `Qt` needs it for several signal connection
-methods.
+Adds type parameters to ambiguous Crystal methods that take a block argument,
+and differ in nothing but its parameter types, so that these methods can be
+overloaded by passing the parameter types of that argument to the method.  The
+type parameters go first, before any other arguments the overloads share.  `Qt`
+needs it for several signal connection methods.
 
 ```crystal
 cb = Qt::ComboBox.new
@@ -811,7 +812,13 @@ copy constructor becomes an overload of `.new` taking the object to copy.
 Adds Qt specific behaviour:
 
 1. Removes the `qt_check_for_QGADGET_macro` fake method.
-2. Provides `#on_SIGNAL` signal connection method.
+2. Provides `#on_SIGNAL` signal connection method, taking the connection type:
+   `on_finished(type : Qt::ConnectionType = Qt::ConnectionType::AutoConnection, &)`.
+   The connection's context object is `QCoreApplication::instance()`, or the
+   sender while there is no application: an automatic connection delivers a
+   signal emitted from another thread in the main thread, the only one which
+   may run Crystal code.  The configuration must wrap the `Qt::ConnectionType`
+   enum, under `enums:`.
 3. Removes `#meta_object`, `#qt_metacast`, and `#qt_metacall` from superclass
    wrappers, as these shouldn't be overridden by the user.
 4. Keeps objects given a parent alive, as the parent owns and deletes them, see

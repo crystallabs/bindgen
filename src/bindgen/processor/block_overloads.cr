@@ -1,10 +1,10 @@
 module Bindgen
   module Processor
-    # Generates overloads for methods that accept a single block argument.
-    # Those methods are ambiguous because Crystal does not permit overloading
-    # through different type restrictions on the block; this processor rectifies
-    # this by requiring each overload to also specify the types of the block
-    # parameters.  For example, the following code
+    # Generates overloads for methods that accept a block argument, and are
+    # told apart by it alone.  Those methods are ambiguous because Crystal does
+    # not permit overloading through different type restrictions on the block;
+    # this processor rectifies this by requiring each overload to also specify
+    # the types of the block parameters.  For example, the following code
     #
     # ```
     # def f(& : Int32 ->)
@@ -30,7 +30,10 @@ module Bindgen
     # end
     # ```
     #
-    # Unambiguous methods that accept block arguments are unaffected.
+    # The type arguments go before any other arguments, which the overloads
+    # share: `on_changed(_type1_ : Int32.class, type : ConnectionType, &)`.
+    # Unambiguous methods that accept block arguments are unaffected, and so
+    # are overloads differing in the other arguments.
     class BlockOverloads < Base
       PLATFORM = Graph::Platform::Crystal
 
@@ -42,13 +45,13 @@ module Bindgen
         methods_by_name = klass.nodes.compact_map do |node|
           if method = node.as?(Graph::Method)
             if call = method.calls[PLATFORM]?
-              # only select methods with a single block argument
-              if call.arguments.size == 1 && call.arguments.last.is_a?(Call::ProcArgument)
+              # only select methods with a block argument
+              if call.arguments.last?.is_a?(Call::ProcArgument)
                 {method, call}
               end
             end
           end
-        end.group_by { |_, call| call.name }
+        end.group_by { |_, call| {call.name, call.arguments[0...-1].map(&.type_name)} }
 
         typer = Crystal::Typename.new(@db)
 

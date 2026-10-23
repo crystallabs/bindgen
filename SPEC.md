@@ -1101,7 +1101,7 @@ second the connection method, which are then exposed as Crystal wrappers.
 
 * Given this signal: `void changed(int one)`
 * Emission method: `changed(one : Int32) : Void`
-* Connection method: `on_changed(&block : Int32 -> Void)`
+* Connection method: `on_changed(type : Qt::ConnectionType = Qt::ConnectionType::AutoConnection, &block : Int32 -> Void)`
 
 ### §Q.1.1 Signal connection object
 
@@ -1120,9 +1120,25 @@ signatures.
 * Given these signals:
   * `void changed(int one)`
   * `void changed(bool two)`
-* Connection methods:
-  * `on_changed(type1 : Int32.class, &block : Int32 -> Void)`
-  * `on_changed(type1 : Bool.class, &block : Bool -> Void)`
+* Connection methods, with the type arguments before the connection type:
+  * `on_changed(type1 : Int32.class, type : Qt::ConnectionType = Qt::ConnectionType::AutoConnection, &block : Int32 -> Void)`
+  * `on_changed(type1 : Bool.class, type : Qt::ConnectionType = Qt::ConnectionType::AutoConnection, &block : Bool -> Void)`
+
+### §Q.1.3 Connection type and context
+
+The connection method takes the `Qt::ConnectionType` of `QObject::connect`,
+`Qt::AutoConnection` by default.  The `Qt::ConnectionType` enum must be
+wrapped, under `enums:`.  The context object of the connection is the
+application, `QCoreApplication::instance()`, or the sender while there is no
+application.  With an automatic connection, a signal emitted in the thread of
+the application runs the block at once, and one emitted in another thread
+queues the block to the application's event loop: Crystal code only runs in
+the main thread.  `Qt::DirectConnection` runs the block on the emitting
+thread, whichever it is.
+
+* `thread.on_finished { }`: Queued to the main thread, the thread emits it
+* `button.on_clicked(Qt::ConnectionType::QueuedConnection) { }`: Run by the
+  event loop, after the emission returns
 
 ### §Q.2 QFlags
 

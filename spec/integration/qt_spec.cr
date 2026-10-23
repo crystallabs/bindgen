@@ -161,6 +161,47 @@ describe "Qt-specific wrapper features" do
           called.should be_true
         end
 
+        context "connection type" do
+          it "defaults to an automatic connection" do
+            subject = Test::SomeObject.new
+            subject.on_stuff_happened { }
+            Test::QObject.last_connection_type.should eq(Test::ConnectionType::AutoConnection)
+          end
+
+          it "takes the connection type" do
+            subject = Test::SomeObject.new
+            subject.on_stuff_happened(Test::ConnectionType::QueuedConnection) { }
+            Test::QObject.last_connection_type.should eq(Test::ConnectionType::QueuedConnection)
+
+            subject.on_stuff_happened(type: Test::ConnectionType::DirectConnection) { }
+            Test::QObject.last_connection_type.should eq(Test::ConnectionType::DirectConnection)
+          end
+
+          it "takes the connection type after the type arguments of an overloaded signal" do
+            subject = Test::SomeObject.new
+            subject.on_overloaded(Int32, Bool, Test::ConnectionType::QueuedConnection) { |i, b| }
+            Test::QObject.last_connection_type.should eq(Test::ConnectionType::QueuedConnection)
+          end
+        end
+
+        context "context object" do
+          it "is the sender without an application" do
+            Test::QCoreApplication.instance.to_unsafe.null?.should be_true
+            subject = Test::SomeObject.new
+            subject.on_stuff_happened { }
+            Test::QObject.last_context.should eq(subject.to_unsafe.as(Void*))
+          end
+
+          it "is the application" do
+            app = Test::QCoreApplication.new
+            subject = Test::SomeObject.new
+            subject.on_stuff_happened { }
+            Test::QObject.last_context.should eq(app.to_unsafe.as(Void*))
+            Test::QObject.delete_object(app)
+            Test::QCoreApplication.instance.to_unsafe.null?.should be_true
+          end
+        end
+
         context "overloaded signals" do
           it "creates methods for each overload" do
             subject = Test::SomeObject.new
@@ -183,10 +224,11 @@ describe "Qt-specific wrapper features" do
             end
             overload.should eq(3)
 
-            # check that tag-less overload isn't defined on Crystal
+            # check that tag-less overload isn't defined on Crystal: Each
+            # takes the type arguments before the connection type.
             {{
               Test::SomeObject.methods.select do |method|
-                method.name == "on_overloaded" && method.args.empty?
+                method.name == "on_overloaded" && method.args.size <= 1
               end.size
             }}.should eq(0)
           end
@@ -206,7 +248,7 @@ describe "Qt-specific wrapper features" do
 
           it "have the connection method" do
             {{ Test::SomeObject.methods.map(&.name.stringify) }}.includes?("on_private_signal").should be_true
-            {{ Test::SomeObject.methods.find(&.name.== "on_private_signal").args.size }}.should eq(0)
+            {{ Test::SomeObject.methods.find(&.name.== "on_private_signal").args.map(&.name.stringify) }}.should eq(["type"])
           end
         end
       end

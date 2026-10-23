@@ -3,6 +3,7 @@
 processors:
   - filter_methods
   - default_constructor
+  - enums
   - inheritance
   - qt
   - crystal_wrapper
@@ -18,9 +19,13 @@ classes:
   SomeGadget: SomeGadget
   Conv: Conv
   QObject: QObject
+  QCoreApplication: QCoreApplication
   Label: Label
   QGraphicsItem: QGraphicsItem
   Unowned: Unowned
+
+enums:
+  "Qt::ConnectionType": ConnectionType
 
 types:
   SomeObject:

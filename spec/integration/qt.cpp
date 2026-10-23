@@ -11,6 +11,17 @@ struct QMetaObject {
   };
 };
 
+namespace Qt {
+  enum ConnectionType {
+    AutoConnection,
+    DirectConnection,
+    QueuedConnection,
+    BlockingQueuedConnection,
+    UniqueConnection = 0x80,
+    SingleShotConnection = 0x100,
+  };
+}
+
 #include <cstdlib>
 
 // Owns its children like Qt's: The parent deletes them as it's destroyed.  The
@@ -67,12 +78,19 @@ struct QObject {
   static void deleteObject(QObject *object) { delete object; }
   static int destroyed() { return destroyed_; }
 
+  // Like Qt's functor overload with a context object: records the context and
+  // the connection type of the last connection, and calls the functor at once.
   template< typename R, typename T, typename... Args, typename F >
-  static QMetaObject::Connection connect(void *ptr, R (T::*func)(Args...), F delegate) {
+  static QMetaObject::Connection connect(void *ptr, R (T::*func)(Args...), const QObject *context, F delegate, Qt::ConnectionType type) {
+    lastContext_ = context;
+    lastConnectionType_ = type;
     delegate(Args { }...); // Call back to Crystal
 
     return QMetaObject::Connection();
   }
+
+  static const void *lastContext() { return lastContext_; }
+  static Qt::ConnectionType lastConnectionType() { return lastConnectionType_; }
 
 private:
   struct Data {
@@ -83,9 +101,26 @@ private:
 
   Data *d;
   static int destroyed_;
+  static const QObject *lastContext_;
+  static Qt::ConnectionType lastConnectionType_;
 };
 
 int QObject::destroyed_ = 0;
+const QObject *QObject::lastContext_ = nullptr;
+Qt::ConnectionType QObject::lastConnectionType_ = Qt::AutoConnection;
+
+// The context of signal connections, while it exists.
+struct QCoreApplication : QObject {
+  QCoreApplication() { instance_ = this; }
+  ~QCoreApplication() override { instance_ = nullptr; }
+
+  static QCoreApplication *instance() { return instance_; }
+
+private:
+  static QCoreApplication *instance_;
+};
+
+QCoreApplication *QCoreApplication::instance_ = nullptr;
 
 // Like a `QLabel`: The parent isn't the first argument.
 struct Label : QObject {
@@ -129,7 +164,7 @@ Conv conv_to_cpp(const ConvCpp &) {
 // On to the actual test classes:
 
 // Tests signal/slots connection wrapping
-class SomeObject {
+class SomeObject : public QObject {
   Q_OBJECT
 public:
   int normalMethod() { return 1; }

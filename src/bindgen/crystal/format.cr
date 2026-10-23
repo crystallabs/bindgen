@@ -43,7 +43,10 @@ module Bindgen
       # Formats *arguments* as `name : type, ...`.  If *binding* is `true`,
       # treats this as argument for a `fun` declaration.
       def argument_list(arguments : Enumerable(Call::Argument), binding = false) : String
-        first_optional = arguments.rindex(&.default_value.nil?) || -1
+        # A block argument follows the optional arguments: `def f(x = 1, &)`.
+        first_optional = arguments.rindex do |arg|
+          arg.default_value.nil? && !(arg.is_a?(Call::ProcArgument) && arg.block?)
+        end || -1
 
         arguments.map_with_index do |arg, idx|
           argument(arg, idx, expose_default: idx > first_optional, binding: binding)

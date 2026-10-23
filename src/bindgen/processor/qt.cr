@@ -2,13 +2,23 @@ module Bindgen
   module Processor
     # Processor for `C++/Qt` specific behaviour.  This includes:
     # * Handle `Q_GADGET` types
-    # * Adding signal connection methods
+    # * Adding signal connection methods, delivering in the main thread
     # * Support for private signals
     # * Remove `Q_OBJECT` internal methods in superclass wrappers
     # * Keep objects given a parent alive, as the parent owns them
     class Qt < Base
       # Type of the result of a Qt-sinal connect call.
       CONNECTION_HANDLE_TYPE = Parser::Type.parse("QMetaObject::Connection")
+
+      # Type of the connection type argument of the connection method.  The
+      # enum has to be wrapped, by `enums:` in the configuration.
+      CONNECTION_TYPE = Parser::Type.parse("Qt::ConnectionType")
+
+      # Name of the connection type argument, as in `QObject::connect`.
+      CONNECTION_TYPE_ARGUMENT = "type"
+
+      # Value of `Qt::AutoConnection`, the default connection type.
+      AUTO_CONNECTION = 0_i64
 
       # We'll remove all member methods of this name.
       QGADGET_CHECKER = "qt_check_for_QGADGET_macro"
@@ -169,7 +179,7 @@ module Bindgen
         proc = to_proc.build(method, lambda: true)
         connector.calls[Graph::Platform::Cpp] = wrapper.build(
           method: connector.origin,
-          target: call.build(method, proc),
+          target: call.build(method, proc, connection_type: CONNECTION_TYPE_ARGUMENT),
         )
       end
 
@@ -185,16 +195,20 @@ module Bindgen
       end
 
       # Builds the method(s) used to generate the binding to a Qt signals connect
-      # method.
+      # method: `on_signal(type : Qt::ConnectionType = AutoConnection, &block)`.
       private def signal_connect_binding_method(signal : Parser::Method)
         proc_type = Parser::Type.proc(Parser::Type::VOID, signal.arguments)
         proc_arg = Parser::Argument.new("_proc_", proc_type)
+        type_arg = Parser::Argument.new(
+          CONNECTION_TYPE_ARGUMENT, CONNECTION_TYPE,
+          has_default: true, value: AUTO_CONNECTION,
+        )
 
         Parser::Method.build(
           name: "CONNECT_#{signal.name}",
           class_name: signal.class_name,
           return_type: CONNECTION_HANDLE_TYPE,
-          arguments: [proc_arg],
+          arguments: [type_arg, proc_arg],
           crystal_name: "on_#{signal.crystal_name}"
         )
       end

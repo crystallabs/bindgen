@@ -2,6 +2,25 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## Unreleased
+
+### Fixed
+
+* The `Qt` processor connects signals with a context object and a connection
+  type, which the context-less functor overload of `QObject::connect` it used
+  lacks: that one calls the block on the emitting thread, as a direct
+  connection, so `thread.on_started { }` ran on the Qt thread, and a thread may
+  not run Crystal code.  The context is `QCoreApplication::instance()`, the
+  sender while there is no application, so an automatic connection from
+  another thread is queued to the main thread.  The connection methods take
+  the type: `on_finished(Qt::ConnectionType::QueuedConnection) { }`, after the
+  type arguments of an overloaded signal, and default to `Qt::AutoConnection`.
+  The configuration must wrap the `Qt::ConnectionType` enum.
+* `BlockOverloads` tells the overloads of a block-taking method apart by their
+  other arguments too, so the connection methods above still get their type
+  arguments; and the Crystal formatter exposes the default of an optional
+  argument before a block: `def f(x = 1, &)`.
+
 ## 0.15.0 (2026-10-23)
 
 ### Added
