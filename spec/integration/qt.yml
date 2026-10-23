@@ -3,11 +3,13 @@
 processors:
   - filter_methods
   - default_constructor
+  - inheritance
   - qt
-  - cpp_wrapper
-  - crystal_binding
   - crystal_wrapper
   - block_overloads
+  - virtual_override
+  - cpp_wrapper
+  - crystal_binding
   - sanity_check
 
 classes:
@@ -15,6 +17,10 @@ classes:
   SomeObject: SomeObject
   SomeGadget: SomeGadget
   Conv: Conv
+  QObject: QObject
+  Label: Label
+  QGraphicsItem: QGraphicsItem
+  Unowned: Unowned
 
 types:
   SomeObject:

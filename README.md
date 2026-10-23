@@ -468,6 +468,21 @@ Qt::BindgenHelper.release(label) # Lets the GC collect it again
 
 See `TEMPLATE.yml` for details.
 
+In Qt, a parent owns its children, and refers to them from its d-pointer,
+which the GC doesn't scan: `Qt::Label.new("Ready", window)` would be collected,
+and taken out of the window, once Crystal drops it.  The [`Qt`](#qt) processor
+keeps such an object alive itself, without configuration: constructors given a
+`parent`, and `#parent=`, `#parent_item=` and `#parent_layout_item=` given an
+object, keep `self` alive, and given `nil` the setters release it again.  As
+the parent deletes its children, which releases them, nothing leaks.  A child
+whose Crystal object refers to its parent, like in an instance variable, keeps
+the parent alive too, until either is deleted.
+
+```crystal
+label = Qt::Label.new("Ready", window) # Kept alive, as the window owns it
+label.parent = nil                     # Released: Nothing owns it anymore
+```
+
 ### Objects destroyed before others
 
 An object may refer to an argument of its constructor from memory the GC
@@ -765,7 +780,7 @@ copy constructor becomes an overload of `.new` taking the object to copy.
 
 * **Kind**: Refining
 * **Run after**: No specific dependency
-* **Run before**: `BlockOverloads`
+* **Run before**: `CrystalWrapper`, `BlockOverloads`
 
 Adds Qt specific behaviour:
 
@@ -773,6 +788,20 @@ Adds Qt specific behaviour:
 2. Provides `#on_SIGNAL` signal connection method.
 3. Removes `#meta_object`, `#qt_metacast`, and `#qt_metacall` from superclass
    wrappers, as these shouldn't be overridden by the user.
+4. Keeps objects given a parent alive, as the parent owns and deletes them, see
+   [Objects kept alive for C++](#objects-kept-alive-for-c).  This applies to
+   the classes deriving from `QObject`, `QGraphicsItem` or
+   `QGraphicsLayoutItem`, and is hardcoded, not configured by `keep_alive:`:
+   * A constructor with an argument named `parent`, a pointer to a wrapped
+     class, keeps the new object alive if given a parent.
+   * `setParent`, `setParentItem` and `setParentLayoutItem`, taking one
+     pointer to a wrapped class, keep `self` alive if given an object, and
+     release it if given `nil`.  Their argument becomes nilable.
+
+   The processor tags these methods with `OWNED_BY_ARGUMENT_TAG`, and
+   `CrystalWrapper` adds the hook after the wrapped call, as the object is kept
+   by the address of its C++ object.  So it has to run before
+   `CrystalWrapper`.
 
 ```crystal
 btn = Qt::PushButton.new

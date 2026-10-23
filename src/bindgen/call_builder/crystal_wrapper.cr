@@ -43,10 +43,14 @@ module Bindgen
 
           String.build do |b|
             b << pre.to_code(call, platform) << "\n" if pre
-            if post
+            if post && !call.origin.any_constructor? && !call.origin.has_result?
+              # Nothing to return: The `Void` method returns `nil` after the hook.
+              b << encapsulate(call, code) << "\n"
+              b << post.to_code(call, platform)
+            elsif post
               b << encapsulate_into_variable(call, code) << "\n"
               b << post.to_code(call, platform)
-              b << "result" unless call.origin.any_constructor?
+              b << "\nresult" unless call.origin.any_constructor?
             else
               b << encapsulate(call, code)
             end

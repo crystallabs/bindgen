@@ -552,12 +552,18 @@ module Bindgen
 
       indices.uniq.sort!.select do |index|
         next false unless arg = method.arguments[index]?
-        next false unless arg.pointer == 1
-
-        type_rules = self[arg]?
-        !!type_rules && type_rules.generate_wrapper? &&
-          type_rules.kind.class? && type_rules.graph_node.is_a?(Graph::Class)
+        object_argument?(arg)
       end
+    end
+
+    # Is *arg* an instance of a wrapped class passed by pointer or reference?
+    # Wrappers of `kind: Struct` don't count, see `#selected_object_arguments`.
+    def object_argument?(arg : Parser::Argument) : Bool
+      return false unless arg.pointer == 1
+
+      type_rules = self[arg]?
+      !!type_rules && type_rules.generate_wrapper? &&
+        type_rules.kind.class? && type_rules.graph_node.is_a?(Graph::Class)
     end
 
     # Is the type of *rules* a named class with a wrapper, without custom

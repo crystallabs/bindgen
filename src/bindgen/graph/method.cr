@@ -21,6 +21,14 @@ module Bindgen
       # removed by a later processor.  The value is left empty.
       REMOVABLE_BINDING_TAG = "REMOVABLE_BINDING_TAG"
 
+      # If this tag is set, the object of this method belongs to its argument at
+      # the index in the value, like a Qt object to its parent: the Crystal
+      # wrapper keeps the object alive while the argument isn't `nil`.  A
+      # constructor keeps it alive if given one, another method keeps it alive
+      # if given one, and releases it if given `nil`.  Set by `Processor::Qt`,
+      # see `Processor::CrystalWrapper#add_owner_hook`.
+      OWNED_BY_ARGUMENT_TAG = "OWNED_BY_ARGUMENT_TAG"
+
       # `Parser::Method` this method node is based on.
       getter origin : Parser::Method
 

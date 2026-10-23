@@ -169,6 +169,33 @@ module Bindgen
       # Code snippet ran after the body code itself.  The result value is stored
       # in a variable called `result`.
       property post_hook : Body?
+
+      # Adds *hook* to run after the `#post_hook` set already, if any.
+      def add_post_hook(hook : Body) : Nil
+        @post_hook = (existing = @post_hook) ? SequenceBody.new([existing, hook]) : hook
+      end
+
+      # Returns if a post-hook of type *type* is set, alone or in a sequence.
+      def post_hook?(type : T.class) : Bool forall T
+        case hook = @post_hook
+        when T            then true
+        when SequenceBody then hook.bodies.any?(T)
+        else                   false
+        end
+      end
+    end
+
+    # Body running other bodies, one after another, like hooks several
+    # processors added.
+    class SequenceBody < Body
+      getter bodies : Array(Body)
+
+      def initialize(@bodies : Array(Body))
+      end
+
+      def to_code(call : Call, platform : Graph::Platform) : String
+        @bodies.join('\n', &.to_code(call, platform))
+      end
     end
 
     # Dummy body, storing a fixed empty body.
