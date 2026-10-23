@@ -124,6 +124,13 @@ describe "C++ virtual overriding from Crystal feature" do
       class PlainThing < Test::Subclass
       end
 
+      # Returns an enum to C++.
+      class SadMoody < Test::Moody
+        def mood : Test::Mood
+          Test::Mood::Sad
+        end
+      end
+
       # Test calling superclass method from overridden method
       class OverrideThing < Test::Base
         def calc(a, b)
@@ -220,6 +227,12 @@ describe "C++ virtual overriding from Crystal feature" do
       end
 
       context "abstract class with an implicit default constructor" do
+        it "returns an enum from an override" do
+          Test::Moody.new.ask.should eq(Test::Mood::Happy)
+          SadMoody.new.ask.should eq(Test::Mood::Sad)
+          SadMoody.new.mood.should eq(Test::Mood::Sad)
+        end
+
         it "is constructed by a Crystal subclass" do
           Maker.new.make.should eq(42)
         end

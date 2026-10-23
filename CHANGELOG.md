@@ -73,6 +73,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Fixed
 
+* A Crystal override of a virtual method returning an enum, like
+  `QValidator::validate`, didn't compile: the `Proc` passing its result to
+  C++ called `to_unsafe` on the enum.
 * The `Qt` processor connects signals with a context object and a connection
   type, which the context-less functor overload of `QObject::connect` it used
   lacks: that one calls the block on the emitting thread, as a direct

@@ -184,9 +184,10 @@ module Bindgen
               elsif nilable_wrapper
                 null = "Pointer(#{typer.qualified(local_type_name, in_lib)}).null"
                 template = Template.from_string("(%.try(&.to_unsafe) || #{null})", simple: true)
-              elsif to_unsafe && (rules.generate_wrapper? || !rules.copy_structure?)
+              elsif to_unsafe && !rules.kind.enum? && (rules.generate_wrapper? || !rules.copy_structure?)
                 # Not for a copied structure without a wrapper, as it's the
-                # `lib struct` itself.
+                # `lib struct` itself, nor for an enum, which the `lib` takes
+                # as is.
                 template = Template.from_string("%.to_unsafe", simple: true)
               end
             end

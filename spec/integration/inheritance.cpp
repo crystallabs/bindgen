@@ -403,3 +403,13 @@ struct GreeterObject : public OtherBase, public AbstractGreeter { };
 struct TextGreeter : public GreeterObject {
   int greet(Named *who) override { return who ? who->id() * 100 : -100; }
 };
+
+// A virtual method returning an enum, overridden in Crystal: the `Proc`
+// passes the enum to C++ as is.
+enum class Mood { Happy, Sad };
+
+struct Moody {
+  virtual ~Moody() { }
+  virtual Mood mood() const { return Mood::Happy; }
+  Mood ask() const { return mood(); }
+};

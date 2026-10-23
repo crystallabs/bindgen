@@ -3,6 +3,7 @@
 processors:
   - filter_methods
   - default_constructor
+  - enums
   - inheritance
   - crystal_wrapper
   - virtual_override
@@ -48,6 +49,10 @@ classes:
   OtherBase: OtherBase
   GreeterObject: GreeterObject
   TextGreeter: TextGreeter
+  Moody: Moody
+
+enums:
+  Mood: Mood
 
 types:
   Triple: # A built-in structure, like Qt's CrystalVariant; declared in the spec
