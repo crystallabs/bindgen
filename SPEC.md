@@ -180,6 +180,71 @@ class Foo
 end
 ```
 
+#### §2.2.5 Out arguments
+
+A method may write through an argument instead of, or next to, returning a
+value: `QValidator::validate(QString &input, int &pos)` changes the input and
+the cursor position, `QLockFile::getLockInfo(qint64 *pid, QString *host,
+QString *app)` fills the pointers.  A non-const lvalue reference or a single
+pointer to a type passed by value (`pass_by: Value`) and converted both ways by
+`to_cpp` and `from_cpp`, like `QString`, `QByteArray`, `QVariant` or
+`std::string`, is an *out argument*.  Such a type only exists in C++ as a
+temporary made by its `to_cpp` template, so the C++ glue calls the method on a
+local of the C++ type and hands the changed value back.  In a method having
+one, a non-const reference or pointer to a built-in type or an enum, like
+`int &` or `bool *`, is an out argument too; elsewhere it stays an `Int32*` or
+`Bool*`.
+
+A reference is an in/out argument: the wrapper takes it by value and returns
+its new value.  A pointer is out-only: the wrapper takes no argument for it
+and returns the value written.  A pointer defaulting to `nullptr` is still
+out-only, the glue always passes a local.  The out values follow the method's
+result:
+
+* A method returning a value returns `{result, out1, out2, ...}`.
+* A `void` method with one out argument returns that value alone.
+* A `void` method with several returns `{out1, out2, ...}`.
+
+```cpp
+class Validator {
+public:
+  virtual State validate(QString &input, int &pos) const = 0;
+  virtual void fixup(QString &input) const;
+  bool info(qint64 *pid, QString *host, QString *app) const;
+  static QString pick(const QString &caption, QString *selected = nullptr);
+};
+```
+
+```crystal
+class Validator
+  abstract def validate(input : String, pos : Int32) : {Validator::State, String, Int32}
+  def fixup(input : String) : String end
+  def info : {Bool, Int64, String, String} end
+  def self.pick(caption : String) : {String, String} end
+end
+
+state, input, pos = validator.validate("42", 0)
+```
+
+A Crystal override of a virtual method with out arguments (§2.3.4) returns the
+same tuple, whose out values are written back into the C++ references, or
+through the pointers unless they are null.  The abstract method of an abstract
+class and the base-class wrapper (§2.3.5) have the wrapper's signature, so
+`super` and `superclass.validate(input, pos)` return the tuple too.
+
+Constructors never take out arguments: a pointer handed to a constructor is
+usually kept, like `QTextStream(QString *)`, so they stay dropped.  So do the
+setters of pointer members (§2.4.2), Qt signals and operators with such
+arguments.  A method keeping the pointer beyond
+the call, like `QTextStream::setString`, can't be told apart from one writing
+through it: list it in `ignore_methods`.  Other indirections to a converted
+type, like `const QString *`, `QString **` or `QString *&`, drop the method.
+
+Of two overloads taking the same Crystal arguments, bindgen keeps the one with
+more C++ arguments: the variant of `pick` taking `selected` too, which the
+wrapper drops, replaces the variant ending before it, and a variant whose
+further arguments have exposed defaults replaces a shorter one.
+
 ### §2.3 Inheritance and abstract classes
 
 Inheritance from wrapped C++ classes is replicated in Crystal.

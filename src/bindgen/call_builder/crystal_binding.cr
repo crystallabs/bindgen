@@ -23,7 +23,7 @@ module Bindgen
         argument = Crystal::Argument.new(@db)
 
         Log.trace &.emit "converting arguments to binding", method: method.name, arguments: method.arguments.map &.base_name
-        arguments = pass.arguments_to_binding(method.arguments)
+        arguments = pass.arguments_to_binding(method.arguments, method.out_arguments(@db))
 
         # Add self argument if required
         if method.needs_instance?

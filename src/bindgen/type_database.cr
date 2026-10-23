@@ -654,6 +654,39 @@ module Bindgen
         type_rules.kind.class? && type_rules.graph_node.is_a?(Graph::Class)
     end
 
+    # Is *type* a converted out argument: a non-const lvalue reference or
+    # single pointer to a type passed by value (`pass_by: Value`) and
+    # converted both ways by `to_cpp` and `from_cpp`, like `QString &` or
+    # `QString *`?  Such a type only exists in C++ as a temporary made by its
+    # `to_cpp` template, so the C++ glue calls the method on a local and hands
+    # the changed value back, see `Parser::Method#out_arguments`.
+    def converted_out_argument?(type : Parser::Type) : Bool
+      return false unless out_indirection?(type)
+
+      try_or(type, false) do |rules|
+        rules.pass_by.value? && !rules.to_cpp.no_op? && !rules.from_cpp.no_op?
+      end
+    end
+
+    # Is *type* a non-const lvalue reference or single pointer to a built-in
+    # type or an enum, like `int &` or `bool *`?  Such an argument is passed as
+    # a pointer, and is an out argument too in a method with a converted one.
+    def builtin_out_argument?(type : Parser::Type) : Bool
+      return false unless out_indirection?(type)
+
+      try_or(type, false) do |rules|
+        !rules.pass_by.value? && !rules.copy_structure? &&
+          ((rules.builtin? && rules.kind.struct?) || rules.kind.enum?)
+      end
+    end
+
+    # Is *type* a non-const lvalue reference or a single pointer to a value,
+    # which a method can write through?
+    private def out_indirection?(type : Parser::Type) : Bool
+      !type.const? && !type.move? && type.pointer == 1 && type.extents.empty? &&
+        !type.void? && !type.kind.function?
+    end
+
     # Is the type of *rules* a named class with a wrapper, without custom
     # conversions?
     private def plain_wrapped_class?(rules : TypeConfig) : Bool

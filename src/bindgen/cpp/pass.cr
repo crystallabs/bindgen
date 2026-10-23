@@ -9,11 +9,51 @@ module Bindgen
       def initialize(@db : TypeDatabase)
       end
 
-      # Turns the list of arguments into a list of `Call::Argument`s.
+      # Turns the list of arguments into a list of `Call::Argument`s.  A
+      # non-const reference or pointer to a converted type becomes a
+      # `Call::OutArgument`, see `#out_argument_to_cpp`.
       def arguments_to_cpp(list : Enumerable(Parser::Argument))
         list.map_with_index do |arg, idx|
-          to_cpp(arg).to_argument(Argument.name(arg, idx))
+          name = Argument.name(arg, idx)
+
+          if @db.converted_out_argument?(arg)
+            out_argument_to_cpp(arg, name)
+          else
+            to_cpp(arg).to_argument(name)
+          end
         end
+      end
+
+      # Builds the out argument *arg* of a C++ wrapper function, see
+      # `TypeDatabase#converted_out_argument?`.  The function takes a pointer to
+      # the binding structure, like `CrystalString *`, converts it into a local
+      # of the C++ type, passes that to the method, and converts the local back
+      # through the pointer afterwards.  The local is moved into the `from_cpp`
+      # conversion, so a conversion keeping a temporary's data, like the
+      # `std::string` one, copies it.  A pointer argument is out-only: the local
+      # starts out value-initialized.
+      private def out_argument_to_cpp(arg : Parser::Type, name : String) : Call::OutArgument
+        to = to_cpp(arg)
+        from = to_crystal(arg.dereferenced)
+        local = Call::OutArgument.local_name(name)
+        in_out = arg.reference?
+
+        prologue = if in_out
+                     "#{arg.base_name} #{local} = #{to.apply_conversion("*#{name}")};"
+                   else
+                     "#{arg.base_name} #{local}{};"
+                   end
+
+        Call::OutArgument.new(
+          type: arg,
+          type_name: to.type_name,
+          name: name,
+          call: in_out ? local : "&#{local}",
+          in_out: in_out,
+          local: local,
+          prologue: prologue,
+          epilogue: "*#{name} = #{from.apply_conversion("std::move(#{local})")};",
+        )
       end
 
       # :ditto:
@@ -50,7 +90,16 @@ module Bindgen
         inner_args = proc_type.template_arguments
 
         # Arguments go C++ -> Crystal, but the result goes Crystal -> C++!
-        proc_types = inner_args[1..-1].map { |t| proc_pass(t, to_crystal(t)) }
+        # An out argument goes both ways, as a pointer to the binding structure
+        # which a Crystal override writes back through, see
+        # `CallBuilder::CppToCrystalProc`.
+        proc_types = inner_args[1..-1].map do |t|
+          if @db.converted_out_argument?(t)
+            to_crystal(t).copy_with(reference: false, pointer: 1)
+          else
+            proc_pass(t, to_crystal(t))
+          end
+        end
         proc_types.unshift proc_pass(inner_args.first, to_cpp(inner_args.first))
 
         proc_args = typer.full(proc_types)

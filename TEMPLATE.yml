@@ -489,7 +489,10 @@ types:
     from_crystal: "%.to_cpp"
 
     # Override of the pass-by semantics.  Use with caution.  Usually not
-    # required.  Defaults to `Original`.
+    # required.  Defaults to `Original`.  A type passed by `Value` and
+    # converted by `to_cpp` and `from_cpp` taken by non-const reference or
+    # pointer is an out argument, whose value the wrapper returns with its
+    # result (SPEC.md §2.2.5).
     pass_by: Original | Reference | Pointer | Value
 
     # Override of the pass-by semantics only in the user-facing wrapper code.

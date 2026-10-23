@@ -644,6 +644,14 @@ counterpart of `to_cpp`.  `%` is the wrapper's argument.
 Overrides how the type is passed: `Original` (default, as in C++),
 `Reference`, `Pointer` or `Value`.  Usually not needed.
 
+A type passed by `Value` and converted both ways by `to_cpp` and `from_cpp`,
+like `QString`, is exchanged as a temporary.  A method taking it by non-const
+reference or by pointer gets an *out argument*: the wrapper returns the value
+written back with its result (SPEC.md §2.2.5).  Constructors and operators
+with such an argument are dropped, as are methods taking a `const` pointer or
+a pointer to a pointer to it.  A method keeping the pointer, like
+`QTextStream::setString`, has to be listed in `ignore_methods`.
+
 ### `wrapper_pass_by`
 
 Like `pass_by`, only in the Crystal wrapper.  Defaults to `pass_by`.

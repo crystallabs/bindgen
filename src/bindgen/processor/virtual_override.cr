@@ -528,7 +528,8 @@ module Bindgen
           unless methods.empty?
             b << "  [\n"
             methods.each do |method|
-              types = pass.arguments_to_wrapper(method.origin.arguments).map { |arg| typer.full(arg).inspect }
+              origin = method.origin
+              types = pass.arguments_to_wrapper(origin.arguments, origin.out_arguments(@db)).map { |arg| typer.full(arg).inspect }
               b << %[    {#{method.mangled_name.inspect}, #{method.origin.crystal_name.inspect}, [#{types.join(", ")}] of String},\n]
             end
             b << "  ].each do |sig|\n"

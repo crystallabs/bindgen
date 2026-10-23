@@ -266,6 +266,27 @@ module Bindgen
         decayed || raise "#{@full_name} is not a C array"
       end
 
+      # The value a single pointer or reference to it refers to: `T` for
+      # `T &` or `T *`, neither const nor nilable.  Used for out arguments,
+      # see `TypeDatabase#converted_out_argument?`.
+      def dereferenced : Type
+        Type.new(
+          kind: @kind,
+          const: false,
+          reference: false,
+          move: false,
+          builtin: @builtin,
+          void: @void,
+          pointer: 0,
+          base_name: @base_name,
+          full_name: @base_name,
+          template: @template,
+          nilable: false,
+          desugared: @desugared,
+          typedefs: @typedefs,
+        )
+      end
+
       # If the type is a pointer and not a reference, returns a copy of this
       # type that is nilable, otherwise returns `nil`.
       def make_pointer_nilable : Type?

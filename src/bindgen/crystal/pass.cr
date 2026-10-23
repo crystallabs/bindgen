@@ -11,41 +11,127 @@ module Bindgen
       def initialize(@db : TypeDatabase)
       end
 
-      # Turns the list of arguments into a list of `Call::Argument`s.
-      def arguments_to_binding(list : Enumerable(Parser::Argument))
+      # Turns the list of arguments into a list of `Call::Argument`s.  The
+      # arguments at the indices *outs*, see `Parser::Method#out_arguments`,
+      # become `Call::OutArgument`s, see `#out_argument_to_binding`.
+      def arguments_to_binding(list : Enumerable(Parser::Argument), outs = [] of Int32)
         argument = Argument.new(@db)
 
         list.map_with_index do |arg, idx|
           if idx == list.size - 1 && arg.variadic?
             variadic_argument
+          elsif outs.includes?(idx)
+            out_argument_to_binding(arg, argument.name(arg, idx))
           else
             to_binding(arg).to_argument(argument.name(arg, idx))
           end
         end
       end
 
-      # Turns the list of arguments into a list of `Call::Argument`s.
-      def arguments_to_wrapper(list : Enumerable(Parser::Argument))
-        argument = Argument.new(@db)
+      # Builds the out argument *arg* of a `lib` function and of its call from
+      # the wrapper: a pointer to a local of the binding type, like
+      # `Binding::CrystalString*` or `Int32*`.  The `prologue` declares the
+      # local: converted from the argument for an in/out argument, a reference,
+      # or zeroed for an out-only one, a pointer.  The wrapper's
+      # `Call::TupleResult` hands the value back.
+      private def out_argument_to_binding(arg : Parser::Argument, name : String) : Call::OutArgument
+        value = arg.dereferenced
+        result = to_binding(value)
+        typer = Typename.new(@db)
+        local = Call::OutArgument.local_name(name)
+        in_out = arg.reference?
 
-        list.map_with_index do |arg, idx|
+        prologue = if in_out
+                     "#{local} = #{result.apply_conversion(name)}"
+                   else
+                     "#{local} = BindgenHelper.zero_value(#{typer.qualified(*typer.binding(value))})"
+                   end
+
+        Call::OutArgument.new(
+          type: arg,
+          type_name: result.type_name,
+          name: name,
+          call: "pointerof(#{local})",
+          in_out: in_out,
+          local: local,
+          prologue: prologue,
+          pointer: result.pointer + 1,
+        )
+      end
+
+      # Turns the list of arguments into a list of `Call::Argument`s.  Of the
+      # out arguments at the indices *outs*, see `Parser::Method#out_arguments`,
+      # the wrapper takes the in/out ones, the references, by value, and drops
+      # the out-only ones, the pointers: their values are part of the result,
+      # see `#wrapper_result`.
+      def arguments_to_wrapper(list : Enumerable(Parser::Argument), outs = [] of Int32)
+        argument = Argument.new(@db)
+        arguments = [] of Call::Argument
+
+        list.each_with_index do |arg, idx|
           is_last = (idx == list.size - 1)
           if is_last && arg.variadic? # Support variadic argument
-            next variadic_argument
+            arguments << variadic_argument
+            next
           end
 
-          result = to_wrapper(arg)
+          if outs.includes?(idx)
+            next unless arg.reference? # An out-only argument
+            result = to_wrapper(arg.dereferenced)
+          else
+            result = to_wrapper(arg)
+          end
           name = argument.name(arg, idx)
 
           Log.trace { "arg to wrapper name: #{name}" }
           if result.is_a?(Call::ProcResult)
             # Treat as block if it's the last argument.
-            result.to_argument(name, block: is_last)
+            arguments << result.to_argument(name, block: is_last)
           else
             value = arg.value if arg.has_default?
-            result.to_argument(name, default: value)
+            arguments << result.to_argument(name, default: value)
           end
         end
+
+        arguments
+      end
+
+      # The result of the wrapper of *method*: that of its return type, see
+      # `#from_wrapper`, followed by the values of its out arguments, see
+      # `Parser::Method#out_arguments`, as a `Call::TupleResult`.  Each value is
+      # read from the local of `#out_argument_to_binding` by the conversion of
+      # `#from_binding`.
+      def wrapper_result(method : Parser::Method) : Call::Result
+        result = from_wrapper(method.return_type, method.any_constructor?)
+        outs = method.out_arguments(@db)
+        return result if outs.empty?
+
+        typer = Typename.new(@db)
+        argument = Argument.new(@db)
+        inner = result unless method.return_type.pure_void?
+
+        values = [] of Call::Result
+        expressions = [] of String
+        outs.each do |idx|
+          arg = method.arguments[idx]
+          value = arg.dereferenced
+          local = Call::OutArgument.local_name(argument.name(arg, idx))
+
+          values << from_wrapper(value)
+          expressions << from_binding(value, qualified: true).apply_conversion(local)
+        end
+
+        names = values.map { |value| typer.full(value) }
+        names.unshift(typer.full(inner)) if inner
+        type_name = names.size == 1 ? names.first : "{#{names.join(", ")}}"
+
+        Call::TupleResult.new(
+          type: method.return_type,
+          type_name: type_name,
+          inner: inner,
+          values: values,
+          expressions: expressions,
+        )
       end
 
       # Computes a result for passing *type* from Crystal to C++.  If
@@ -251,15 +337,25 @@ module Bindgen
         # Hand-off
         is_ref, ptr, type_name, template, nilable = yield is_ref, ptr, nilable
 
-        klass = type.kind.function? ? Call::ProcResult : Call::Result
-        klass.new(
-          type: type,
-          type_name: type_name,
-          reference: is_ref,
-          pointer: {0, ptr}.max,
-          conversion: template,
-          nilable: nilable,
-        )
+        if type.kind.function?
+          Call::ProcResult.new(
+            type: type,
+            type_name: type_name,
+            reference: is_ref,
+            pointer: {0, ptr}.max,
+            conversion: template,
+            nilable: nilable,
+          )
+        else
+          Call::Result.new(
+            type: type,
+            type_name: type_name,
+            reference: is_ref,
+            pointer: {0, ptr}.max,
+            conversion: template,
+            nilable: nilable,
+          )
+        end
       end
 
       # Computes a result for passing *type* from C++ to Crystal.

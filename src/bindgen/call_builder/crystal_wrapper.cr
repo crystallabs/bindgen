@@ -9,7 +9,7 @@ module Bindgen
       def build(method : Parser::Method, target : Call)
         pass = Crystal::Pass.new(@db)
 
-        arguments = pass.arguments_to_wrapper(method.arguments)
+        arguments = pass.arguments_to_wrapper(method.arguments, method.out_arguments(@db))
         if method.any_constructor?
           body = ConstructorBody.new(@db, target)
         else
@@ -20,7 +20,7 @@ module Bindgen
           origin: method,
           name: method.crystal_name,
           arguments: arguments,
-          result: pass.from_wrapper(method.return_type, method.any_constructor?),
+          result: pass.wrapper_result(method),
           body: body,
         )
       end
@@ -61,14 +61,27 @@ module Bindgen
           "result = " + encapsulate(call, code)
         end
 
-        # Support for pre- and post hooks.
+        # Does the method return something: its result, or the values of its
+        # out arguments as a `Call::TupleResult`?
+        private def returns_value?(call) : Bool
+          return false if call.origin.any_constructor?
+
+          !call.result.type.pure_void? || call.result.is_a?(Call::TupleResult)
+        end
+
+        # Support for pre- and post hooks.  The locals of the out arguments of
+        # the target, see `Call::OutArgument#prologue`, are declared first.
         private def encapsulate_and_hook(call, platform, code)
           pre = @pre_hook
           post = @post_hook
 
           String.build do |b|
             b << pre.to_code(call, platform) << "\n" if pre
-            if post && !call.origin.any_constructor? && !call.origin.has_result?
+            @target.arguments.each do |arg|
+              b << arg.prologue << "\n" if arg.is_a?(Call::OutArgument)
+            end
+
+            if post && !returns_value?(call)
               # Nothing to return: The `Void` method returns `nil` after the hook.
               b << encapsulate(call, code) << "\n"
               b << post.to_code(call, platform)
@@ -110,8 +123,26 @@ module Bindgen
       end
 
       class MethodBody < Body
+        # A `Call::TupleResult` of a `void` method runs the call as a statement
+        # before the tuple of the out values.
         def encapsulate(call, code)
-          call.result.apply_conversion(code)
+          result = call.result
+          return result.apply_conversion(code) unless result.is_a?(Call::TupleResult)
+
+          if result.inner
+            result.literal(code)
+          else
+            "#{code}\n#{result.literal(nil)}"
+          end
+        end
+
+        def encapsulate_into_variable(call, code)
+          result = call.result
+          if result.is_a?(Call::TupleResult) && result.inner.nil?
+            "#{code}\nresult = #{result.literal(nil)}"
+          else
+            super
+          end
         end
       end
 

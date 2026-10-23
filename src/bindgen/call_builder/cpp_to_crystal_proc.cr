@@ -16,12 +16,16 @@ module Bindgen
         # A converted one is a temporary, which `bindgen_address` of
         # `bindgen_helper.hpp` keeps alive for the call.
         address = Template.from_string("bindgen_address(%)", simple: true)
+        outs = method.out_arguments(@db)
         arguments = method.arguments.map_with_index do |arg, idx|
+          name = Cpp::Argument.name(arg, idx)
+          next out_argument(pass, arg, name) if outs.includes?(idx)
+
           result = pass.passthrough_to_crystal(arg)
           if pass.proc_by_pointer?(arg)
             result = result.copy_with(conversion: result.conversion.followed_by(address))
           end
-          result.to_argument(Cpp::Argument.name(arg, idx))
+          result.to_argument(name)
         end
 
         result = pass.to_cpp(method.return_type)
@@ -36,6 +40,42 @@ module Bindgen
           result: result,
           arguments: arguments,
           body: lambda ? LambdaBody.new : InvokeBody.new,
+        )
+      end
+
+      # Builds the out argument *arg* of a call into Crystal, see
+      # `Parser::Method#out_arguments`.  The `CrystalProc` takes a pointer to
+      # a local of the binding type, like `CrystalString *` or `int *`, which
+      # the Crystal override writes back through.  A reference, in/out, is
+      # converted into the local first, and gets the local's value afterwards;
+      # a pointer is out-only, gets the value if it isn't null, and the local
+      # starts out value-initialized.  The locals and their write-back are the
+      # `prologue` and `epilogue`, see `Cpp::Format#out_statements`.
+      private def out_argument(pass : Cpp::Pass, arg : Parser::Argument, name : String) : Call::OutArgument
+        value = arg.dereferenced
+        to_crystal = pass.to_crystal(value)
+        to_cpp = pass.to_cpp(value)
+        local = Call::OutArgument.local_name(name)
+        in_out = arg.reference?
+
+        prologue = if in_out
+                     "#{to_crystal.type_name} #{local} = #{to_crystal.apply_conversion(name)};"
+                   else
+                     "#{to_crystal.type_name} #{local}{};"
+                   end
+
+        value_back = to_cpp.apply_conversion(local)
+        epilogue = in_out ? "#{name} = #{value_back};" : "if (#{name}) *#{name} = #{value_back};"
+
+        Call::OutArgument.new(
+          type: arg,
+          type_name: to_crystal.type_name,
+          name: name,
+          call: "&#{local}",
+          in_out: in_out,
+          local: local,
+          prologue: prologue,
+          epilogue: epilogue,
         )
       end
 

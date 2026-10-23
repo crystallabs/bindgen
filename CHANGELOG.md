@@ -42,8 +42,29 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   the `keep_alive:`, `release:` and parent-ownership hooks of the wrapper
   methods, so `super` keeps what the wrapper keeps.
 
+* Out arguments: a method taking a converted value type (`pass_by: Value` with
+  `to_cpp` and `from_cpp`), like `QString`, `QByteArray`, `QVariant` or
+  `std::string`, by non-const reference or by pointer is wrapped, instead of
+  being dropped.  The wrapper returns the values written back with its result:
+  `state, input, pos = validator.validate("42", 0)` for
+  `QValidator::validate(QString &, int &)`, the value alone for a `void` method
+  with one out argument.  A reference is in/out, a pointer is out-only and
+  left out of the wrapper's arguments; in such a method, `int &` and `bool *`
+  are out arguments too.  A Crystal override of a virtual method with out
+  arguments returns the same tuple, which is written back into the C++
+  references, so `QValidator` can be subclassed.  Constructors, member
+  setters, signals and operators keep dropping such arguments.  See SPEC.md
+  §2.2.5.
+
 ### Changed
 
+* Of two methods taking the same Crystal arguments, the one with more C++
+  arguments stays, instead of the one with fewer: the variant of a method
+  split at a default argument whose further arguments have exposed defaults,
+  like `getText(..., bool *ok = nullptr)` next to `getText(...)`, takes the
+  same calls through the defaults and more.  Before, such a variant was
+  dropped, so `ok` could only be passed together with the argument after it,
+  or not at all.
 * `BindgenHelper.keep_alive`, `release`, `kept_alive?` and the destroyed hook
   key an object by the start of its GC allocation (`bindgen_kept_key` in
   `bindgen_helper.hpp`), by its address off the GC heap or without C++ glue.

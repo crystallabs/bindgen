@@ -127,6 +127,62 @@ module Bindgen
     class TypeArgument < Argument
     end
 
+    # An out argument, see `Parser::Method#out_arguments`: the caller passes a
+    # pointer to a local variable, *local*, which the callee writes through.
+    # The *prologue* declares the local, before the call, and the *epilogue*
+    # hands its value back after it; either is `nil` where another part of the
+    # body does so, like the `TupleResult` of a Crystal wrapper.  An *in_out*
+    # argument, a C++ reference, is initialized from the argument's value; an
+    # out-only one, a C++ pointer, isn't passed by the caller at all.
+    class OutArgument < Argument
+      getter? in_out : Bool
+      getter local : String
+      getter prologue : String?
+      getter epilogue : String?
+
+      def initialize(@type, @type_name, @name, @call, @in_out, @local,
+                     @prologue = nil, @epilogue = nil, @reference = false,
+                     @pointer = 1, @default_value = nil, @nilable = false)
+      end
+
+      # Name of the local variable of the argument *name*.
+      def self.local_name(name : String) : String
+        "#{name}_"
+      end
+    end
+
+    # The result of a Crystal wrapper method with out arguments: the method's
+    # own result, *inner*, unless it returns `void`, followed by the *values*
+    # of the out arguments, as the *expressions* reading them from their
+    # locals.  Written as a tuple, or as the value alone if it's the only
+    # element.  The `type` is the method's return type, so `pure_void?` tells
+    # whether *inner* is set.
+    class TupleResult < Result
+      getter inner : Result?
+      getter values : Array(Result)
+      getter expressions : Array(String)
+
+      def initialize(@type, @type_name, @inner, @values, @expressions)
+        @reference = false
+        @pointer = 0
+        @conversion = Template::None.new
+        @nilable = false
+      end
+
+      # The expression of the result, with *code* being the method's own
+      # result, converted by *inner*.  *code* is ignored for a `void` method,
+      # whose caller runs it as a statement before.
+      def literal(code : String?) : String
+        items = [] of String
+        if (inner = @inner) && code
+          items << inner.apply_conversion(code)
+        end
+        items.concat(@expressions)
+
+        items.size == 1 ? items.first : "{#{items.join(", ")}}"
+      end
+    end
+
     # A `Proc` argument.  May be a block.
     class ProcArgument < Argument
       # Is this a block argument?

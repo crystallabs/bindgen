@@ -133,6 +133,7 @@ The following rules are automatically applied to all bindings:
 |  +- Mapping global functions                     | **YES** |
 |  +- Wrapping as Crystal class                    | **YES** |
 | Overloaded methods (Also default arguments)      | **YES** |
+| Out arguments (`QString &`), as tuple results    | **YES** |
 | C arrays in methods                              |         |
 |  +- References to arrays, as `Slice`             | **YES** |
 |  +- Pointers to arrays, as `StaticArray` pointer | **YES** |

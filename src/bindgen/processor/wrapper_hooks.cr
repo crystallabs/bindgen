@@ -20,17 +20,31 @@ module Bindgen
         return if indices.empty? && !result
 
         body = call.body.as(Call::HookableBody)
-        body.add_post_hook(ReleaseHook.new(indices, result))
+        body.add_post_hook(ReleaseHook.new(wrapper_arguments(call, indices), result))
       end
 
-      # Post-hook of a wrapper method passing the arguments at *indices*, and
-      # the *result*, to `BindgenHelper.release`.
+      # The wrapper arguments of *call* at the *indices* of the method's
+      # arguments.  The wrapper drops the out-only arguments, see
+      # `Parser::Method#out_arguments`, so its list may be shorter; the
+      # arguments are found by name.
+      private def wrapper_arguments(call : Call, indices : Array(Int32)) : Array(Call::Argument)
+        namer = Crystal::Argument.new(@db)
+
+        indices.map do |index|
+          name = namer.name(call.origin.arguments[index], index)
+          call.arguments.find { |arg| arg.name == name } ||
+            raise "BUG: argument #{name} of #{call.origin.qualified_name} isn't a wrapper argument"
+        end
+      end
+
+      # Post-hook of a wrapper method passing the *arguments*, and the
+      # *result*, to `BindgenHelper.release`.
       class ReleaseHook < Call::Body
-        def initialize(@indices : Array(Int32), @result : Bool)
+        def initialize(@arguments : Array(Call::Argument), @result : Bool)
         end
 
         def to_code(call : Call, platform : Graph::Platform) : String
-          lines = @indices.map { |index| "BindgenHelper.release(#{call.arguments[index].name})" }
+          lines = @arguments.map { |arg| "BindgenHelper.release(#{arg.name})" }
           lines << "BindgenHelper.release(result)" if @result
           lines.join('\n')
         end
@@ -43,7 +57,7 @@ module Bindgen
         return if indices.empty?
 
         body = call.body.as(Call::HookableBody)
-        body.pre_hook = KeepAliveHook.new(indices)
+        body.pre_hook = KeepAliveHook.new(wrapper_arguments(call, indices))
       end
 
       # Returns the indices of the arguments of *method* to keep alive, see
@@ -67,18 +81,19 @@ module Bindgen
         return unless index = method.tag?(Graph::Method::OWNED_BY_ARGUMENT_TAG)
 
         body = call.body.as(Call::HookableBody)
-        body.add_post_hook(OwnerHook.new(index.to_i, method.origin.any_constructor?))
+        owner = wrapper_arguments(call, [index.to_i]).first
+        body.add_post_hook(OwnerHook.new(owner, method.origin.any_constructor?))
       end
 
-      # Post-hook of a wrapper method keeping `self` alive while its argument at
-      # *index*, the owner, isn't `nil`.  Unless in a *constructor*, `nil`
-      # releases `self`, which nothing owns then.
+      # Post-hook of a wrapper method keeping `self` alive while its *owner*
+      # argument isn't `nil`.  Unless in a *constructor*, `nil` releases
+      # `self`, which nothing owns then.
       class OwnerHook < Call::Body
-        def initialize(@index : Int32, @constructor : Bool)
+        def initialize(@owner : Call::Argument, @constructor : Bool)
         end
 
         def to_code(call : Call, platform : Graph::Platform) : String
-          arg = call.arguments[@index]
+          arg = @owner
           keep = "BindgenHelper.keep_alive(self)"
 
           if !arg.nilable?
@@ -91,19 +106,18 @@ module Bindgen
         end
       end
 
-      # Pre-hook of a wrapper method passing the arguments at *indices* to
+      # Pre-hook of a wrapper method passing the *arguments* to
       # `BindgenHelper.keep_alive`.
       class KeepAliveHook < Call::Body
-        def initialize(@indices : Array(Int32))
+        def initialize(@arguments : Array(Call::Argument))
         end
 
         def to_code(call : Call, platform : Graph::Platform) : String
-          @indices.join('\n') do |index|
-            "BindgenHelper.keep_alive(#{call.arguments[index].name})"
+          @arguments.join('\n') do |arg|
+            "BindgenHelper.keep_alive(#{arg.name})"
           end
         end
       end
-
     end
   end
 end

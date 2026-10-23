@@ -258,7 +258,10 @@ module Bindgen
 
       # Checks if the *expr* type can be reached from *base*.
       private def type_reachable?(expr, base)
-        if expr.type.builtin? # Built-ins are always reachable
+        if expr.is_a?(Call::TupleResult) # The out values and the result
+          inner = expr.inner
+          (inner.nil? || type_reachable?(inner, base)) && expr.values.all? { |value| type_reachable?(value, base) }
+        elsif expr.type.builtin? # Built-ins are always reachable
           true
         elsif @db.try_or(expr.type, false, &.builtin?)
           true # Crystal built-in

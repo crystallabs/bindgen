@@ -510,9 +510,12 @@ module Bindgen
         return true if !array_types.empty? && virtual? && !final?
 
         # Check that all arguments, which pass in explicit by-value, either take
-        # the value directly, or a const-reference to it.
+        # the value directly, or a const-reference to it.  A non-const reference
+        # or pointer to a converted type is an out argument, see
+        # `#out_arguments`.
         pass_by_value_violation = @arguments.any? do |arg|
           next false unless passed_by_value?(db, arg)
+          next false if takes_out_arguments? && db.converted_out_argument?(arg)
           next true if arg.reference? && !arg.const? # Not const-ref - Violation!
 
           by_pointer?(arg) # Violation!
@@ -524,6 +527,34 @@ module Bindgen
         return true if passed_by_value?(db, @return_type) && by_pointer?(@return_type)
 
         false # This method is fine.
+      end
+
+      # The indices of the out arguments: the non-const references and
+      # pointers to converted value types (`TypeDatabase#converted_out_argument?`),
+      # like `QString &` or `QString *`, and in a method having one, those to
+      # built-in types and enums too (`TypeDatabase#builtin_out_argument?`),
+      # like `int &`.  The wrapper appends their values to the result: a
+      # reference is an in/out argument, which it keeps, a pointer is out-only,
+      # which it drops.  Empty for a method which can't take out arguments, see
+      # `#takes_out_arguments?`, and for one without a converted out argument,
+      # whose `int &` stays an `Int32*`.
+      def out_arguments(db : TypeDatabase) : Array(Int32)
+        return [] of Int32 unless takes_out_arguments?
+        return [] of Int32 unless @arguments.any? { |arg| db.converted_out_argument?(arg) }
+
+        @arguments.each_index.select do |index|
+          arg = @arguments[index]
+          db.converted_out_argument?(arg) || db.builtin_out_argument?(arg)
+        end.to_a
+      end
+
+      # Can this method have out arguments?  A constructor usually keeps the
+      # pointer it is given, like `QTextStream(QString *)`, and so does the
+      # setter of a pointer member, a signal passes its arguments to the block,
+      # and an operator returning a tuple would be odd: these keep dropping the
+      # non-const references and pointers to converted types.
+      def takes_out_arguments? : Bool
+        !any_constructor? && !signal? && !operator? && !member_setter? && !static_setter?
       end
 
       # Is *type* configured to be passed by-value?

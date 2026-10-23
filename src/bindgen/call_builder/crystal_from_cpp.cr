@@ -19,12 +19,16 @@ module Bindgen
         pass = Crystal::Pass.new(@db)
         argument = Crystal::Argument.new(@db)
 
+        outs = method.out_arguments(@db)
         arguments = method.arguments.map_with_index do |arg, idx|
+          name = argument.name(arg, idx)
+          next out_argument(pass, arg, name) if outs.includes?(idx)
+
           caller = pass.from_binding(arg, qualified: true)
           callee = pass.from_wrapper(arg, callback_argument: true)
           result = combine_result(caller, callee)
           result = pointer_argument(result) if pass.proc_by_pointer?(arg)
-          result.to_argument(argument.name(arg, idx))
+          result.to_argument(name)
         end
 
         callee = pass.to_wrapper(method.return_type)
@@ -39,6 +43,32 @@ module Bindgen
           result: result,
           arguments: arguments,
           body: Body.new(@db, receiver, do_block, fallback(result, by_pointer)),
+        )
+      end
+
+      # Builds the out argument *arg* of the `Proc`, see
+      # `Parser::Method#out_arguments`: C++ passes a pointer to the binding
+      # type, like `Binding::CrystalString*` or `Int32*`.  The override takes
+      # the value of an in/out argument, a reference, and returns the values of
+      # all out arguments in its tuple, see `Crystal::Pass#wrapper_result`,
+      # which `Body` writes back through the pointers: the `epilogue`.
+      private def out_argument(pass : Crystal::Pass, arg : Parser::Argument, name : String) : Call::OutArgument
+        value = arg.dereferenced
+        caller = pass.from_binding(value, qualified: true)
+        callee = pass.from_wrapper(value, callback_argument: true)
+        result = combine_result(caller, callee)
+        back = pass.to_binding(value, to_unsafe: true, qualified: true)
+        local = Call::OutArgument.local_name(name)
+
+        Call::OutArgument.new(
+          type: arg,
+          type_name: result.type_name,
+          name: name,
+          call: result.apply_conversion("#{name}.value"),
+          in_out: arg.reference?,
+          local: local,
+          epilogue: "#{name}.value = #{back.apply_conversion(local)}",
+          pointer: result.pointer + 1,
         )
       end
 
@@ -96,6 +126,24 @@ module Bindgen
         def initialize(@db : TypeDatabase, @receiver : String, @do_block : Bool, @fallback : String)
         end
 
+        # The body of the `Proc`: the *code* calling the override, converted
+        # into the result.  With out arguments, the override returns their
+        # values in its tuple, see `Crystal::Pass#wrapper_result`, which is
+        # taken apart into the locals the epilogues write back from.
+        private def call_body(call, code) : String
+          outs = call.arguments.select(Call::OutArgument)
+          return call.result.apply_conversion(code) if outs.empty?
+
+          void = call.result.type.pure_void?
+          locals = outs.map(&.local)
+          locals.unshift("_result_") unless void
+
+          lines = ["#{locals.join(", ")} = #{code}"]
+          lines.concat(outs.compact_map(&.epilogue))
+          lines << (void ? "nil" : call.result.apply_conversion("_result_"))
+          lines.join("\n")
+        end
+
         def to_code(call : Call, platform : Graph::Platform) : String
           typer = Crystal::Typename.new(@db)
           func_result = typer.full(call.result)
@@ -103,12 +151,14 @@ module Bindgen
           func_args = call.arguments.map { |arg| typer.full(arg) }
           func_args << func_result # Add return type
 
-          pass_args = call.arguments.map(&.call).join(", ")
+          # An out-only argument isn't passed to the override.
+          passed = call.arguments.reject { |arg| arg.is_a?(Call::OutArgument) && !arg.in_out? }
+          pass_args = passed.map(&.call).join(", ")
           proc_args = func_args.join(", ")
           block_arg_names = call.arguments.map(&.name).join(", ")
-          block_args = "|#{block_arg_names}|" unless pass_args.empty?
+          block_args = "|#{block_arg_names}|" unless block_arg_names.empty?
 
-          body = call.result.apply_conversion "#{@receiver}.#{call.name}(#{pass_args})"
+          body = call_body(call, "#{@receiver}.#{call.name}(#{pass_args})")
           if @do_block
             %[Proc(#{proc_args}).new do #{block_args} BindgenHelper.rescued(#{@fallback}) do #{body} end end]
           else

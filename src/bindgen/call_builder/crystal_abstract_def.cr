@@ -7,13 +7,13 @@ module Bindgen
 
       def build(method : Parser::Method)
         pass = Crystal::Pass.new(@db)
-        arguments = pass.arguments_to_wrapper(method.arguments)
+        arguments = pass.arguments_to_wrapper(method.arguments, method.out_arguments(@db))
 
         Call.new(
           origin: method,
           name: method.crystal_name,
           arguments: arguments,
-          result: pass.from_wrapper(method.return_type),
+          result: pass.wrapper_result(method),
           body: Body.new(@db),
         )
       end

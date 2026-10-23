@@ -41,10 +41,12 @@ module Bindgen
           func_args = formatter.argument_list(call.arguments)
 
           # Returning a `void` from a void method generates a warning.
-          prefix = "return " unless call.result.type.pure_void?
+          result_type = func_result unless call.result.type.pure_void?
+          code = @target.body.to_code(@target, platform)
+          lines = formatter.out_statements(@target.arguments, code, result_type)
 
           %[extern "C" #{func_result} #{call.name}(#{func_args}) {\n] \
-          %[  #{prefix}#{@target.body.to_code(@target, platform)};\n] \
+          %[#{lines.join("\n") { |line| "  #{line}" }}\n] \
           %[}\n\n]
         end
       end

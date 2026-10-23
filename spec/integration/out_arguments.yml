@@ -1,0 +1,11 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.
+
+classes:
+  Flavor: Flavor
+  Outs: Outs
+  Keeper: Keeper
+  Transformer: Transformer
+  AbstractFormatter: AbstractFormatter
+  Formatters: Formatters

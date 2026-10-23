@@ -38,3 +38,64 @@ describe Bindgen::Parser::Method do
     end
   end
 end
+
+describe Bindgen::Parser::Method do
+  describe "#out_arguments" do
+    it "finds non-const references and pointers to converted types" do
+      method = Parser.method("f", "Foo", Parser.void_type, [
+        Parser.argument("a", "std::string &"),
+        Parser.argument("b", "std::string *"),
+        Parser.argument("c", "const std::string &"),
+        Parser.argument("d", "std::string"),
+      ])
+      method.out_arguments(db).should eq([0, 1])
+      method.filtered?(db).should be_false
+    end
+
+    it "counts built-in references and pointers next to a converted one" do
+      method = Parser.method("f", "Foo", Parser.void_type, [
+        Parser.argument("a", "int &"),
+        Parser.argument("b", "bool *"),
+        Parser.argument("c", "std::string &"),
+        Parser.argument("d", "const int *"),
+        Parser.argument("e", "int"),
+      ])
+      method.out_arguments(db).should eq([0, 1, 2])
+    end
+
+    it "doesn't count built-in references in a method without a converted one" do
+      method = Parser.method("f", "Foo", Parser.void_type, [
+        Parser.argument("a", "int &"),
+        Parser.argument("b", "bool *"),
+      ])
+      method.out_arguments(db).should be_empty
+      method.filtered?(db).should be_false
+    end
+
+    it "is empty for constructors, setters, signals and operators, which stay filtered" do
+      args = [Parser.argument("a", "std::string &")]
+      constructor = Parser.method("", "Foo", Parser.void_type, args, type: Bindgen::Parser::Method::Type::Constructor)
+      constructor.out_arguments(db).should be_empty
+      constructor.filtered?(db).should be_true
+
+      signal = Parser.method("changed", "Foo", Parser.void_type, args, type: Bindgen::Parser::Method::Type::Signal)
+      signal.out_arguments(db).should be_empty
+      signal.filtered?(db).should be_true
+
+      operator = Parser.method("operator>>", "Foo", Parser.void_type, args, type: Bindgen::Parser::Method::Type::Operator)
+      operator.out_arguments(db).should be_empty
+      operator.filtered?(db).should be_true
+
+      setter = Parser.method("name", "Foo", Parser.void_type, [Parser.argument("a", "std::string *")], type: Bindgen::Parser::Method::Type::MemberSetter)
+      setter.out_arguments(db).should be_empty
+      setter.filtered?(db).should be_true
+    end
+
+    it "keeps filtering other indirections to converted types" do
+      ["std::string **", "std::string *&", "std::string **&", "const std::string *"].each do |type|
+        method = Parser.method("f", "Foo", Parser.void_type, [Parser.argument("a", type)])
+        method.filtered?(db).should be_true
+      end
+    end
+  end
+end
