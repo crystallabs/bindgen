@@ -19,6 +19,13 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   selected, to `BindgenHelper.release`.  `BindgenHelper.release(nil)` does
   nothing, like `keep_alive(nil)`.
 
+* Exception boundary of callbacks from C++: a Crystal override of a virtual
+  method, or the block of a Qt signal, runs in `BindgenHelper.rescued`.  An
+  exception it raises goes to `BindgenHelper.on_exception`, printing it with
+  its backtrace to the standard error by default, and C++ receives a zero of
+  the result type (`BindgenHelper.zero_value`).  Before, the exception unwound
+  through the C++ frames.
+
 ### Changed
 
 * `BindgenHelper.keep_alive`, `release`, `kept_alive?` and the destroyed hook

@@ -111,6 +111,52 @@ module BindgenHelper
     String.new(string.ptr, string.size)
   end
 
+  # The handler of an exception raised by a callback from C++: a Crystal
+  # override of a virtual method, or the block of a signal.  The callback
+  # returns a zero to C++ instead, see `.rescued`.  By default, prints the
+  # exception and its backtrace to the standard error.
+  @@on_exception : ::Proc(::Exception, ::Nil) = ->(exception : ::Exception) {
+    ::STDERR.puts "Unhandled exception in a callback from C++:"
+    exception.inspect_with_backtrace(::STDERR)
+  }
+
+  def self.on_exception : ::Proc(::Exception, ::Nil)
+    @@on_exception
+  end
+
+  def self.on_exception=(handler : ::Proc(::Exception, ::Nil))
+    @@on_exception = handler
+  end
+
+  # Runs the block, a callback from C++.  If it raises, hands the exception to
+  # `.on_exception` and returns *fallback*, a zero of the result type: a
+  # Crystal exception can't unwind through the C++ frames of the caller.
+  def self.rescued(fallback, &)
+    yield
+  rescue exception : ::Exception
+    @@on_exception.call(exception)
+    fallback
+  end
+
+  # A zero of *type*: `nil`, `false`, `0`, the enum of `0`, a null pointer or a
+  # zeroed `lib` structure.  `.rescued` returns it to C++.
+  macro zero_value(type)
+    {% t = type.resolve %}
+    {% if t == ::Nil %}
+      nil
+    {% elsif t == ::Bool %}
+      false
+    {% elsif t < ::Number %}
+      {{ type }}.zero
+    {% elsif t < ::Enum %}
+      {{ type }}.new(0)
+    {% elsif t < ::Pointer %}
+      {{ type }}.null
+    {% else %}
+      {{ type }}.new
+    {% end %}
+  end
+
   # Objects kept alive by `.keep_alive`, by the key of their C++ object, see
   # `.kept_key`.  Getters return a new wrapper each time, so any wrapper of the
   # C++ object finds it.  The GC scans the pointers stored in the hash.

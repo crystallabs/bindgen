@@ -1140,6 +1140,14 @@ thread, whichever it is.
 * `button.on_clicked(Qt::ConnectionType::QueuedConnection) { }`: Run by the
   event loop, after the emission returns
 
+### §Q.1.4 Exceptions in the block
+
+An exception the block raises is handed to `BindgenHelper.on_exception`, and
+the signal's emission returns as if the block had returned: a Crystal
+exception can't unwind through the C++ frames emitting the signal.  The same
+applies to a Crystal override of a virtual method, which returns a zero of its
+result type to C++ then.
+
 ### §Q.2 QFlags
 
 `QFlags<EnumT>` is a C++/Qt template type marking a C++ `enum` to be a flags

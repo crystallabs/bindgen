@@ -161,6 +161,18 @@ describe "Qt-specific wrapper features" do
           called.should be_true
         end
 
+        it "rescues an exception of the block" do
+          caught = [] of ::Exception
+          default = Test::BindgenHelper.on_exception
+          Test::BindgenHelper.on_exception = ->(e : ::Exception) { caught << e; nil }
+          begin
+            Test::SomeObject.new.on_stuff_happened { raise "in a slot" }
+          ensure
+            Test::BindgenHelper.on_exception = default
+          end
+          caught.map(&.message).should eq(["in a slot"])
+        end
+
         it "types the block arguments as declared" do
           subject = Test::SomeObject.new
 

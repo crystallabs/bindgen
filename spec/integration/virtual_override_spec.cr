@@ -99,6 +99,14 @@ describe "C++ virtual overriding from Crystal feature" do
         end
       end
 
+      # Raises in an override called from C++: `BindgenHelper.rescued` returns
+      # a zero to C++ and hands the exception to `BindgenHelper.on_exception`.
+      class RaisingThing < Test::Subclass
+        def calc(a, b) : Int32
+          raise "boom"
+        end
+      end
+
       # Test calling superclass method from overridden method
       class OverrideThing < Test::Base
         def calc(a, b)
@@ -264,6 +272,18 @@ describe "C++ virtual overriding from Crystal feature" do
 
         it "allows calling Crystal overrides from C++" do
           Thing.new.call_virtual(7, 6).should eq(1)
+        end
+
+        it "rescues an exception of an override, returning a zero to C++" do
+          caught = [] of ::Exception
+          default = Test::BindgenHelper.on_exception
+          Test::BindgenHelper.on_exception = ->(e : ::Exception) { caught << e; nil }
+          begin
+            RaisingThing.new.call_virtual(7, 6).should eq(0)
+          ensure
+            Test::BindgenHelper.on_exception = default
+          end
+          caught.map(&.message).should eq(["boom"])
         end
 
         it "can call superclass method from overridden method" do

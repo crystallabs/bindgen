@@ -885,6 +885,18 @@ within Crystal.  Requires the `Inheritance` processor.
 **Important Note**: Make sure to run this processor after `CrystalWrapper` but
 before `CrystalBinding`.
 
+An exception a Crystal override raises can't unwind through the C++ frames
+calling it, so every callback from C++ (an override, or the block of a Qt
+signal) runs in `BindgenHelper.rescued`: the exception goes to
+`BindgenHelper.on_exception`, which prints it with its backtrace to the
+standard error by default, and C++ receives a zero of the result type: `0`,
+`false`, a null pointer, the enum of `0`, or a zeroed structure.  Replace the
+handler to log or re-raise it later on the Crystal side:
+
+```crystal
+Qt::BindgenHelper.on_exception = ->(exception : Exception) { Log.error(exception: exception) { "In a callback" } }
+```
+
 It needs to modify the `#initialize` methods, and generate `lib` structures,
 bindings, and C++ code too.
 

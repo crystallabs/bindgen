@@ -1,6 +1,10 @@
 module Bindgen
   module CallBuilder
     # Builder for calls made from C++ to a Crystal `CrystalProc`.
+    #
+    # The `Proc` runs the call in `BindgenHelper.rescued`: an exception it
+    # raises goes to `BindgenHelper.on_exception`, and a zero of the result
+    # type returns to C++, as the exception can't unwind through C++ frames.
     class CrystalFromCpp
       def initialize(@db : TypeDatabase)
       end
@@ -26,15 +30,34 @@ module Bindgen
         callee = pass.to_wrapper(method.return_type)
         caller = pass.to_binding(method.return_type, to_unsafe: true, qualified: true)
         result = combine_result(caller, callee)
-        result = pointer_result(result) if pass.proc_by_pointer?(method.return_type)
+        by_pointer = pass.proc_by_pointer?(method.return_type)
+        result = pointer_result(result) if by_pointer
 
         Call.new(
           origin: method,
           name: method.crystal_name,
           result: result,
           arguments: arguments,
-          body: Body.new(@db, receiver, do_block),
+          body: Body.new(@db, receiver, do_block, fallback(result, by_pointer)),
         )
+      end
+
+      # The value the `Proc` returns to C++ if the call raised: `nil` for
+      # nothing, a zeroed copy for a structure returned *by_pointer*, else the
+      # zero of the *result* type.
+      private def fallback(result : Call::Result, by_pointer : Bool) : String
+        return "nil" if result.type.pure_void?
+
+        typer = Crystal::Typename.new(@db)
+        type_name = typer.full(result, expects_type: false)
+
+        if by_pointer
+          "#{type_name}.malloc(1)"
+        elsif result.pointer > 0
+          "#{type_name}.null"
+        else
+          "BindgenHelper.zero_value(#{type_name})"
+        end
       end
 
       # Combines the results *outer* to *inner*.
@@ -70,7 +93,7 @@ module Bindgen
       end
 
       class Body < Call::Body
-        def initialize(@db : TypeDatabase, @receiver : String, @do_block : Bool)
+        def initialize(@db : TypeDatabase, @receiver : String, @do_block : Bool, @fallback : String)
         end
 
         def to_code(call : Call, platform : Graph::Platform) : String
@@ -87,9 +110,9 @@ module Bindgen
 
           body = call.result.apply_conversion "#{@receiver}.#{call.name}(#{pass_args})"
           if @do_block
-            %[Proc(#{proc_args}).new do #{block_args} #{body} end]
+            %[Proc(#{proc_args}).new do #{block_args} BindgenHelper.rescued(#{@fallback}) do #{body} end end]
           else
-            %[Proc(#{proc_args}).new{#{block_args} #{body} }]
+            %[Proc(#{proc_args}).new{#{block_args} BindgenHelper.rescued(#{@fallback}) { #{body} } }]
           end
         end
       end
