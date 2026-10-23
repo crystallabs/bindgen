@@ -63,6 +63,11 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   setMenu(QMenu *menu)"]`.  `Parser::Method.from_signature` parses them.
   `Parser::Type.parse` marks the fundamental types, like `unsigned int`, as
   built-in, as the clang tool does.
+* `containers:` kind `Optional`, for `std::optional<T>`: converted to and
+  from a `T?`, the value or `nil`, like a pair to a `Tuple`.  The wrapper
+  class (`Std::Optional.of(T)`) has `#has_value?`, `#to_nilable`, `#value=`
+  and `.from`.  `access_method`, `push_method` and `count_method` default to
+  `value`, `emplace` and `has_value` for it.
 * `shadowed_by:` type rule: an overload taking the type is dropped where
   another overload takes one of the listed types in its place, like
   `QString::indexOf(QStringView)` next to `indexOf(const QString &)`, for a

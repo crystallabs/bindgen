@@ -940,7 +940,25 @@ end
 map.to_h # => {1 => "One", 10 => "One", 20 => "Two"}
 ```
 
-### §2.6.3 Class template instantiations
+### §2.6.3 Optional types
+
+An optional, like `std::optional<T>`, converts to and from a `T?`, the value
+or `nil`, when listed in `containers` with the type `Optional`: a method
+returning one returns the value or `nil`, and one taking it accepts either.
+The wrapper class is only seen when built directly, through `Optional.of(T)`
+or `.from(value)`; it has `#has_value?`, `#to_nilable` and `#value=`.
+
+```cpp
+std::optional<QFont> displayFont();
+int value_or(const std::optional<int> &value, int fallback);
+```
+
+```crystal
+def display_font : Font? end
+def value_or(value : Int32?, fallback : Int32) : Int32 end
+```
+
+### §2.6.4 Class template instantiations
 
 An instantiation of a class template listed in `classes:` is wrapped like any
 other class, with the template arguments substituted.  It's known by the

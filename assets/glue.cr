@@ -520,6 +520,63 @@ module BindgenHelper
     end
   end
 
+  # Wrapper for an instantiated optional type, like `std::optional`.
+  #
+  # Optionals convert to and from a `T?`, the value or `nil`, so wrapped
+  # methods take and return those; this wrapper is only seen when built
+  # directly, by `.from` or `Optional.of(T).new`.
+  module OptionalContainer(T)
+    # `#unsafe_has_value`, `#unsafe_value` and `#unsafe_emplace` will be
+    # implemented by the wrapper class.
+
+    # Is there a value?
+    def has_value? : Bool
+      unsafe_has_value
+    end
+
+    # The value, or `nil` if there is none.
+    def to_nilable : T?
+      unsafe_value if unsafe_has_value
+    end
+
+    # Sets the value.
+    def value=(value : T) : T
+      unsafe_emplace(value)
+      value
+    end
+
+    def to_s(io)
+      to_nilable.to_s(io)
+    end
+
+    def inspect(io)
+      io << "<Wrapped "
+      to_nilable.inspect(io)
+      io << ">"
+    end
+
+    # Note: Crystal has no dependent types, so this module must refer to its
+    # own type parameters.
+    private module ClassMethods(T)
+      # Wraps the *value* into an optional of this type, empty for `nil`, if
+      # it's not already one.
+      def from(value : T?) : self
+        optional = new
+        optional.value = value unless value.nil?
+        optional
+      end
+
+      # :ditto:
+      def from(value : self) : self
+        value
+      end
+    end
+
+    macro included
+      extend ClassMethods(T)
+    end
+  end
+
   # Wrapper for an instantiated, associative container type.
   #
   # This offers a subset of the methods known from `Hash`, and is `Enumerable`

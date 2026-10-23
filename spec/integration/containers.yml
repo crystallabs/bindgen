@@ -42,6 +42,10 @@ containers:
     type: Pair
   - class: std::__1::pair
     type: Pair
+  - class: std::optional
+    type: Optional
+  - class: std::__1::optional
+    type: Optional
   - class: QtStyleMap
     type: Associative
     count_method: contains

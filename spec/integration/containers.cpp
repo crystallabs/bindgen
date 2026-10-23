@@ -2,10 +2,13 @@
 #include <string>
 #include <map>
 #include <unordered_map>
+#include <optional>
 
 typedef std::vector<unsigned char> bytearray;
 typedef std::map<std::string, int> phonebook;
 typedef unsigned int rgb;
+
+class Point; // See below, for the optional of it
 
 // An alias template, like Qt's `QPair`: The parser names the aliased type.
 template <typename A, typename B> using couple = std::pair<A, B>;
@@ -42,6 +45,27 @@ public:
 
   std::vector<couple<double, int>> aliased_weights() {
     return { { 2.5, 3 } };
+  }
+
+  // Optionals are converted to and from a `T?`.
+  std::optional<int> maybeInt(bool some) {
+    if (some) return 42;
+    return std::nullopt;
+  }
+
+  std::optional<std::string> maybeString(bool some) {
+    if (some) return std::string("some");
+    return std::nullopt;
+  }
+
+  std::optional<Point> maybePoint(bool some);
+
+  int unwrapInt(const std::optional<int> &value) {
+    return value.value_or(-1);
+  }
+
+  std::string greet(std::optional<std::string> name) {
+    return "hello " + name.value_or("nobody");
   }
 
   std::vector<int> integers() {
@@ -232,3 +256,8 @@ public:
     return map;
   }
 };
+
+std::optional<Point> Containers::maybePoint(bool some) {
+  if (some) return Point{ 3, 4 };
+  return std::nullopt;
+}

@@ -269,6 +269,10 @@ module Bindgen
           true # Containers and pairs
         elsif ARRAY_BINDING_TYPES.includes?(expr.type_name)
           true # C arrays passed to Crystal
+        elsif expr.type_name.ends_with?('?') && (templ = expr.type.template)
+          # The `T?` of an optional is reachable if `T` is.
+          pass = Crystal::Pass.new(@db)
+          templ.arguments.all? { |arg| type_reachable?(pass.to_wrapper(arg), base) }
         else
           # C arrays are reachable if their elements are.  Do a full look-up.
           type_name = ARRAY_RX.match(expr.type_name).try(&.[1]) || expr.type_name

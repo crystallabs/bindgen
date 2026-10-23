@@ -93,7 +93,8 @@ module Bindgen
       enum Type
         Sequential
         Associative
-        Pair # `std::pair` and `QPair`, converted to a Crystal `Tuple`
+        Pair     # `std::pair` and `QPair`, converted to a Crystal `Tuple`
+        Optional # `std::optional`, converted to a Crystal `T?`
       end
       include YAML::Serializable
 
@@ -106,18 +107,41 @@ module Bindgen
       # List of instantiations to create.
       property instantiations = Set(Array(String)).new
 
-      # Method to access an element at an index.
-      property access_method : String = "at"
+      # Method to access an element at an index, or the value of an optional.
+      @[YAML::Field(key: "access_method")]
+      property configured_access_method : String?
 
-      # Method to add an element at the end.
-      property push_method : String = "push_back"
+      # Method to add an element at the end, or to set the value of an
+      # optional.
+      @[YAML::Field(key: "push_method")]
+      property configured_push_method : String?
 
       # Method telling the current count of elements.
       property size_method : String = "size"
 
-      # Method telling if an associative container has a key.  Returns the
-      # count of entries of the key, or a `bool`.
-      property count_method : String = "count"
+      # Method telling if an associative container has a key, returning the
+      # count of entries of the key, or a `bool`; or if an optional has a
+      # value.
+      @[YAML::Field(key: "count_method")]
+      property configured_count_method : String?
+
+      # See `#configured_access_method`.  Defaults to `at`, or to `value` for
+      # an optional.
+      def access_method : String
+        @configured_access_method || (type.optional? ? "value" : "at")
+      end
+
+      # See `#configured_push_method`.  Defaults to `push_back`, or to
+      # `emplace` for an optional.
+      def push_method : String
+        @configured_push_method || (type.optional? ? "emplace" : "push_back")
+      end
+
+      # See `#configured_count_method`.  Defaults to `count`, or to
+      # `has_value` for an optional.
+      def count_method : String
+        @configured_count_method || (type.optional? ? "has_value" : "count")
+      end
 
       # Method removing the entry of a key from an associative container.
       property erase_method : String = "erase"

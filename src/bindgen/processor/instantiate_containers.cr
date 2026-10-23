@@ -17,6 +17,9 @@ module Bindgen
       # Module for pairs
       PAIR_MODULE = "BindgenHelper::PairContainer"
 
+      # Module for optionals
+      OPTIONAL_MODULE = "BindgenHelper::OptionalContainer"
+
       # The parsed document, for container instantiations listed in `classes:`.
       @doc : Parser::Document?
 
@@ -80,6 +83,8 @@ module Bindgen
           add_associative_containers(container, root)
         when .pair?
           add_pair_containers(container, root)
+        when .optional?
+          add_optional_containers(container, root)
         else
           raise "BUG: Missing case for #{container.type.inspect}"
         end
@@ -107,6 +112,38 @@ module Bindgen
           check_associative_instance! container, instance
           add_pair_container(container, instance, root)
         end
+      end
+
+      # Adds all instances of the optional *container* into *root*.
+      private def add_optional_containers(container, root)
+        nested_first(container.instantiations).each do |instance|
+          check_sequential_instance! container, instance
+          add_optional_container(container, instance, root)
+        end
+      end
+
+      # Instantiates a single optional *container* *instance* into *root*.
+      # Like a pair's, its wrapper is an implementation detail: The type rules
+      # convert an optional to and from a `T?`.
+      private def add_optional_container(container, instance, root)
+        builder = Graph::Builder.new(@db)
+
+        templ_type = Parser::Type.parse(cpp_container_name(container, instance))
+        templ_args = templ_type.template_arguments
+        klass = build_optional_class(container, templ_type)
+
+        if parsed_class(templ_type)
+          raise "#{templ_type.full_name} is listed in `classes:`, but wrapping the methods of an optional isn't supported"
+        end
+
+        add_cpp_typedef(root, templ_type, klass.name)
+        set_container_type_rules(container, templ_type, klass.name, klass.name)
+
+        graph = builder.build_class(klass, klass.name, root)
+        graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
+        graph.included_modules << container_module(OPTIONAL_MODULE, templ_args)
+        graph.included_modules << container_module(container.class, templ_args)
+        @db.get_or_add(templ_type.full_name).graph_node = graph
       end
 
       # Instantiates a single pair *container* *instance* into *root*.  Its
@@ -336,14 +373,19 @@ module Bindgen
         rules.cpp_type ||= cpp_name
 
         if rules.to_crystal.no_op?
-          rules.to_crystal = Template.from_string(
-            container.type.pair? ? "#{crystal_name}.new(unwrap: %).to_tuple" : "#{crystal_name}.new(unwrap: %)",
-            simple: true)
+          to_crystal = case container.type
+                       when .pair?     then "#{crystal_name}.new(unwrap: %).to_tuple"
+                       when .optional? then "#{crystal_name}.new(unwrap: %).to_nilable"
+                       else                 "#{crystal_name}.new(unwrap: %)"
+                       end
+          rules.to_crystal = Template.from_string(to_crystal, simple: true)
         end
         if rules.from_crystal.no_op?
-          rules.from_crystal = Template.from_string(
-            container.type.pair? ? "#{crystal_name}.from(%).to_unsafe" : "BindgenHelper.wrap_container(#{crystal_name}, %).to_unsafe",
-            simple: true)
+          from_crystal = case container.type
+                         when .pair?, .optional? then "#{crystal_name}.from(%).to_unsafe"
+                         else                         "BindgenHelper.wrap_container(#{crystal_name}, %).to_unsafe"
+                         end
+          rules.from_crystal = Template.from_string(from_crystal, simple: true)
         end
         if rules.from_cpp.no_op?
           rules.from_cpp = Template.from_string(@db.cookbook.value_to_pointer(cpp_name))
@@ -361,12 +403,13 @@ module Bindgen
 
       # Returns the Crystal type of the *container* instantiated with the
       # *type_args*: The `Enumerable` the wrapper includes, where associative
-      # containers enumerate tuples of the key and the value, like `Hash`, or
-      # the `Tuple` a pair converts to.
+      # containers enumerate tuples of the key and the value, like `Hash`, the
+      # `Tuple` a pair converts to, or the `T?` an optional converts to.
       private def enumerable_type(container, type_args)
         case container.type
         when .associative? then "Enumerable({#{wrapper_type_list(type_args)}})"
         when .pair?        then "Tuple(#{wrapper_type_list(type_args)})"
+        when .optional?    then "#{wrapper_type_list(type_args)}?"
         else                    container_module("Enumerable", type_args)
         end
       end
@@ -467,6 +510,42 @@ module Bindgen
         klass.methods << map_helper_method(klass, "bindgen_pair_second", "second", [pair_arg], second_type.never_nil)
         klass.methods << map_helper_method(klass, "bindgen_pair_set", "set",
           [pair_arg, first_arg, second_arg], Parser::Type::VOID)
+
+        klass
+      end
+
+      # Builds a full `Parser::Class` for the optional *container* in the
+      # specified *instantiation*: `has_value`, `value` and `emplace`, which
+      # `BindgenHelper::OptionalContainer` uses.
+      private def build_optional_class(container, templ_type : Parser::Type) : Parser::Class
+        var_type = templ_type.template_arguments.first
+        klass = container_class(container, templ_type)
+
+        klass.methods << default_constructor_method(klass)
+
+        klass.methods << Parser::Method.build(
+          name: container.count_method,
+          class_name: klass.name,
+          arguments: [] of Parser::Argument,
+          return_type: Parser::Type.builtin_type("bool"),
+          crystal_name: "unsafe_has_value",
+        )
+
+        klass.methods << Parser::Method.build(
+          name: container.access_method,
+          class_name: klass.name,
+          arguments: [] of Parser::Argument,
+          return_type: var_type.never_nil,
+          crystal_name: "unsafe_value",
+        )
+
+        klass.methods << Parser::Method.build(
+          name: container.push_method,
+          class_name: klass.name,
+          arguments: [Parser::Argument.new("value", var_type)],
+          return_type: Parser::Type::VOID,
+          crystal_name: "unsafe_emplace",
+        )
 
         klass
       end

@@ -364,14 +364,18 @@ member_functions: [qHash]
 
 containers:
   - class: Name of the C++ class
-    # "Pair" is for `std::pair` and `QPair`, converted to and from a `Tuple`.
-    type: "Sequential", "Associative" or "Pair"
-    # access_method: C++ item access method.  Defaults to `at`.
+    # "Pair" is for `std::pair` and `QPair`, converted to and from a `Tuple`;
+    # "Optional" for `std::optional`, converted to and from a `T?`.
+    type: "Sequential", "Associative", "Pair" or "Optional"
+    # access_method: C++ item access method.  Defaults to `at`, or to `value`
+    #   for an optional.
     # size_method: C++ container size method.  Defaults to `size`.
-    # push_method: C++ item append method.  Defaults to `push_back`.
+    # push_method: C++ item append method.  Defaults to `push_back`, or to
+    #   `emplace` for an optional.
     # Associative containers (Keys mapping to values, like `std::map`):
     # count_method: C++ method counting the entries of a key, or returning a
-    #   `bool` (Like Qt's `contains`).  Defaults to `count`.
+    #   `bool` (Like Qt's `contains`).  Defaults to `count`, or to `has_value`
+    #   for an optional.
     # erase_method: C++ method removing a key.  Defaults to `erase`.
     # insert_method: C++ method `insert(key, value)` replacing the value of an
     #   existing key (Like Qt's `insert`).  If unset, `bindgen_map_store` from

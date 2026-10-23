@@ -153,6 +153,7 @@ The following rules are automatically applied to all bindings:
 | C++ Template instantiation for containers types  |         |
 |  +- Sequential containers                        | **YES** |
 |  +- Associative containers                       | **YES** |
+|  +- Pairs as `Tuple`, optionals as `T?`           | **YES** |
 | C++ class template instantiations                |         |
 |  +- Type and integral non-type arguments         | **YES** |
 |  +- Default template arguments                   | **YES** |

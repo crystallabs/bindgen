@@ -11,6 +11,31 @@ describe "container instantiation feature" do
         end
       end
 
+      context "optional" do
+        it "converts to and from a nilable" do
+          subject = Test::Containers.new
+          subject.maybe_int(true).should eq(42)
+          subject.maybe_int(false).should be_nil
+          typeof(subject.maybe_int(true)).should eq(Int32?)
+          subject.maybe_string(true).should eq("some")
+          subject.maybe_string(false).should be_nil
+          subject.maybe_point(true).try(&.x).should eq(3)
+          subject.maybe_point(false).should be_nil
+          subject.unwrap_int(7).should eq(7)
+          subject.unwrap_int(nil).should eq(-1)
+          subject.greet("you").should eq("hello you")
+          subject.greet(nil).should eq("hello nobody")
+        end
+
+        it "wraps an optional directly" do
+          optional = Test::Std::Optional.of(Int32).from(5)
+          optional.has_value?.should be_true
+          optional.to_nilable.should eq(5)
+          Test::Std::Optional.of(Int32).from(nil).to_nilable.should be_nil
+          Test::Containers.new.unwrap_int(optional.to_nilable).should eq(5)
+        end
+      end
+
       context "pair" do
         it "converts to and from tuples" do
           Test::Containers.new.entry.should eq({"one", 1})
