@@ -31,6 +31,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   the type: `on_finished(Qt::ConnectionType::QueuedConnection) { }`, after the
   type arguments of an overloaded signal, and default to `Qt::AutoConnection`.
   The configuration must wrap the `Qt::ConnectionType` enum.
+* The block of a signal connection method, and any `Proc` a wrapper takes,
+  types a pointer argument defaulting to `nullptr` as nilable, like the
+  conversion of the argument did: `on_destroyed { |object| }` didn't compile,
+  as the block was a `Proc(Object, Void)` called with an `Object?`.
 * `BlockOverloads` tells the overloads of a block-taking method apart by their
   other arguments too, so the connection methods above still get their type
   arguments; and the Crystal formatter exposes the default of an optional

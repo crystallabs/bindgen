@@ -134,11 +134,14 @@ module Bindgen
         # The order used to store is result type first, arguments second,
         # mirroring C function prototypes.  Crystal Procs are formatted in the
         # opposite direction, so we have to reverse it.
-        types = args[1..-1]
-        types << args.first
-        names = types.map { |t| to_wrapper(t).type_name.as(String) }.join(", ")
+        # The arguments are typed as `CallBuilder::CrystalFromCpp` converts
+        # them: a pointer defaulting to `nullptr` is nilable, like in a Crystal
+        # override, `nilable_results` doesn't apply.
+        typer = Typename.new(@db)
+        names = args[1..-1].map { |t| typer.full(from_wrapper(t, callback_argument: true)) }
+        names << typer.full(to_wrapper(args.first))
 
-        "Proc(#{names})"
+        "Proc(#{names.join(", ")})"
       end
 
       # Passes the pointer or reference to a C array *type* as pointer to a

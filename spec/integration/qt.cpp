@@ -195,6 +195,16 @@ signals:
     // Empty.
   }
 
+  // The block takes a pointer defaulting to `nullptr` as nilable, like
+  // `QObject::destroyed(QObject *object = nullptr)`, and the other as is.
+  void nullableSignal(SomeObject *object = nullptr) {
+    // Empty.
+  }
+
+  void objectSignal(SomeObject *object) {
+    // Empty.
+  }
+
   void ignoredSignal(int) {
     // Empty.  Listed in `ignore_methods`.
   }

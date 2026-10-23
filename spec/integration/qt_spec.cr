@@ -161,6 +161,21 @@ describe "Qt-specific wrapper features" do
           called.should be_true
         end
 
+        it "types the block arguments as declared" do
+          subject = Test::SomeObject.new
+
+          # The mock emits default-constructed arguments: null pointers.
+          subject.on_nullable_signal do |object|
+            typeof(object).should eq(Test::SomeObject?)
+            object.should be_nil
+          end
+
+          subject.on_object_signal do |object|
+            typeof(object).should eq(Test::SomeObject)
+            object.to_unsafe.null?.should be_true
+          end
+        end
+
         context "connection type" do
           it "defaults to an automatic connection" do
             subject = Test::SomeObject.new
