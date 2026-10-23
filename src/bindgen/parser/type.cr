@@ -106,6 +106,17 @@ module Bindgen
         copy
       end
 
+      # A copy of this pointer type which is *nilable*, or known to be
+      # non-null (`#never_nil?`) if not.  Used by the `nilable:` type rule.
+      def with_nilable(nilable : Bool) : self
+        copy = dup
+        copy.nilable = nilable
+        copy.never_nil = !nilable
+        copy
+      end
+
+      protected setter nilable
+
       # Returns the template arguments of this type.  Only valid for template
       # types, like container instantiations or `CrystalProc`s.
       def template_arguments : Array(Type)

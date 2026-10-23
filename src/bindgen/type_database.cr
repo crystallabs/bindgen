@@ -237,6 +237,43 @@ module Bindgen
         @ignore_methods.any?(&.matches?(method))
       end
 
+      # Crystal names of methods, by `MethodPattern` entries like
+      # `ignore_methods`: `raise: raise_`.  The first matching entry names the
+      # method, and all of its overloads if it's a plain name.
+      property rename = {} of MethodPattern => String
+
+      # Nilability of the pointer result and arguments of methods, by
+      # `MethodPattern` entries: `true` or `false` makes the result `T?` or
+      # `T`, regardless of `nilable_results`, and a list of argument indices
+      # makes those arguments accept `nil`, like one defaulting to `nullptr`
+      # does: `menuBar: false`, `setModel: [0]`.
+      property nilable = {} of MethodPattern => Bool | Array(Int32)
+
+      # The Crystal name `rename` gives the *method*, if any.
+      def rename_for(method : Parser::Method) : String?
+        @rename.each { |pattern, name| return name if pattern.matches?(method) }
+        nil
+      end
+
+      # Is the result of the *method* nilable by `nilable`?  `nil` if no entry
+      # says.
+      def nilable_result?(method : Parser::Method) : Bool?
+        @nilable.each do |pattern, value|
+          return value if value.is_a?(Bool) && pattern.matches?(method)
+        end
+        nil
+      end
+
+      # The indices of the arguments of the *method* `nilable` makes accept
+      # `nil`.
+      def nilable_arguments(method : Parser::Method) : Array(Int32)
+        indices = [] of Int32
+        @nilable.each do |pattern, value|
+          indices.concat(value) if value.is_a?(Array) && pattern.matches?(method)
+        end
+        indices.uniq!.sort!
+      end
+
       # Which methods to filter out in the superclass wrapper.  A method is
       # ignored if it matches any of the regex patterns specified.
       @[YAML::Field(converter: Bindgen::TypeDatabase::ArrayRegexConverter)]
@@ -286,6 +323,8 @@ module Bindgen
         @bit_fields = BitFields::Accessors, @generate_wrapper = true,
         @generate_binding = true, @generate_superclass = true,
         @builtin = false, @ignore_methods = [] of MethodPattern,
+        @rename = {} of MethodPattern => String,
+        @nilable = {} of MethodPattern => Bool | Array(Int32),
         @superclass_ignore_methods = Util::FAIL_RX, @keep_alive = KeepAlive.new,
         @release = KeepAlive.new, @depends_on = KeepAlive.new,
         @instance_variables = InstanceVariableConfig::Collection.new,

@@ -14,6 +14,11 @@ Rules **should** have one (or more) examples, showcasing its implications.
 Methods for which no other sub-rule applies have their name underscored:
 `addWidget() -> #add_widget`
 
+The `rename:` type rule names a method explicitly, by its C++ name, signature
+or a regular expression over the signature like `ignore_methods`:
+`rename: { raise: raise_ }`.  A renamed virtual method is overridden under
+its Crystal name.
+
 #### §2.1.1 Getters
 
 A getter method is a method which:
@@ -119,6 +124,12 @@ Examples:
 by using the `from_crystal` template: `my_from_crystal(arg_name)`.
 2. A type with `converter` set would be wrapped by using the `converter` module:
    `MyConverter.unwrap(arg_name)`.
+
+A pointer to a wrapped class accepts `nil` if it defaults to `nullptr` in
+C++, or if the `nilable:` type rule lists the argument: `nilable: { setModel:
+[0] }`.  `nil` reaches C++ as a null pointer.  The same rule makes a pointer
+result `T?` or `T` regardless of `nilable_results`: `nilable: { menuBar:
+false }`.
 
 #### §2.2.2 Unnamed arguments
 

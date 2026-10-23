@@ -56,6 +56,12 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   setters, signals and operators keep dropping such arguments.  See SPEC.md
   §2.2.5.
 
+* `rename:` and `nilable:` type rules, by the entries of `ignore_methods`:
+  `rename: { raise: raise_ }` names a method, and its overrides in Crystal;
+  `nilable: { menuBar: false, setModel: [0] }` makes a pointer result `T`
+  or `T?` regardless of `nilable_results`, and pointer arguments accept
+  `nil`.
+
 ### Changed
 
 * Of two methods taking the same Crystal arguments, the one with more C++

@@ -53,6 +53,8 @@ What each processor does is described under [Processors](README.md#processors).
       * [generate_binding](#generate_binding)
       * [generate_superclass](#generate_superclass)
       * [ignore_methods](#ignore_methods)
+      * [rename](#rename)
+      * [nilable](#nilable)
       * [superclass_ignore_methods](#superclass_ignore_methods)
       * [keep_alive](#keep_alive)
       * [release](#release)
@@ -753,6 +755,34 @@ Methods of this type to ignore.  An entry is one of:
       - someMethod
       - "operator-(const QDateTime &, const QDateTime &)"
       - "/^operator\\*\\(.*QVector3D/"
+```
+
+### `rename`
+
+Crystal names of methods, by the entries of `ignore_methods`: a C++ name
+renames every overload, a signature one of them, a regular expression between
+slashes those matching.  The first matching entry names the method.  A
+renamed virtual method is overridden under its Crystal name.
+
+```yaml
+    rename:
+      raise: raise_ # Would shadow Crystal's raise in a subclass
+      "toUnicode(QString *, const char *, int)": decode
+```
+
+### `nilable`
+
+Whether the pointer result and arguments of methods accept `nil`, by the
+entries of `ignore_methods`.  `true` or `false` makes the result `T?` or `T`,
+regardless of `nilable_results`.  A list of argument indices makes those
+arguments accept `nil`, like one defaulting to `nullptr` does; the `nil`
+reaches C++ as a null pointer.  Only pointers to wrapped classes are
+affected.
+
+```yaml
+    nilable:
+      menuBar: false # Qt creates one
+      setModel: [0]  # A null model is allowed
 ```
 
 ### `superclass_ignore_methods`

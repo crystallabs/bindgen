@@ -10,6 +10,21 @@ classes:
   Both: Both
   Visitor: Visitor
   Finder: Finder
+  Seeker: Seeker
+
+types:
+  Node:
+    nilable:
+      tail: false
+      valueOrDefault: [0]
+    rename:
+      weight: heaviness
+  Visitor:
+    rename:
+      rate: score
+  Seeker:
+    nilable:
+      "seek()": true
 
 containers:
   - class: std::vector

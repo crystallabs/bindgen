@@ -60,9 +60,12 @@ module Bindgen
         )
 
         # Add all (in theory) wrappable methods
+        rules = @db[klass.name]?
         klass.wrap_methods.each do |method|
+          apply_method_rules(method, rules) if rules
           build_method(method, graph_class)
         end
+        warn_unmatched_method_rules(klass, rules) if rules
 
         # Store graph node in the type database
         @db.get_or_add(klass.name).graph_node = graph_class
@@ -82,6 +85,48 @@ module Bindgen
         # Store graph node in the type database
         @db.get_or_add(enumeration.name).graph_node = graph_enum
         graph_enum
+      end
+
+      # Applies the `rename:` and `nilable:` *rules* of its class to the
+      # *method*, in place: processors copying it into subclasses and
+      # `Superclass` wrappers see the changes.
+      private def apply_method_rules(method : Parser::Method, rules : TypeDatabase::TypeConfig)
+        if name = rules.rename_for(method)
+          method.crystal_name = name
+        end
+
+        unless (nilable = rules.nilable_result?(method)).nil?
+          if nilable_pointer?(method.return_type)
+            method.return_type = method.return_type.with_nilable(nilable)
+          else
+            Log.warn { "nilable: of #{method.class_name} ignores #{method.name}: its result isn't a pointer" }
+          end
+        end
+
+        rules.nilable_arguments(method).each do |index|
+          if (arg = method.arguments[index]?) && nilable_pointer?(arg)
+            method.arguments[index] = arg.with_nilable(true)
+          else
+            Log.warn { "nilable: of #{method.class_name} ignores argument #{index} of #{method.name}: it isn't a pointer" }
+          end
+        end
+      end
+
+      # Can *type*, a single pointer to a wrapped class, be `nil`?
+      private def nilable_pointer?(type : Parser::Type) : Bool
+        type.pointer == 1 && !type.reference? && !type.move? && !type.c_array? &&
+          @db.try_or(type, false) { |rules| rules.kind.class? && !rules.copy_structure? }
+      end
+
+      # Warns about the `rename:` and `nilable:` patterns of *klass* matching
+      # none of its methods.
+      private def warn_unmatched_method_rules(klass : Parser::Class, rules : TypeDatabase::TypeConfig)
+        methods = klass.wrap_methods
+        (rules.rename.keys + rules.nilable.keys).each do |pattern|
+          unless methods.any? { |method| pattern.matches?(method) }
+            Log.warn { "rename: or nilable: of #{klass.name} matches no method: #{pattern}.  Is it misspelt, or the method ignored or inherited?" }
+          end
+        end
       end
 
       # Copies *method* into *parent*.

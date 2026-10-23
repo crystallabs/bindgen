@@ -564,6 +564,18 @@ types:
     ignore_methods:
       - some_method_name
 
+    # Crystal names of methods, by name, signature or /regex/ like
+    # `ignore_methods`.  A renamed virtual is overridden under its new name.
+    rename:
+      raise: raise_
+
+    # Whether the pointer result (`true`/`false`, regardless of
+    # `nilable_results`) and the listed pointer arguments of methods accept
+    # `nil`, by name, signature or /regex/ like `ignore_methods`.
+    nilable:
+      menuBar: false
+      setModel: [0]
+
     # List of methods to ignore in only the `Superclass` wrapper of this type.
     # Each element is a regex that is matched against the method name.
     superclass_ignore_methods:

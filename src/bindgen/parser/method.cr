@@ -125,6 +125,9 @@ module Bindgen
       @[JSON::Field(key: "returnType")]
       getter return_type : Parser::Type
 
+      # Replaces the return type, see the `nilable:` type rule.
+      setter return_type
+
       # Documentation comment from the C++ source, without comment markers.
       getter doc : String?
 

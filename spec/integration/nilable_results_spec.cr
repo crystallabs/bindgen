@@ -17,6 +17,38 @@ describe "nilable_results feature" do
         end
       end
 
+      # Overrides the renamed virtual under its Crystal name.
+      class Scorer < Test::Visitor
+        def score(node : Test::Node) : Int32
+          node.value * 10
+        end
+      end
+
+      class SomeSeeker < Test::Seeker
+        def seek : Test::Node?
+          Test::Node.some
+        end
+      end
+
+      it "applies the nilable: and rename: rules" do
+        node = Test::Node.new
+        typeof(node.tail).should eq(Test::Node)
+        node.tail.value.should eq(0)
+        node.value_or_default(nil).should eq(-1)
+        node.value_or_default(Test::Node.some.as(Test::Node)).should eq(5)
+        node.heaviness.should eq(0)
+        node.responds_to?(:weight).should be_false
+
+        Test::Visitor.new.run_rate.should eq(5)
+        Scorer.new.run_rate.should eq(50)
+        Scorer.new.score(Test::Node.some.as(Test::Node)).should eq(50)
+
+        typeof(Test::Seeker.new.seek).should eq(Test::Node?)
+        Test::Seeker.new.seek.should be_nil
+        Test::Seeker.new.sought.should be_false
+        SomeSeeker.new.sought.should be_true
+      end
+
       it "passes a nil result of an override to C++ as null" do
         Test::Finder.new.found.should be_true
         NilFinder.new.found.should be_false
