@@ -439,8 +439,10 @@ objects passed by pointer or reference, to `BindgenHelper.keep_alive`.  It
 stores the wrapper, which refers to the C++ object, until it's passed to
 `BindgenHelper.release`.  `BindgenHelper` is part of the generated module.
 
-Objects are kept by the address of their C++ object, as getters return a new
-wrapper each time: any wrapper of it, or its pointer, releases it.  An object
+Objects are kept by the GC allocation of their C++ object (its address off the
+GC heap), as getters return a new wrapper each time: any wrapper of it, also
+of a secondary base like `widget.as_paint_device`, or its pointer, releases
+it.  An object
 constructed from Crystal is released as C++ deletes it, like a Qt parent
 deletes its children, see [Objects destroyed by C++](#objects-destroyed-by-c).
 So `.release` is for an object C++ stops using without deleting it, like a

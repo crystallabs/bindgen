@@ -71,6 +71,11 @@ lib Binding
   # Registers a function C++ calls with the address of a wrapped object it
   # destroys.  Defined in `bindgen_helper.hpp`.
   fun bindgen_add_destroyed_hook(hook : Void* -> Void) : Void
+
+  # The key of a wrapped object in `BindgenHelper`'s table of kept objects:
+  # the start of its GC allocation, or the pointer itself off the GC heap.
+  # Defined in `bindgen_helper.hpp`.
+  fun bindgen_kept_key(object : Void*) : Void*
 end
 
 # Helpers for bindings.  Required.
@@ -106,9 +111,9 @@ module BindgenHelper
     String.new(string.ptr, string.size)
   end
 
-  # Objects kept alive by `.keep_alive`, by the address of their C++ object.
-  # Getters return a new wrapper each time, so any wrapper of the C++ object
-  # finds it.  The GC scans the pointers stored in the hash.
+  # Objects kept alive by `.keep_alive`, by the key of their C++ object, see
+  # `.kept_key`.  Getters return a new wrapper each time, so any wrapper of the
+  # C++ object finds it.  The GC scans the pointers stored in the hash.
   @@kept_alive = {} of UInt64 => Void*
 
   # Guards `@@kept_alive`.  Reentrant, as a GC finalizer may run C++ code
@@ -125,6 +130,18 @@ module BindgenHelper
   @@pending_releases = Pointer(UInt64).null
   @@pending_release_capacity = 0
   @@pending_release_count = 0
+
+  # The key of the C++ object at *pointer* in `@@kept_alive`: the start of its
+  # GC allocation with C++ glue, so a wrapper of a secondary base of the object,
+  # like `widget.as_paint_device`, and the hook of its destruction find the
+  # entry of the object; the address itself for an object off the GC heap, or
+  # without C++ glue.
+  private def self.kept_key(pointer : Pointer) : UInt64
+    ########## IF CPP ##########
+    pointer = Binding.bindgen_kept_key(pointer.as(Void*))
+    ########## END IF ##########
+    pointer.address
+  end
 
   # Changes `@@kept_alive` in the block, then does the queued releases.  Call
   # with `@@kept_alive_mutex` locked.
@@ -160,7 +177,7 @@ module BindgenHelper
   # neither is collected.  If its C++ object is kept alive already, the wrapper
   # kept first stays.  Returns *object*.
   def self.keep_alive(object : Reference)
-    address = object.to_unsafe.address
+    address = kept_key(object.to_unsafe)
     @@kept_alive_mutex.synchronize do
       change_kept_alive do
         @@kept_alive[address] = object.as(Void*) unless @@kept_alive.has_key?(address)
@@ -191,7 +208,7 @@ module BindgenHelper
   # which only has the pointer: C++ calls this as it destroys a wrapped object,
   # which may happen in a GC finalizer.
   def self.release(pointer : Pointer) : Nil
-    address = pointer.address
+    address = kept_key(pointer)
     @@kept_alive_mutex.synchronize do
       if @@kept_alive_busy
         queue_release(address)
@@ -204,7 +221,7 @@ module BindgenHelper
   # Returns if *object*, or another wrapper of its C++ object, is kept alive by
   # `.keep_alive`.
   def self.kept_alive?(object : Reference) : Bool
-    @@kept_alive_mutex.synchronize { @@kept_alive.has_key?(object.to_unsafe.address) }
+    @@kept_alive_mutex.synchronize { @@kept_alive.has_key?(kept_key(object.to_unsafe)) }
   end
 
   ########## IF CPP ##########

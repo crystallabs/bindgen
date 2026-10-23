@@ -235,6 +235,24 @@ struct Owner {
   Counted *child = nullptr;
 };
 
+// Has two dynamic bases, so a pointer to its second base differs from the
+// object's address, like the `QPaintDevice` of a `QWidget`: kept and released
+// by the GC allocation, every wrapper of the object finds the entry.
+struct First {
+  virtual ~First() { }
+  int first = 1;
+};
+
+struct Second {
+  virtual ~Second() { }
+  int second = 2;
+};
+
+struct Dual : First, Second {
+  Second *asSecond() { return this; }
+  static void deleteDual(Dual *dual) { delete dual; }
+};
+
 // Selects the arguments to keep alive.
 struct Picky {
   Picky() { }

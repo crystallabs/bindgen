@@ -22,6 +22,9 @@ classes:
   Mutual: Mutual
   Picky: Picky
   Plain: Plain
+  First: First
+  Second: Second
+  Dual: Dual
 
 types:
   Inner:

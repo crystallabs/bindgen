@@ -312,6 +312,38 @@ describe "keeping objects passed to C++ alive" do
         end
       end
 
+      context "keyed by the GC allocation" do
+        it "finds an object kept through its second base" do
+          dual = Test::Dual.new
+          second = dual.as_second
+          second.to_unsafe.address.should_not eq(dual.to_unsafe.address)
+
+          Test::BindgenHelper.keep_alive(second)
+          Test::BindgenHelper.kept_alive?(dual).should be_true
+          Test::BindgenHelper.kept_alive?(second).should be_true
+
+          Test::BindgenHelper.release(dual)
+          Test::BindgenHelper.kept_alive?(second).should be_false
+        end
+
+        it "releases an object kept through its second base when C++ deletes it" do
+          dual = Test::Dual.new
+          second = dual.as_second
+          Test::BindgenHelper.keep_alive(second)
+
+          Test::Dual.delete_dual(dual)
+          Test::BindgenHelper.kept_alive?(second).should be_false
+        end
+
+        it "keys an object off the GC heap by its address" do
+          outer = Test::Outer.new_no_gc
+          Test::BindgenHelper.keep_alive(outer)
+          Test::BindgenHelper.kept_alive?(outer).should be_true
+          Test::BindgenHelper.release(outer.to_unsafe)
+          Test::BindgenHelper.kept_alive?(outer).should be_false
+        end
+      end
+
       context "BindgenHelper" do
         it "releases a kept object" do
           inner = Test::Inner.new(3)

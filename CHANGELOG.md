@@ -19,6 +19,14 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   selected, to `BindgenHelper.release`.  `BindgenHelper.release(nil)` does
   nothing, like `keep_alive(nil)`.
 
+### Changed
+
+* `BindgenHelper.keep_alive`, `release`, `kept_alive?` and the destroyed hook
+  key an object by the start of its GC allocation (`bindgen_kept_key` in
+  `bindgen_helper.hpp`), by its address off the GC heap or without C++ glue.
+  A wrapper of a secondary base, like `widget.as_paint_device`, kept alive
+  wasn't found by `release(widget)` or by the hook of its deletion.
+
 ### Fixed
 
 * The `Qt` processor connects signals with a context object and a connection
