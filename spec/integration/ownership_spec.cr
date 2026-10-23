@@ -94,6 +94,12 @@ describe "keeping objects passed to C++ alive" do
           Test::Outer.last.other.x.should eq(9)
         end
 
+        it "applies the rules of the base class to a method a subclass re-declares" do
+          inner = Test::Inner.new(12)
+          Test::SubOuter.new_no_gc.store_inside(inner)
+          Test::BindgenHelper.kept_alive?(inner).should be_true
+        end
+
         it "skips arguments wrapped as a Crystal struct" do
           plain = Test::Plain.new
           Test::Outer.new_no_gc.store_plain(pointerof(plain))

@@ -746,7 +746,9 @@ The expressions are matched against the C++ method name, the name of the data
 member for its setter, and an empty string for constructors.  Copy
 constructors never keep their argument.  An expression matching no method of
 the class, like a misspelt or ignored one, is warned about.  Methods bound from
-a superclass follow the rules of the superclass.
+a superclass follow the rules of the superclass, and so does a method a
+subclass re-declares, like an override: the rules of the base classes apply to
+it, together with its own.
 
 ```yaml
 types:

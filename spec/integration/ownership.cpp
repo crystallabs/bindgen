@@ -39,6 +39,14 @@ struct Outer {
 // Defined out of line, as inline variables need C++17
 Outer *Outer::last_ = nullptr;
 
+// Re-declares a method of Outer, like an override: The keep_alive rules of
+// Outer cover it, without rules of its own.
+struct SubOuter : Outer {
+  static SubOuter *new_no_gc() { return new SubOuter; }
+
+  void storeInside(Inner *in) { inside = in; }
+};
+
 // Counts its live instances, to see when the GC destroys them.  The destructor
 // is virtual, so `delete` through a `Counted *` destroys the wrapper, as it
 // does for a Qt object.

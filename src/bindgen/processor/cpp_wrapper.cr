@@ -72,10 +72,10 @@ module Bindgen
       # constructors of copied, aggregate, union and `final` classes allocate
       # the class itself.
       private def depends_on_body(method : Parser::Method) : Call::Body?
-        return unless rules = @db[method.class_name]?
-        return if rules.depends_on.empty?
+        rules = inherited_rules(method.class_name, &.depends_on)
+        return if rules.empty?
 
-        indices = @db.selected_object_arguments(method, rules.depends_on)
+        indices = @db.selected_object_arguments(method, rules)
         return if indices.empty?
 
         unless Cpp::MethodName.new(@db).gc_wrapper_constructor?(method)

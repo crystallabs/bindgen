@@ -444,8 +444,10 @@ constructed from Crystal is released as C++ deletes it, like a Qt parent
 deletes its children, see [Objects destroyed by C++](#objects-destroyed-by-c).
 So `.release` is for an object C++ stops using without deleting it, like a
 widget taken out of a layout, and for an object C++ created, which Crystal only
-wraps.  A pattern matching no method of the class is warned about, so a typo,
-or a method `ignore_methods` drops, isn't silent.
+wraps.  The rules of a class apply to the methods of its subclasses too: an
+override of `QAbstractItemView::setModel` in `QTreeView` keeps its model like
+the base's does.  A pattern matching no method of the class is warned about, so
+a typo, or a method `ignore_methods` drops, isn't silent.
 
 ```yaml
 types:

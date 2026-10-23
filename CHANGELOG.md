@@ -2,6 +2,16 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## 0.15.0 (unreleased)
+
+### Changed
+
+* The `keep_alive:` and `depends_on:` rules of a class apply to the methods its
+  subclasses re-declare, like an override of a setter: `QTreeView::setModel`
+  keeps its model as `QAbstractItemView::setModel` is configured to.  Before,
+  only the methods of the class itself, and those bound from it into
+  subclasses, followed its rules, so an override escaped them.
+
 ## 0.14.0 (2026-10-23)
 
 ### Changed

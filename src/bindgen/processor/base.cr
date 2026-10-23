@@ -21,9 +21,36 @@ module Bindgen
       def initialize(@config : Configuration, @db : TypeDatabase)
       end
 
+      # The document being processed, set by `#process`.
+      @doc : Parser::Document?
+
       # Runs the processor.  You may change *graph* as you see fit.
       def process(graph : Graph::Container, doc : Parser::Document)
+        @doc = doc
         visit_children(graph)
+      end
+
+      # Returns the `keep_alive:` or `depends_on:` rules, selected from the
+      # type configuration by the block, applying to the methods of
+      # *class_name*: its own, and those of its base classes.  A method a
+      # subclass re-declares, like an override of a setter, keeps what the
+      # method of the base class keeps, so the rule of the base class covers it.
+      def inherited_rules(class_name : String, & : TypeDatabase::TypeConfig -> TypeDatabase::KeepAlive) : TypeDatabase::KeepAlive
+        rules = TypeDatabase::KeepAlive.new
+        seen = Set(String).new
+        pending = [class_name]
+
+        while name = pending.shift?
+          next unless seen.add?(name)
+
+          if config = @db[name]?
+            yield(config).each { |pattern, indices| rules[pattern] = indices unless rules.has_key?(pattern) }
+          end
+
+          @doc.try(&.classes[name]?).try(&.bases.each { |base| pending << base.name })
+        end
+
+        rules
       end
 
       # Returns the patterns of *rules*, the `keep_alive:` or `depends_on:`

@@ -578,7 +578,8 @@ types:
     # instance variable for its setter, and an empty string for constructors
     # (except copy constructors, which never keep their argument).  A regex
     # matching no method of the class, like a misspelt or ignored one, is
-    # warned about.  Methods bound from a superclass follow its rules.
+    # warned about.  Methods bound from a superclass follow its rules, and so
+    # does a method a subclass re-declares, like an override.
     # Defaults to keeping nothing alive.
     keep_alive:
       ^addWidget$: [0]

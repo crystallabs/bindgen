@@ -157,13 +157,16 @@ module Bindgen
       end
 
       # Returns the indices of the arguments of *method* to keep alive, see
-      # `TypeDatabase#selected_object_arguments`.  A copy constructor doesn't
-      # keep its argument.
+      # `TypeDatabase#selected_object_arguments`, by the rules of its class and
+      # the base classes (`#inherited_rules`).  A copy constructor doesn't keep
+      # its argument.
       private def kept_alive_arguments(method : Parser::Method) : Array(Int32)
         return [] of Int32 if method.copy_constructor?
-        return [] of Int32 unless rules = @db[method.class_name]?
 
-        @db.selected_object_arguments(method, rules.keep_alive)
+        rules = inherited_rules(method.class_name, &.keep_alive)
+        return [] of Int32 if rules.empty?
+
+        @db.selected_object_arguments(method, rules)
       end
 
       # Pre-hook of a wrapper method passing the arguments at *indices* to
