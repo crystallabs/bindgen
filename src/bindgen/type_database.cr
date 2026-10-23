@@ -243,6 +243,13 @@ module Bindgen
       # and added to the class, the C++ glue calls them like any method.
       property declare_methods = [] of String
 
+      # Types whose overloads shadow those taking this type: an overload of a
+      # method taking this type is dropped where another overload takes one
+      # of these types in its place, with the other arguments equal.  For a
+      # view type converted like the type it views: `QStringView` next to
+      # `QString`, which both take a Crystal `String`.
+      property shadowed_by = [] of String
+
       # Crystal names of methods, by `MethodPattern` entries like
       # `ignore_methods`: `raise: raise_`.  The first matching entry names the
       # method, and all of its overloads if it's a plain name.
@@ -329,7 +336,7 @@ module Bindgen
         @bit_fields = BitFields::Accessors, @generate_wrapper = true,
         @generate_binding = true, @generate_superclass = true,
         @builtin = false, @ignore_methods = [] of MethodPattern,
-        @declare_methods = [] of String,
+        @declare_methods = [] of String, @shadowed_by = [] of String,
         @rename = {} of MethodPattern => String,
         @nilable = {} of MethodPattern => Bool | Array(Int32),
         @superclass_ignore_methods = Util::FAIL_RX, @keep_alive = KeepAlive.new,
@@ -698,6 +705,31 @@ module Bindgen
       type_rules = self[type]?
       !!type_rules && type_rules.generate_wrapper? &&
         type_rules.kind.class? && type_rules.graph_node.is_a?(Graph::Class)
+    end
+
+    # Is *method* an overload shadowed by another of *methods*, see
+    # `TypeConfig#shadowed_by`?  The other takes a shadowing type in place of
+    # each argument of a shadowed type, like `QString` for `QStringView`, and
+    # the same types otherwise: both would take the same Crystal arguments.
+    def shadowed_overload?(method : Parser::Method, methods : Enumerable(Parser::Method)) : Bool
+      shadowed = method.arguments.map { |arg| self[arg]?.try(&.shadowed_by) || [] of String }
+      return false if shadowed.all?(&.empty?)
+
+      methods.any? do |other|
+        next false if other.same?(method) || other.name != method.name || other.type != method.type
+        next false if other.arguments.size != method.arguments.size
+
+        replaced = false
+        other.arguments.zip(method.arguments, shadowed).all? do |theirs, ours, shadowing|
+          if theirs.type_equals?(ours)
+            true
+          elsif shadowing.includes?(theirs.base_name)
+            replaced = true
+          else
+            false
+          end
+        end && replaced
+      end
     end
 
     # Is *type* a converted out argument: a non-const lvalue reference or

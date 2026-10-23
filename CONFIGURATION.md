@@ -54,6 +54,7 @@ What each processor does is described under [Processors](README.md#processors).
       * [generate_superclass](#generate_superclass)
       * [ignore_methods](#ignore_methods)
       * [declare_methods](#declare_methods)
+      * [shadowed_by](#shadowed_by)
       * [rename](#rename)
       * [nilable](#nilable)
       * [superclass_ignore_methods](#superclass_ignore_methods)
@@ -773,6 +774,22 @@ understood; constructors and operators aren't.
       - "QMenu *menu() const"
       - "void setMenu(QMenu *menu)"
       - "bool tryLockFor(std::chrono::milliseconds duration)"
+```
+
+### `shadowed_by`
+
+Types whose overloads shadow those taking this type: an overload of a method
+taking this type is dropped where another overload takes one of the listed
+types in its place, with the other arguments equal.  For a view type
+converted like the type it views, which would take the same Crystal
+arguments: `QString::indexOf(QStringView)` next to `indexOf(const QString
+&)`.  An overload without such a twin stays, converted by the view's rules.
+
+```yaml
+  QStringView:
+    shadowed_by: [QString]
+  QLatin1StringView:
+    shadowed_by: [QString, QStringView]
 ```
 
 ### `rename`

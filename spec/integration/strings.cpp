@@ -55,3 +55,23 @@ public:
     return virtualName() + virtualName();
   }
 };
+
+// A view of a string, converted like `std::string` for a call: an overload
+// taking the view next to one taking the string is dropped (`shadowed_by`).
+struct View {
+  const char *ptr;
+  size_t size;
+
+  View(const std::string &s) : ptr(s.data()), size(s.size()) { }
+  View(const char *p, size_t n) : ptr(p), size(n) { }
+};
+
+struct Viewer {
+  int count(const std::string &s) { return 1; }
+  int count(View v) { return 2; } // Shadowed
+  int count(View v, int times) { return 3 * times; } // Not shadowed: no `(std::string, int)`
+  size_t viewOnly(View v) { return v.size; }
+  std::string twice(View a, View b) { return std::string(a.ptr, a.size) + std::string(b.ptr, b.size); }
+  std::string twice(const std::string &a, const std::string &b) { return a + "+" + b; }
+  View peek() const { return View("peek", 4); }
+};

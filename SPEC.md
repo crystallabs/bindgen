@@ -139,6 +139,12 @@ C++, or if the `nilable:` type rule lists the argument: `nilable: { setModel:
 result `T?` or `T` regardless of `nilable_results`: `nilable: { menuBar:
 false }`.
 
+A view type, like `QStringView`, converts like the type it views when its
+rules build a temporary of that type for the call, which lives until the call
+returns, and copy a result out of the view.  The `shadowed_by:` rule of the
+view type drops an overload taking it where one taking the viewed type
+exists, as both would take the same Crystal arguments.
+
 #### §2.2.2 Unnamed arguments
 
 C++ allows the declaration of unnamed arguments, like this: `void foo(int)`.

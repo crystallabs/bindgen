@@ -14,6 +14,23 @@ describe "std::string functionality" do
         end
       end
 
+      context "view type" do
+        it "drops the overloads shadowed by the string ones" do
+          viewer = Test::Viewer.new
+          viewer.count("ab").should eq(1)
+          viewer.count("ab", 2).should eq(6)
+          {{ Test::Viewer.methods.select(&.name.==("count")).size }}.should eq(2)
+          viewer.twice("a", "b").should eq("a+b")
+          {{ Test::Viewer.methods.select(&.name.==("twice")).size }}.should eq(1)
+        end
+
+        it "converts a view like the string it views" do
+          viewer = Test::Viewer.new
+          viewer.view_only("abc").should eq(3)
+          viewer.peek.should eq("peek")
+        end
+      end
+
       context "function result" do
         it "returns a string by value" do
           Test::Funcs.by_value.should eq(LONG_STRING)

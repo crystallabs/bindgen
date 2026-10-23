@@ -66,7 +66,11 @@ module Bindgen
           klass.methods << Parser::Method.from_signature(signature, klass.name)
         end
 
-        klass.wrap_methods.each do |method|
+        # In place: processors copying the methods into subclasses see it.
+        methods = klass.wrap_methods
+        methods.reject! { |method| @db.shadowed_overload?(method, methods) }
+
+        methods.each do |method|
           apply_method_rules(method, rules) if rules
           build_method(method, graph_class)
         end

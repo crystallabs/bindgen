@@ -571,6 +571,12 @@ types:
       - "QMenu *menu() const"
       - "void setMenu(QMenu *menu)"
 
+    # Types whose overloads shadow those taking this type: an overload taking
+    # this type is dropped where one takes a listed type in its place, like a
+    # view type converted like the type it views.
+    shadowed_by:
+      - QString
+
     # Crystal names of methods, by name, signature or /regex/ like
     # `ignore_methods`.  A renamed virtual is overridden under its new name.
     rename:

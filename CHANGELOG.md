@@ -63,6 +63,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   setMenu(QMenu *menu)"]`.  `Parser::Method.from_signature` parses them.
   `Parser::Type.parse` marks the fundamental types, like `unsigned int`, as
   built-in, as the clang tool does.
+* `shadowed_by:` type rule: an overload taking the type is dropped where
+  another overload takes one of the listed types in its place, like
+  `QString::indexOf(QStringView)` next to `indexOf(const QString &)`, for a
+  view type converted like the type it views.
 * `rename:` and `nilable:` type rules, by the entries of `ignore_methods`:
   `rename: { raise: raise_ }` names a method, and its overrides in Crystal;
   `nilable: { menuBar: false, setModel: [0] }` makes a pointer result `T`

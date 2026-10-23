@@ -4,6 +4,22 @@
 
 classes:
   Strings: Strings
+  Viewer: Viewer
+
+types:
+  View: # A view of a temporary std::string, alive for the call
+    builtin: true
+    kind: Struct
+    pass_by: Value
+    wrapper_pass_by: Value
+    crystal_type: String
+    cpp_type: CrystalString
+    binding_type: CrystalString
+    to_cpp: "View(bindgen_crystal_to_stdstring(%))"
+    from_cpp: "bindgen_stdstring_to_crystal(std::string(%.ptr, %.size))"
+    from_crystal: "BindgenHelper.wrap_string(%)"
+    to_crystal: "BindgenHelper.unwrap_string(%)"
+    shadowed_by: ["std::string"]
 
 functions:
   "string_(.*)": { destination: "Funcs", name: "\\1" }
