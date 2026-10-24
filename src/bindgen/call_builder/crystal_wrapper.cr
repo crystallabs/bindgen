@@ -6,12 +6,15 @@ module Bindgen
       def initialize(@db : TypeDatabase)
       end
 
-      def build(method : Parser::Method, target : Call)
+      # A constructor of a class wrapping a pointer binds the Crystal object
+      # to the constructed one, see `ConstructorBody`, if *bind* is `true`:
+      # not without the C++ glue defining `bindgen_set_crystal_object`.
+      def build(method : Parser::Method, target : Call, bind = true)
         pass = Crystal::Pass.new(@db)
 
         arguments = pass.arguments_to_wrapper(method.arguments, method.out_arguments(@db))
         if method.any_constructor?
-          body = ConstructorBody.new(@db, target)
+          body = ConstructorBody.new(@db, target, bind: bind && pointer_wrapper?(method.class_name))
         else
           body = MethodBody.new(@db, target)
         end
@@ -152,14 +155,29 @@ module Bindgen
         end
       end
 
+      # Does the wrapper class of *class_name* hold a pointer to the object, a
+      # `Reference` wrapping a class whose structure isn't copied?
+      private def pointer_wrapper?(class_name : String) : Bool
+        rules = @db[class_name]?
+        !rules.nil? && rules.kind.class? && !rules.copy_structure?
+      end
+
+      # Body of an `#initialize`.  The constructed object remembers `self`,
+      # see `BindgenHelper.set_crystal_object`, unless *bind* is `false`: for
+      # the `unwrap:` initializer wrapping an existing object.
       class ConstructorBody < Body
+        def initialize(db : TypeDatabase, target : Call, @bind = true)
+          super(db, target)
+        end
+
         def encapsulate_into_variable(call, code)
           encapsulate(call, code)
         end
 
         def encapsulate(call, code)
+          bind = "\nBindgenHelper.set_crystal_object(result, self)" if @bind
           %[result = #{code}\n] \
-          %[@unwrap = result]
+          %[@unwrap = result#{bind}]
         end
       end
     end

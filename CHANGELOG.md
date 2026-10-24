@@ -17,6 +17,15 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `new(unwrap:)`.  Without RTTI nothing is discovered.  Specs expecting the
   declared class, like the `Impl` of an abstract class, see the sub-class now.
 
+* Wrapper identity for objects constructed from Crystal: a pointer to one
+  comes back as the Crystal object which constructed it, an instance of a
+  Crystal sub-class with its instance variables included.  The constructors
+  call `BindgenHelper.set_crystal_object`, which stores the Crystal object in
+  the `BindgenGCObject` of the allocation as a disappearing link of the GC,
+  so the reference is weak; every wrapper class, polymorphic or not, gets a
+  `bg_discover` reading it back (`BindgenHelper.crystal_object`).  A pointer
+  to a secondary base or to a member object, and a copy, get a new wrapper.
+
 * `ignore_methods:` entries match a C++ signature, dropping one overload:
   `operator-(const QDateTime &, const QDateTime &)`, with ` const` after the
   parentheses for a const method, spacing normalized; or a regular expression

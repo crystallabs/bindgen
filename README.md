@@ -675,14 +675,16 @@ classes through a `dynamic_cast`, returning `nil` if the object isn't a `T`:
 `dynamic_cast`: if the C++ code is built without RTTI (`-fno-rtti`, like Qt),
 one aborts the program instead.
 
-Adds type discovery to polymorphic classes with wrapped sub-classes, see
-`SPEC.md` §2.3.7: a pointer or reference result, and the argument of a
-callback, is wrapped in the class of the object's dynamic type, so
-`Bar.create` above is a `Foo` already.  The C++ `DISCOVER` function of a class
-looks the `typeid` up in a table of its wrapped sub-classes, walking their
+Adds type discovery, see `SPEC.md` §2.3.7: a pointer or reference result,
+and the argument of a callback, is wrapped in the Crystal object which
+constructed the object, if any (a weak reference the object keeps), else in
+the class of the object's dynamic type, so `Bar.create` above is a `Foo`
+already.  The C++ `DISCOVER` function of a polymorphic class looks the
+`typeid` up in a table of its wrapped sub-classes, walking their
 `dynamic_cast`s once for an unknown type; the Crystal class method
-`bg_discover` wraps the pointer in the class found.  Without RTTI, every
-object is wrapped in the class declared.
+`bg_discover` of every wrapper class wraps the pointer in the object or class
+found.  Without RTTI, an object nothing constructed from Crystal is wrapped in
+the class declared.
 
 ## `InstanceProperties`
 

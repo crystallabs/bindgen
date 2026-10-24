@@ -75,6 +75,14 @@ struct Shapes {
 
   void keep(Shape *shape) { kept = shape; }
   Shape *last() { return kept; }
+  Named *lastNamed() { return dynamic_cast<Named *>(kept); }
+  void keepPoint(Point *point) { keptPoint = point; }
+  Point *lastPoint() { return keptPoint; }
+  Shape *copyLast() { return new Shape(*kept); }
+  // Keeps many: the memory of a `Shapes` the GC allocated is scanned, so the
+  // objects stay alive while their Crystal objects may be collected.
+  void keepAt(int index, Shape *shape) { many[index] = shape; }
+  Shape *keptAt(int index) { return many[index]; }
 
   Triangle tri;
   Rectangle rect;
@@ -83,4 +91,6 @@ struct Shapes {
   Labelled lab;
   Point3 p3;
   Shape *kept = nullptr;
+  Point *keptPoint = nullptr;
+  Shape *many[32] = {};
 };

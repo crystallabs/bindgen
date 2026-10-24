@@ -33,12 +33,14 @@ module Bindgen
     # x.to?(Baz)     # Compile-time error
     # ```
     #
-    # A polymorphic class with wrapped sub-classes in Crystal gets type
-    # discovery, see SPEC.md §2.3.7: a C++ `DISCOVER` function finding the
-    # wrapper class of the dynamic type of an object, and the Crystal class
-    # method `Graph::Class::DISCOVER_METHOD` wrapping a pointer in it.
-    # `Crystal::Pass#from_wrapper` converts a pointer or reference result, and
-    # the argument of a callback, through it: `x` above is a `Foo` already.
+    # Every wrapper class gets the Crystal class method
+    # `Graph::Class::DISCOVER_METHOD`, see SPEC.md §2.3.7, which wraps a
+    # pointer in the Crystal object which constructed the object, if any, and
+    # else in a new wrapper.  A polymorphic class with wrapped sub-classes in
+    # Crystal gets type discovery too: a C++ `DISCOVER` function finding the
+    # wrapper class of the dynamic type of an object, which the method wraps
+    # in.  `Crystal::Pass#from_wrapper` converts a pointer or reference result,
+    # and the argument of a callback, through it: `x` above is a `Foo` already.
     class Inheritance < Base
       def initialize(config, db)
         super
@@ -46,6 +48,8 @@ module Bindgen
         @casts = {} of Graph::Class => ToBody
         @all_classes = Parser::Class::Collection.new
         @unified = Set(UInt64).new # `object_id`s of the unified methods
+        # The classes getting a `DISCOVER_METHOD`, in order.
+        @identified = [] of Graph::Class
         # The wrapped Crystal sub-classes of a polymorphic class, with their
         # distance from it.
         @discovered = {} of Graph::Class => Array({Graph::Class, Int32})
@@ -334,12 +338,16 @@ module Bindgen
         end
       end
 
-      # Registers *klass* for the type discovery of its polymorphic ancestors
-      # in Crystal, see `#add_discovery_method`.
+      # Registers *klass* for a `DISCOVER_METHOD`, and for the type discovery
+      # of its polymorphic ancestors in Crystal, see `#add_discovery_method`.
       private def register_discovery(klass : Graph::Class)
-        return unless klass.origin.polymorphic?
         return if klass.wrapped_class # Skip `Impl` classes
         return unless wrapper_generated?(klass)
+        return unless rules = @db[klass.origin.name]?
+        return if !rules.kind.class? || rules.copy_structure?
+
+        @identified << klass
+        return unless klass.origin.polymorphic?
 
         depth = 0
         ancestor = klass
@@ -352,28 +360,59 @@ module Bindgen
         end
       end
 
-      # Adds the type discovery of each class with registered sub-classes.
+      # Adds the `DISCOVER_METHOD` of each registered class, with the type
+      # discovery of those with registered sub-classes.
       private def add_discovery_methods
-        @discovered.each do |klass, list|
+        @identified.each do |klass|
           # The deepest first, so the first `dynamic_cast` matching is to the
           # most derived class.
+          list = @discovered[klass]? || [] of {Graph::Class, Int32}
           descendants = list.sort_by { |node, depth| {-depth, node.origin.name} }.map(&.first)
           add_discovery_method(klass, descendants)
         end
       end
 
-      # Adds the type discovery of *klass*, see SPEC.md §2.3.7: the C++
-      # `DISCOVER` function telling the wrapped class of the dynamic type of an
-      # object, one of *descendants*, and the Crystal class method
-      # `Graph::Class::DISCOVER_METHOD` wrapping a pointer to *klass* in that
-      # class, or in *klass* itself.
+      # Adds the Crystal class method `Graph::Class::DISCOVER_METHOD` to
+      # *klass*, see SPEC.md §2.3.7, wrapping a pointer to *klass* in the
+      # Crystal object which constructed the object, or in a new wrapper.  With
+      # *descendants*, the C++ `DISCOVER` function tells the wrapped class of
+      # the dynamic type of the object, one of them, which the new wrapper is
+      # of, else it is of *klass* itself.
       private def add_discovery_method(klass : Graph::Class, descendants : Array(Graph::Class))
         klass.type_discovery = true
+        fun_name = add_discover_function(klass, descendants) unless descendants.empty?
 
+        type = klass.origin.as_type.never_nil
+        crystal_method = Parser::Method.build(
+          name: Graph::Class::DISCOVER_METHOD,
+          return_type: type,
+          arguments: [] of Parser::Argument,
+          class_name: klass.origin.name,
+          type: Parser::Method::Type::StaticMethod,
+          crystal_name: Graph::Class::DISCOVER_METHOD,
+        )
+
+        host = klass.platform_specific(Graph::Platform::Crystal)
+        node = Graph::Method.new(origin: crystal_method, name: crystal_method.crystal_name, parent: host)
+        node.calls[Graph::Platform::Crystal] = Call.new(
+          origin: crystal_method,
+          name: crystal_method.crystal_name,
+          arguments: [] of Call::Argument,
+          result: Crystal::Pass.new(@db).from_wrapper(type, discover: false),
+          body: DiscoverCrystalBody.new(@db, fun_name, klass, descendants),
+        )
+      end
+
+      # Adds the C++ `DISCOVER` function of *klass* with the table of its
+      # *descendants*, see `DiscoverCppBody`, and returns its name.
+      private def add_discover_function(klass : Graph::Class, descendants : Array(Graph::Class)) : String
         method = Parser::Method.build(
           name: "DISCOVER",
           return_type: Parser::Type.parse("void", 1),
-          arguments: [Parser::Argument.new("bg_class", Parser::Type.parse("int", 1))],
+          arguments: [
+            Parser::Argument.new("bg_class", Parser::Type.parse("int", 1)),
+            Parser::Argument.new("bg_crystal", Parser::Type.parse("void", 2)),
+          ],
           class_name: klass.origin.name,
         )
 
@@ -393,25 +432,7 @@ module Bindgen
           body: DiscoverCppBody.new(klass, descendants),
         )
 
-        type = klass.origin.as_type.never_nil
-        crystal_method = Parser::Method.build(
-          name: Graph::Class::DISCOVER_METHOD,
-          return_type: type,
-          arguments: [] of Parser::Argument,
-          class_name: klass.origin.name,
-          type: Parser::Method::Type::StaticMethod,
-          crystal_name: Graph::Class::DISCOVER_METHOD,
-        )
-
-        host = klass.platform_specific(Graph::Platform::Crystal)
-        node = Graph::Method.new(origin: crystal_method, name: crystal_method.crystal_name, parent: host)
-        node.calls[Graph::Platform::Crystal] = Call.new(
-          origin: crystal_method,
-          name: crystal_method.crystal_name,
-          arguments: [] of Call::Argument,
-          result: Crystal::Pass.new(@db).from_wrapper(type, discover: false),
-          body: DiscoverCrystalBody.new(@db, method.mangled_name, klass, descendants),
-        )
+        method.mangled_name
       end
 
       # Builds a method converting *from* in *to*.
@@ -644,7 +665,7 @@ module Bindgen
           typer = Cpp::Typename.new
           formatter = Cpp::Format.new
           base = @klass.origin.name
-          self_var, id_var = call.arguments.map(&.name)
+          self_var, id_var, crystal_var = call.arguments.map(&.name)
 
           String.build do |b|
             b << %[extern "C" ] << typer.full(call.result) << call.name
@@ -656,37 +677,48 @@ module Bindgen
               b << " *p) -> void * { return bindgen_dynamic_cast<" << name << " *>(p); }},\n"
             end
             b << "  };\n"
-            b << "  return table.discover(" << self_var << ", " << id_var << ");\n"
+            b << "  return table.discover(" << self_var << ", " << id_var << ", " << crystal_var << ");\n"
             b << "}\n\n"
           end
         end
       end
 
       # Crystal body of the `Graph::Class::DISCOVER_METHOD` of a class, see
-      # `#add_discovery_method`: calls the binding *fun_name*, and wraps the
-      # pointer it returns in the class it numbers, one of *descendants*, or in
-      # the class itself.
+      # `#add_discovery_method`: returns the Crystal object which constructed
+      # the object, see `BindgenHelper.crystal_object`, if it is one of the
+      # class.  Else, with a binding *fun_name*, calls it and wraps the pointer
+      # it returns in the class it numbers, one of *descendants*, or in the
+      # class itself.
       class DiscoverCrystalBody < Call::Body
-        def initialize(@db : TypeDatabase, @fun_name : String, @klass : Graph::Class, @descendants : Array(Graph::Class))
+        def initialize(@db : TypeDatabase, @fun_name : String?, @klass : Graph::Class, @descendants : Array(Graph::Class))
         end
 
         def to_code(call : Call, platform : Graph::Platform) : String
           typer = Crystal::Typename.new(@db)
           pass = Crystal::Pass.new(@db)
+          type_name = typer.full(call.result)
+          fallback = call.result.apply_conversion("unwrap")
 
           String.build do |b|
-            b << "# Wraps the object at *unwrap* in the wrapper class of its dynamic type,\n"
-            b << "# see `#to?`.\n"
+            b << "# Wraps the object at *unwrap*: in the Crystal object which constructed\n"
+            b << "# it, or in the wrapper class of its dynamic type, see `#to?`.\n"
             b << "def self." << call.name << "(unwrap : " << binding_pointer(typer, @klass) << ") : "
-            b << typer.full(call.result) << "\n"
-            b << "  ptr = Binding." << @fun_name << "(unwrap, out bg_class)\n"
-            b << "  case bg_class\n"
-            @descendants.each_with_index(1) do |node, id|
-              result = pass.from_wrapper(node.origin.as_type.never_nil, discover: false)
-              b << "  when " << id << " then " << result.apply_conversion(cast(typer, node)) << "\n"
+            b << type_name << "\n"
+            if fun_name = @fun_name
+              b << "  ptr = Binding." << fun_name << "(unwrap, out bg_class, out bg_crystal)\n"
+              b << "  if object = BindgenHelper.as_crystal_object(bg_crystal, " << type_name << ")\n"
+              b << "    return object\n"
+              b << "  end\n"
+              b << "  case bg_class\n"
+              @descendants.each_with_index(1) do |node, id|
+                result = pass.from_wrapper(node.origin.as_type.never_nil, discover: false)
+                b << "  when " << id << " then " << result.apply_conversion(cast(typer, node)) << "\n"
+              end
+              b << "  else " << fallback << "\n"
+              b << "  end\n"
+            else
+              b << "  BindgenHelper.crystal_object(unwrap, " << type_name << ") || " << fallback << "\n"
             end
-            b << "  else " << call.result.apply_conversion(cast(typer, @klass)) << "\n"
-            b << "  end\n"
             b << "end\n"
           end
         end

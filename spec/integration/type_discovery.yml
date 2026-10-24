@@ -27,3 +27,5 @@ types:
     nilable:
       "none()": true
       "last()": true
+      "lastNamed()": true
+      "lastPoint()": true

@@ -51,9 +51,9 @@ module Bindgen
       DISCOVER_METHOD = "bg_discover"
 
       # Does this class have a `DISCOVER_METHOD`?  Set by
-      # `Processor::Inheritance` for a polymorphic class with wrapped
-      # sub-classes in Crystal.  `Crystal::Pass#from_wrapper` then wraps a
-      # pointer to this class through it.
+      # `Processor::Inheritance` for every wrapper class, see SPEC.md §2.3.7.
+      # `Crystal::Pass#from_wrapper` then wraps a pointer to this class through
+      # it.
       property? type_discovery : Bool = false
 
       def initialize(@origin, name, parent = nil)

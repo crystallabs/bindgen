@@ -29,6 +29,9 @@ module Bindgen
         end
 
         add_unwrap_initialize(klass)
+        # Registers the class and its Crystal subclasses for
+        # `BindgenHelper.as_crystal_object`.
+        klass.included_modules << "BindgenHelper::Wrapper"
 
         super
       end
@@ -136,7 +139,7 @@ module Bindgen
         wrapper = CallBuilder::CrystalWrapper.new(@db)
         target = call.build(method.origin, klass_type, CallBuilder::CrystalBinding::InvokeBody)
 
-        wrapper_call = wrapper.build(method.origin, target)
+        wrapper_call = wrapper.build(method.origin, target, bind: @config.generators.has_key?("cpp"))
         add_keep_alive_hook(wrapper_call)
         add_release_hook(wrapper_call)
         add_owner_hook(method, wrapper_call)

@@ -496,10 +496,31 @@ classes inheriting from the declared class in Crystal (§2.3.1: the first
 wrapped base, not the further ones), and walks their `dynamic_cast`s once for
 a type the table doesn't have, like `Hidden`, remembering the class found.  An
 object of a class the binding doesn't know is wrapped in the nearest wrapped
-class; an object of a Crystal sub-class gets a new wrapper of its wrapper
-class, as a downcast does.  A pointer to a class without wrapped sub-classes,
-or to a non-polymorphic class, is wrapped in the class declared without a
-lookup, and so is every pointer if the C++ code is built without RTTI.
+class.  A pointer to a class without wrapped sub-classes, or to a
+non-polymorphic class, is wrapped in the class declared without a lookup, and
+so is every pointer if the C++ code is built without RTTI.
+
+An object constructed from Crystal comes back as the Crystal object which
+constructed it, an instance of a Crystal sub-class included, with its instance
+variables: the object remembers the Crystal object
+(`BindgenHelper.set_crystal_object`, called by the constructors) and every
+wrapper class has the discovery, polymorphic or not.  The reference is weak:
+once the Crystal object is unreachable the GC clears it, and the object gets
+a new wrapper.  A pointer to a secondary base (§2.3.2) or to a member of the
+object, which the Crystal object doesn't wrap, and a copy get a new wrapper
+too.
+
+```crystal
+class MyFoo < Foo
+  property note = ""
+end
+
+mine = MyFoo.new
+mine.note = "kept"
+container.add(mine)
+container.first.should be(mine)           # The same object
+container.first.as(MyFoo).note # => "kept"
+```
 
 ### §2.4 Instance properties
 

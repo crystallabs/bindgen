@@ -26,7 +26,7 @@ module Bindgen
           name: method.crystal_name,
           arguments: [call_arg],
           result: pass.from_wrapper(Parser::Type::VOID),
-          body: CrystalWrapper::ConstructorBody.new(@db, target),
+          body: CrystalWrapper::ConstructorBody.new(@db, target, bind: false),
         )
       end
 

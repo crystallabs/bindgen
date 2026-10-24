@@ -76,6 +76,14 @@ lib Binding
   # the start of its GC allocation, or the pointer itself off the GC heap.
   # Defined in `bindgen_helper.hpp`.
   fun bindgen_kept_key(object : Void*) : Void*
+
+  ########## IF CPP ##########
+  # Remembers the Crystal object which constructed the C++ object, and reads
+  # it back, see `BindgenHelper.crystal_object`.  Defined in
+  # `bindgen_helper.hpp`.
+  fun bindgen_set_crystal_object(object : Void*, crystal : Void*) : Void
+  fun bindgen_crystal_object(object : Void*) : Void*
+  ########## END IF ##########
 end
 
 # Marks the generated wrapper classes.  A method of a wrapped class called on
@@ -89,6 +97,67 @@ end
 
 # Helpers for bindings.  Required.
 module BindgenHelper
+  ########## IF CPP ##########
+  # Remembers *crystal*, the Crystal object which constructed the C++ object at
+  # *pointer*, in that object, if Crystal allocated it.  The generated
+  # constructors call this, and a pointer to the object coming back from C++
+  # is wrapped by *crystal* again, see `.crystal_object` and SPEC.md §2.3.7.
+  def self.set_crystal_object(pointer : Pointer, crystal : Reference) : Nil
+    Binding.bindgen_set_crystal_object(pointer.as(Void*), crystal.as(Void*))
+  end
+
+  # The Crystal object which constructed the C++ object at *pointer*, if there
+  # is one and it is a *type*, else `nil`.  *pointer* may point into the
+  # object, like to a secondary base.
+  def self.crystal_object(pointer : Pointer, type : T.class) : T? forall T
+    as_crystal_object(Binding.bindgen_crystal_object(pointer.as(Void*)), type)
+  end
+
+  # The Crystal object at *object*, a pointer `.crystal_object` read, if it is
+  # a *type*, else `nil`: the object may be of another class, like a
+  # `Qt::Widget` behind the `QPaintDevice *` of a painter, or of a class of
+  # another binding.  A pointer can't be cast to `Reference` for a check, so
+  # the type id in the object's header is followed up the superclasses
+  # registered by `Wrapper` until it reaches *type*, or a class not registered.
+  def self.as_crystal_object(object : Void*, type : T.class) : T? forall T
+    return nil if object.null?
+
+    id = object.as(Int32*).value
+    until id == T.crystal_instance_type_id
+      id = CRYSTAL_SUPERCLASS_IDS[id]? || return nil
+    end
+
+    object.as(T)
+  end
+  ########## END IF ##########
+
+  # The type id of the superclass of every wrapper class and every Crystal
+  # subclass of one, by the type id of the class, see `Wrapper`.
+  CRYSTAL_SUPERCLASS_IDS = {} of Int32 => Int32
+
+  # Registers *klass*, with its *superclass*, for `.as_crystal_object`.
+  def self.register_class(klass : T.class, superclass : S.class) : Nil forall T, S
+    CRYSTAL_SUPERCLASS_IDS[T.crystal_instance_type_id] = S.crystal_instance_type_id
+  end
+
+  # Included by the generated wrapper classes: registers the class and, as
+  # it is defined, every Crystal subclass of it for `.as_crystal_object`,
+  # which so needs no name of a subclass, like of a `private class`.
+  module Wrapper
+    macro included
+      BindgenHelper.register_class(self, {{ @type.superclass }})
+
+      # Reaches `BindgenHelper` from a subclass defined outside its module.
+      def self.bindgen_register_class(superclass : S.class) : Nil forall S
+        BindgenHelper.register_class(self, superclass)
+      end
+
+      macro inherited
+        bindgen_register_class(\{{ @type.superclass }})
+      end
+    end
+  end
+
   # Wraps `Proc` to a `Binding::CrystalProc`, which can then passed on to C++.
   def self.wrap_proc(proc : Proc)
     Binding::CrystalProc.new(
@@ -286,6 +355,7 @@ module BindgenHelper
   # a closure, as C++ calls it without a context.  Only with C++ glue, which
   # defines the hook list; a C library has neither.
   Binding.bindgen_add_destroyed_hook(->(pointer : Void*) { BindgenHelper.release(pointer) })
+
   ########## END IF ##########
 
   # Yields *value*.  Used by conversion templates using `%` more than once, so

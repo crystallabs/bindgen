@@ -493,7 +493,8 @@ module Bindgen
                           rules.kind.class? && type.pointer == 1 && !type.reference?
               # A value has the type declared, a pointer or reference may point
               # to a sub-class.
-              discovered = discover && rules.kind.class? && (type.pointer == 1 || type.reference?) &&
+              discovered = discover && rules.kind.class? && !rules.copy_structure? &&
+                           (type.pointer == 1 || type.reference?) &&
                            rules.graph_node.as?(Graph::Class).try(&.type_discovery?) == true
               template = wrapper_initialize_template(rules, type_name, nilable, discovered)
             end
