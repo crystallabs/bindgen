@@ -191,6 +191,12 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Fixed
 
+* A class given a Crystal name nested under another wrapped class, like
+  `"QCborStreamReader::StringResult<QString>": CborStreamReader::StringResult`,
+  and built before that class, made the sanity check report the enums of the
+  outer class unreachable: the namespace created for the nested name stayed
+  next to the class of the same name.  The class takes the namespace's place
+  now, with its nodes.
 * An instance of a Crystal subclass overriding a virtual method was never
   collected: the `Proc` of the override, stored in the C++ object, captured
   the Crystal object, which refers to the C++ object, and the GC doesn't

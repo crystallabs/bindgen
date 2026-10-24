@@ -3,6 +3,8 @@
 # Uses the default processor pipeline.
 
 classes:
+  Guest: Host::Guest # Before its Crystal parent
+  Host: Host
   N::A: N::A
   B: B
   N::C: N::C
@@ -12,3 +14,6 @@ classes:
   N::M::F: N::M::F
   N::G: N::G
   Concrete: Concrete
+
+enums:
+  Host::Kind: Host::Kind

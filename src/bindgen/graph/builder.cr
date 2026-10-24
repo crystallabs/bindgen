@@ -52,12 +52,28 @@ module Bindgen
       def build_class(klass : Parser::Class, name : String, root : Graph::Container) : Graph::Class
         parent, local_name = parent_and_local_name(root, name)
 
+        # A namespace created for a nested name earlier, like `Host` for a
+        # class named `Host::Guest` built before `Host`, becomes the class: its
+        # nodes move into it.  Else the class and the namespace would share
+        # the name, and a look-up finding the namespace would miss the enums
+        # and nested classes of the class.
+        namespace = parent.nodes.find { |node| node.name == local_name && node.is_a?(Graph::Namespace) }
+
         # Create the class itself
         graph_class = Graph::Class.new(
           parent: parent,
           name: local_name,
           origin: klass,
         )
+
+        if namespace.is_a?(Graph::Namespace)
+          namespace.nodes.each do |node|
+            node.parent = graph_class
+            graph_class.nodes << node
+          end
+          namespace.nodes.clear
+          parent.nodes.delete(namespace)
+        end
 
         # Add all (in theory) wrappable methods, and those declared in the
         # configuration, see the `declare_methods:` type rule.

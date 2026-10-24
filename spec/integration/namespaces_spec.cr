@@ -20,6 +20,11 @@ describe "namespaced class hierarchies" do
         {g.a, g.b, g.c, g.d, g.e, g.f, g.g}.should eq({1, 2, 3, 4, 5, 6, 7})
       end
 
+      it "nests a class under a wrapped class built after it" do
+        Test::Host.new.kind.should eq(Test::Host::Kind::Other)
+        Test::Host::Guest.new.value.should eq(3)
+      end
+
       it "supports abstract classes" do
         {{ Test::N::Abstract.abstract? }}.should be_true
         concrete = Test::Concrete.new

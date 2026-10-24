@@ -49,3 +49,15 @@ struct Concrete : N::Abstract {
   int pure() override { return 8; }
 };
 
+// A class given a Crystal name nested under another wrapped class,
+// `Host::Guest`, and built before `Host`: the namespace created for its name
+// becomes the class, so the enums of `Host` stay reachable.
+struct Guest {
+  int value() const { return 3; }
+};
+
+struct Host {
+  enum Kind { Some, Other };
+  Kind kind() const { return Other; }
+};
+
