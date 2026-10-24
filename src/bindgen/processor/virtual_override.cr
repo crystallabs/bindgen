@@ -493,7 +493,7 @@ module Bindgen
         # method in `methods` named `sig[1]` accepts the argument types
         # `sig[2]`.  Unresolvable type restrictions are assumed to match.
         MATCH_OVERLOAD_MACRO = <<-MACRO
-              methods.select { |m| m.name.stringify == sig[1] }.each do |m|
+              methods.select { |m| m.name.stringify == sig[1] && !m.annotation(BindgenWrapper) }.each do |m|
                 args = m.splat_index ? m.args[0...m.splat_index] : m.args
                 ok = sig[2].size >= args.select { |a| a.default_value.is_a?(Nop) }.size && (m.splat_index || sig[2].size <= args.size)
                 sig[2].each_with_index do |name, i|
@@ -516,7 +516,13 @@ module Bindgen
         # at compile-time of the user application, which gathers the mangled
         # names of all overwritten virtual methods into the `forwarded` macro
         # variable.  An overload is only forwarded if the Crystal sub-class
-        # defines a method of the same name accepting its argument types.
+        # defines a method of the same name accepting its argument types.  A
+        # method of the wrapper class the compiler copied into the sub-class,
+        # which it does for a method expanding `@type` once that is called
+        # through the base type, carries the `BindgenWrapper` annotation and
+        # doesn't count: forwarding it would call C++ through Crystal, and
+        # the closure of the forwarder, referring to the Crystal object from
+        # the C++ object, would keep both from ever being collected.
         private def generate_initialize_virtual_methods_macro(methods, b)
           pass = Crystal::Pass.new(@db)
           typer = Crystal::Typename.new(@db)

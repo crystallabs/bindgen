@@ -82,6 +82,8 @@ end
 # an instance of a Crystal subclass, which has none, knows that Crystal's
 # dispatch ran the overrides of the subclass already, and calls the C++
 # implementation of a virtual method through `#superclass`, so `super` works.
+# Also marks these methods themselves: the compiler copies them into the
+# subclasses, and the constructors must not take a copy for an override.
 annotation BindgenWrapper
 end
 

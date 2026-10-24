@@ -113,6 +113,15 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Fixed
 
+* A Crystal subclass not overriding a virtual method got a jumptable entry
+  for it anyway once the method had been called through the wrapper class
+  earlier in the program: the compiler copies a method expanding `@type`,
+  which the `super` forwarding of 0.15.0 made every wrapped virtual method,
+  into the subclasses, and the constructor's hook took the copy for an
+  override.  C++ then called the method through Crystal, and the closure of
+  the entry, referring to the Crystal object from the C++ object, kept both
+  from ever being collected.  The forwarding methods carry the
+  `BindgenWrapper` annotation now, and the hook skips them.
 * A Crystal override of a virtual method returning an enum, like
   `QValidator::validate`, didn't compile: the `Proc` passing its result to
   C++ called `to_unsafe` on the enum.

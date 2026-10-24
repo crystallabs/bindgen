@@ -116,7 +116,13 @@ module Bindgen
             named_args: call.origin.aggregate_constructor?,
           )
 
-          %[#{head_line}\n] \
+          # The compiler copies a method expanding `@type`, like the forwarding
+          # above, into a subclass once the method is called through the base
+          # type.  The annotation tells `Processor::VirtualOverride`'s hook
+          # such a copy from an override of the subclass.
+          marker = "@[BindgenWrapper]\n" if @super_forwarder
+
+          %[#{marker}#{head_line}\n] \
           %[  #{code}\n] \
           %[end\n]
         end
