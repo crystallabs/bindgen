@@ -442,7 +442,11 @@ module Bindgen
       end
 
       # Computes a result for passing *type* from the wrapper to the user.
-      def from_wrapper(type : Parser::Type, is_constructor = false, no_slice = false, callback_argument = false) : Call::Result
+      #
+      # A pointer or reference to a class with `Graph::Class#type_discovery?`
+      # is wrapped by its `DISCOVER_METHOD`, in the wrapper class of the
+      # object's dynamic type, unless *discover* is `false`.
+      def from_wrapper(type : Parser::Type, is_constructor = false, no_slice = false, callback_argument = false, discover = true) : Call::Result
         Log.trace &.emit "from wrapper", type: type.base_name, is_constructor: is_constructor
 
         type = type.pointee_array if type.reference_to_c_array?
@@ -487,7 +491,11 @@ module Bindgen
               # takes as declared, nor for a type known to be non-null.
               nilable ||= @db.nilable_results? && !callback_argument && !type.never_nil? &&
                           rules.kind.class? && type.pointer == 1 && !type.reference?
-              template = wrapper_initialize_template(rules, type_name, nilable)
+              # A value has the type declared, a pointer or reference may point
+              # to a sub-class.
+              discovered = discover && rules.kind.class? && (type.pointer == 1 || type.reference?) &&
+                           rules.graph_node.as?(Graph::Class).try(&.type_discovery?) == true
+              template = wrapper_initialize_template(rules, type_name, nilable, discovered)
             end
 
             is_ref, ptr = reconfigure_pass_type(rules.crystal_pass_by, is_ref, ptr)
@@ -547,19 +555,26 @@ module Bindgen
       end
 
       # Returns the `Call::Result#conversion` template to turn a pointer into an
-      # instance of *type_name* by using its `#initialize(unwrap: x)` method.
-      private def wrapper_initialize_template(rules, type_name, nilable)
-        # If the target type is abstract, use its `Impl` class instead.
-        if klass = rules.graph_node.as?(Graph::Class)
-          if impl = klass.wrap_class
-            type_name = impl.name
+      # instance of *type_name* by using its `#initialize(unwrap: x)` method,
+      # or its `Graph::Class::DISCOVER_METHOD` if *discovered*.
+      private def wrapper_initialize_template(rules, type_name, nilable, discovered = false)
+        if discovered
+          wrap = "#{type_name}.#{Graph::Class::DISCOVER_METHOD}(%)"
+        else
+          # If the target type is abstract, use its `Impl` class instead.
+          if klass = rules.graph_node.as?(Graph::Class)
+            if impl = klass.wrap_class
+              type_name = impl.name
+            end
           end
+
+          wrap = "#{type_name}.new(unwrap: %)"
         end
 
         template_string = if nilable
-                            %[%.try {|ptr| #{type_name}.new(unwrap: ptr) unless ptr.null?}]
+                            %[%.try {|ptr| #{wrap.sub("%", "ptr")} unless ptr.null?}]
                           else
-                            "#{type_name}.new(unwrap: %)"
+                            wrap
                           end
 
         Template.from_string template_string, simple: true

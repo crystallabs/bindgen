@@ -1,0 +1,29 @@
+<<: spec_base.yml
+
+processors:
+  - filter_methods
+  - default_constructor
+  - inheritance
+  - crystal_wrapper
+  - virtual_override
+  - cpp_wrapper
+  - crystal_binding
+  - sanity_check
+
+classes:
+  Shape: Shape
+  Polygon: Polygon
+  Triangle: Triangle
+  Round: Round
+  Circle: Circle
+  Named: Named
+  Labelled: Labelled
+  Point: Point
+  Point3: Point3
+  Shapes: Shapes
+
+types:
+  Shapes:
+    nilable:
+      "none()": true
+      "last()": true

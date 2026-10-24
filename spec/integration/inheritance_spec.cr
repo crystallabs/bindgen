@@ -59,8 +59,9 @@ describe "single and multiple inheritance feature" do
       end
 
       it "gives the Impl class of an abstract subclass the inherited overloads" do
-        made = Test::ScalerFactory.make
-        made.should be_a(Test::AbstractScalerMiddleImpl)
+        # The result is discovered as a ConcreteScaler, see type_discovery_spec.
+        Test::ScalerFactory.make.should be_a(Test::ConcreteScaler)
+        made = Test::AbstractScalerMiddleImpl.new(unwrap: Test::ScalerFactory.make.to_unsafe)
         made.scaled(3).should eq(6) # The default argument's overload
         made.padded.should eq(2)    # A default Crystal can't express
         made.padded(3).should eq(3)
@@ -77,15 +78,16 @@ describe "single and multiple inheritance feature" do
       it "casts down to an abstract class through its Impl class" do
         made = Test::ScalerFactory.make.as(Test::AbstractScaler)
         middle = made.to?(Test::AbstractScalerMiddle)
-        middle.should be_a(Test::AbstractScalerMiddleImpl)
+        middle.should be_a(Test::ConcreteScaler) # Discovered
         middle.try(&.extra).should eq(7)
+        Test::AbstractScalerMiddleImpl.new(unwrap: middle.not_nil!.to_unsafe).extra.should eq(7)
       end
 
       it "reaches a privately overridden method through its base" do
         Test::Circle.new.sides.should eq(0)
         Test::Circle.new.corners.should eq(0)
-        round = Test::Shapes.round
-        round.should be_a(Test::AbstractRoundImpl)
+        Test::Shapes.round.should be_a(Test::Circle) # Discovered
+        round = Test::AbstractRoundImpl.new(unwrap: Test::Shapes.round.to_unsafe)
         round.sides.should eq(0)
         round.area.should eq(28)
       end

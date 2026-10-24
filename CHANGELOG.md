@@ -6,6 +6,17 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Added
 
+* Type discovery (SPEC.md §2.3.7): a pointer or reference to a polymorphic
+  class is wrapped in the wrapper class of the object's dynamic type, the most
+  derived one the binding knows, in the results of methods, the arguments of
+  callbacks and `#to?`.  `Processor::Inheritance` gives each polymorphic class
+  with wrapped sub-classes a C++ `DISCOVER` function, a `BindgenTypeDiscovery`
+  table in `bindgen_helper.hpp` looking the `typeid` up and walking the
+  `dynamic_cast`s once for an unknown type, and the Crystal class method
+  `bg_discover`, which `Crystal::Pass#from_wrapper` calls instead of
+  `new(unwrap:)`.  Without RTTI nothing is discovered.  Specs expecting the
+  declared class, like the `Impl` of an abstract class, see the sub-class now.
+
 * `ignore_methods:` entries match a C++ signature, dropping one overload:
   `operator-(const QDateTime &, const QDateTime &)`, with ` const` after the
   parentheses for a const method, spacing normalized; or a regular expression

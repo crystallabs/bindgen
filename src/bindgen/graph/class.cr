@@ -45,6 +45,17 @@ module Bindgen
       # paths.
       getter instance_variables = {} of String => Call::Result
 
+      # Name of the Crystal class method wrapping a pointer to this class in
+      # the wrapper class of the object's dynamic type, see
+      # `Processor::Inheritance` and SPEC.md §2.3.7.
+      DISCOVER_METHOD = "bg_discover"
+
+      # Does this class have a `DISCOVER_METHOD`?  Set by
+      # `Processor::Inheritance` for a polymorphic class with wrapped
+      # sub-classes in Crystal.  `Crystal::Pass#from_wrapper` then wraps a
+      # pointer to this class through it.
+      property? type_discovery : Bool = false
+
       def initialize(@origin, name, parent = nil)
         super(name, parent)
       end

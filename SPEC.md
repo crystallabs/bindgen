@@ -466,9 +466,40 @@ Bar.create.to?(Foo) # => #<Foo:...>, or nil
 Foo.new.to?(Bar)    # => The same Foo
 ```
 
-**Note**: A downcast returns a new instance of the wrapper class `T`, even if
-the object was created by a Crystal sub-class of `T`.  `T` must be a wrapper
+**Note**: A downcast returns a new instance of a wrapper class, even if the
+object was created by a Crystal sub-class of `T`.  `T` must be a wrapper
 class, not a Crystal sub-class of one.
+
+#### §2.3.7 Type discovery
+
+A pointer or reference to a polymorphic class is wrapped in the wrapper class
+of the object's dynamic type, the most derived one the binding knows, so a
+method declared to return a `Bar *` returns a `Foo` for an object created as
+one.  This applies to the results of methods, to the arguments of callbacks
+(the Crystal override of a virtual method, the block of a Qt signal) and to
+`#to?`; a value, like a `Bar` returned by value, is of the class declared.
+
+```cpp
+struct Bar { virtual ~Bar(); static Bar *create(); static Bar copy(); };
+struct Foo : Bar { int foo(); };
+struct Hidden : Foo { }; // Not wrapped
+```
+
+```crystal
+Bar.create.class  # => Foo, for an object created as a Foo or a Hidden
+Bar.copy.class    # => Bar
+Foo.bg_discover(pointer) # Wraps a `Binding::Foo*` the same way
+```
+
+The discovery looks the `typeid` of the object up in a table of the wrapped
+classes inheriting from the declared class in Crystal (§2.3.1: the first
+wrapped base, not the further ones), and walks their `dynamic_cast`s once for
+a type the table doesn't have, like `Hidden`, remembering the class found.  An
+object of a class the binding doesn't know is wrapped in the nearest wrapped
+class; an object of a Crystal sub-class gets a new wrapper of its wrapper
+class, as a downcast does.  A pointer to a class without wrapped sub-classes,
+or to a non-polymorphic class, is wrapped in the class declared without a
+lookup, and so is every pointer if the C++ code is built without RTTI.
 
 ### §2.4 Instance properties
 

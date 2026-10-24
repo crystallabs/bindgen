@@ -164,6 +164,7 @@ The following rules are automatically applied to all bindings:
 | Abstract classes                                 | **YES** |
 | Multiple inheritance wrapping                    | **YES** |
 | Downcasting polymorphic classes (`#to?`)         | **YES** |
+| Type discovery of pointer results and arguments  | **YES** |
 | Qt integration                                   |         |
 |  +- QObject signals                              | **YES** |
 |  +- QFlags types                                 | **YES** |
@@ -673,6 +674,15 @@ classes through a `dynamic_cast`, returning `nil` if the object isn't a `T`:
 `Bar.create.to?(Foo) # => Foo?`.  See `SPEC.md` §2.3.6.  Downcasts use
 `dynamic_cast`: if the C++ code is built without RTTI (`-fno-rtti`, like Qt),
 one aborts the program instead.
+
+Adds type discovery to polymorphic classes with wrapped sub-classes, see
+`SPEC.md` §2.3.7: a pointer or reference result, and the argument of a
+callback, is wrapped in the class of the object's dynamic type, so
+`Bar.create` above is a `Foo` already.  The C++ `DISCOVER` function of a class
+looks the `typeid` up in a table of its wrapped sub-classes, walking their
+`dynamic_cast`s once for an unknown type; the Crystal class method
+`bg_discover` wraps the pointer in the class found.  Without RTTI, every
+object is wrapped in the class declared.
 
 ## `InstanceProperties`
 
