@@ -100,6 +100,8 @@ module Bindgen
       # Checks if *type* instantiates a template which is neither configured nor
       # a container.  Crystal can't name such a type.
       private def unknown_template?(type) : Bool
+        # A `std::function` argument is a `CrystalProc`, see `Parser::Argument`.
+        return false if type.kind.function?
         return false unless templ = type.template
         return false if @db[type]?
 

@@ -280,6 +280,40 @@ more C++ arguments: the variant of `pick` taking `selected` too, which the
 wrapper drops, replaces the variant ending before it, and a variant whose
 further arguments have exposed defaults replaces a shorter one.
 
+#### §2.2.6 `std::function` arguments
+
+An argument of type `std::function<R (Args...)>`, by value or by reference,
+is taken as a `Proc(Args..., R)`: as a block if it is the last argument, as
+a `Proc` argument otherwise.  The arguments and the result are converted like
+those of a Qt signal or a Crystal override: a `const std::string &` arrives
+as a `String`, a `std::string` result is copied back.  A method returning a
+`std::function`, or taking a bare function pointer, which can't carry a
+closure, is skipped.  A virtual method taking a `std::function` is called
+through the wrapper, but can't be overridden from Crystal; a pure one is
+skipped.
+
+```cpp
+struct Button {
+  void onClick(std::function<void ()> f);
+  int each(int count, std::function<int (int, const std::string &)> f);
+  void setFilter(const std::function<bool (int)> &f, int threshold);
+};
+```
+
+```crystal
+button.on_click { puts "clicked" }
+button.each(3) { |index, name| index * 2 } # => 0 + 2 + 4
+button.set_filter(->(value : Int32) { value.even? }, 10)
+```
+
+The C++ glue builds the `std::function` from a lambda calling the Crystal
+`Proc`.  The lambda holds the proc in memory the GC scans but doesn't collect
+(`bindgen_hold_proc` in `bindgen_helper.hpp`), freed with the last copy of
+the `std::function`: the closure stays alive as long as C++ keeps the
+function, wherever it stores it, and is collected once C++ drops it.  A block
+runs on the thread calling it, so a function C++ calls from another thread,
+like `QThreadPool::start`, has to be ignored (`ignore_methods`).
+
 ### §2.3 Inheritance and abstract classes
 
 Inheritance from wrapped C++ classes is replicated in Crystal.

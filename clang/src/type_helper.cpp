@@ -322,6 +322,23 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clan
 			target.templ->fullName = target.baseName;
 		}
 	}
+
+	// A function type, like the argument of `std::function<int (int)>` or the
+	// pointee of a function pointer: its return and parameter types, in this
+	// order, as the arguments of a template named like the function type, so
+	// bindgen can build a `Proc` from it.
+	if (const auto *function = qt->getAs<clang::FunctionProtoType>()) {
+		Template t;
+		t.baseName = target.baseName;
+		t.fullName = target.baseName;
+		t.arguments.push_back(qualTypeToType(function->getReturnType(), ctx));
+		for (clang::QualType param : function->param_types()) {
+			t.arguments.push_back(qualTypeToType(param, ctx));
+		}
+
+		target.isFunction = true;
+		target.templ = t;
+	}
 }
 
 static std::optional<Template> handleTemplate(const clang::TemplateSpecializationType *tmpl, clang::ASTContext &ctx) {

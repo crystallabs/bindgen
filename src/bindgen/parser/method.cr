@@ -527,6 +527,11 @@ module Bindgen
 
         return true if pass_by_value_violation
 
+        # A Crystal override can't take a `std::function` (it would need the
+        # reverse wrapping), so a pure virtual one can't be implemented.  Such
+        # a method isn't overridable, see `Processor::VirtualOverride`.
+        return true if pure? && @arguments.any?(&.std_function?)
+
         # The same for the result, which is copied out of a reference.
         return true if passed_by_value?(db, @return_type) && by_pointer?(@return_type)
 

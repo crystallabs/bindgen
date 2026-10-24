@@ -165,6 +165,7 @@ The following rules are automatically applied to all bindings:
 | Multiple inheritance wrapping                    | **YES** |
 | Downcasting polymorphic classes (`#to?`)         | **YES** |
 | Type discovery of pointer results and arguments  | **YES** |
+| `std::function` arguments as blocks              | **YES** |
 | Qt integration                                   |         |
 |  +- QObject signals                              | **YES** |
 |  +- QFlags types                                 | **YES** |

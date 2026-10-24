@@ -269,8 +269,12 @@ module Bindgen
       end
 
       # Checks if *method* is virtual, and not `final`, so it can be overridden.
+      # A method taking a `std::function` isn't: a Crystal override would
+      # need the `std::function` wrapped into a `Proc`, the reverse of what
+      # the glue does for a call.  It is still called through the wrapper.
       private def overridable?(method : Graph::Method) : Bool
-        method.origin.virtual? && !method.origin.final?
+        method.origin.virtual? && !method.origin.final? &&
+          method.origin.arguments.none?(&.std_function?)
       end
 
       # Checks if *method* was overriden privately by *klass*, or by a wrapped
@@ -550,7 +554,8 @@ module Bindgen
 
           @klass.nodes.each do |node|
             next unless node.is_a?(Graph::Method)
-            list << node if node.origin.virtual? && !node.origin.final?
+            next if !node.origin.virtual? || node.origin.final?
+            list << node if node.origin.arguments.none?(&.std_function?)
           end
 
           list

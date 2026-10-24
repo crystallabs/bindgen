@@ -1,0 +1,14 @@
+<<: spec_base.yml
+
+processors:
+  - filter_methods
+  - default_constructor
+  - inheritance
+  - crystal_wrapper
+  - virtual_override
+  - cpp_wrapper
+  - crystal_binding
+  - sanity_check
+
+classes:
+  Button: Button

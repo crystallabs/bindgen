@@ -183,6 +183,8 @@ module Bindgen
           template = conversion_template(pass_by, type, type_name)
         end
 
+        template = std_function_template(type) if type.std_function?
+
         Call::Result.new(
           type: type,
           type_name: type_name,
@@ -192,7 +194,32 @@ module Bindgen
         )
       end
 
-      # Computes a result for passing *type* from C++ to Crystal.
+      # The conversion building the `std::function` *type* from the
+      # `CrystalProc` the glue is passed: a lambda converting the arguments
+      # and the result like a Qt signal's, see `CallBuilder::CppToCrystalProc`.
+      # The lambda holds the `CrystalProc` through `bindgen_hold_proc` of
+      # `bindgen_helper.hpp`, which keeps its Crystal closure alive as long as
+      # the `std::function` lives.
+      private def std_function_template(type : Parser::Type) : Template::Base
+        signature = type.template_arguments
+        arguments = signature[1..].map_with_index do |arg_type, idx|
+          Parser::Argument.new("arg#{idx}", arg_type)
+        end
+
+        method = Parser::Method.build(
+          name: "call",
+          return_type: signature.first,
+          arguments: arguments,
+          class_name: Parser::Type::CRYSTAL_PROC,
+        )
+
+        lambda = CallBuilder::CppToCrystalProc.new(@db).build(
+          method, proc_name: "(*proc)", lambda: true, capture: "proc = bindgen_hold_proc(%)")
+        code = lambda.body.to_code(lambda, Graph::Platform::Cpp)
+
+        Template.from_string("#{type.base_name}(#{code})", simple: true)
+      end
+
       # Also see `#pass_to_cpp` for the reverse direction.
       # See `#passthrough_to_crystal` to call Crystal from C++.
       #

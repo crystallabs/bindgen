@@ -19,6 +19,9 @@ static JsonStream &writeTypeJson(JsonStream &s, const Type &value) {
 	if (!value.typedefs.empty()) {
 		s << std::make_pair("typedefs", value.typedefs) << c;
 	}
+	if (value.isFunction) {
+		s << std::make_pair("isFunction", value.isFunction) << c;
+	}
 	s << std::make_pair("template", value.templ);
 	return s;
 }

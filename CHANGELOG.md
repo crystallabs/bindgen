@@ -6,6 +6,17 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Added
 
+* `std::function<R (Args...)>` arguments are taken as a block, or a `Proc`
+  when not last (SPEC.md §2.2.6).  The clang tool describes a function type
+  with its return and parameter types (`isFunction`, format version 12);
+  `Parser::Argument` turns a `std::function` into a `Kind::Function` type
+  like a signal's, and `Cpp::Pass` builds the `std::function` from a lambda
+  calling the `CrystalProc`, held by `bindgen_hold_proc` in memory the GC
+  scans but doesn't collect, freed with the last copy of the function.  A
+  method returning a `std::function` or taking a function pointer is skipped,
+  a virtual method taking one isn't overridable.  `Template::ProcFromWrapper`
+  calls the `Proc` named by its argument instead of always `_proc_`, and a
+  lambda calling Crystal converts its result (`CppToCrystalProc::LambdaBody`).
 * Type discovery (SPEC.md §2.3.7): a pointer or reference to a polymorphic
   class is wrapped in the wrapper class of the object's dynamic type, the most
   derived one the binding knows, in the results of methods, the arguments of

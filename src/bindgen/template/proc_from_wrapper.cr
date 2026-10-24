@@ -10,6 +10,7 @@ module Bindgen
         false
       end
 
+      # *code* names the `Proc` to call: the argument of the wrapper method.
       def template(code) : String
         args = @proc_type.template_arguments
         func_args = args[1..-1].map_with_index do |type, i|
@@ -23,7 +24,7 @@ module Bindgen
         )
 
         builder = CallBuilder::CrystalFromCpp.new(@db)
-        call = builder.build(proc_call, receiver: "_proc_", do_block: true)
+        call = builder.build(proc_call, receiver: code, do_block: true)
         call.body.to_code(call, Graph::Platform::Crystal)
       end
 

@@ -31,6 +31,26 @@ module Bindgen
       )
       end
 
+      # The name of a `std::function` class template.
+      STD_FUNCTION = "std::function"
+
+      # A `std::function<R (Args...)>` argument becomes a `Kind::Function` type
+      # like `Type.proc` builds: a `Proc` or block in Crystal, a `CrystalProc`
+      # in the binding, which the C++ glue wraps into the `std::function`.
+      # See `Type#std_function?` and SPEC.md §2.2.6.
+      def after_initialize
+        return unless (templ = @template) && templ.base_name == STD_FUNCTION
+        return unless (inner = templ.arguments.first?) && inner.function? && (signature = inner.template)
+
+        @kind = Kind::Function
+        @builtin = true # Like `Type.proc`: No type rules are needed.
+        @template = Template.new(
+          full_name: CRYSTAL_PROC,
+          base_name: CRYSTAL_PROC,
+          arguments: signature.arguments,
+        )
+      end
+
       def initialize(@name, type : Type, @has_default = false, @value = nil)
         @desugared = type.desugared
         @typedefs = type.typedefs

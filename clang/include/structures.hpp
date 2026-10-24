@@ -30,6 +30,7 @@ struct Type {
 	std::string fullName; // Full name, for C++. E.g. `const Foo *&`
 	std::string desugared; // The canonical type a typedef base type names, e.g. `QList<QFileInfo>` for `QFileInfoList`
 	std::vector<std::string> typedefs; // The typedefs between the base type and `desugared`, outermost first
+	bool isFunction = false; // A function type, like the `void (int)` of `std::function<void (int)>`; `templ` holds its return and parameter types
 
 	std::optional<Template> templ; // Set if this is a template type
 };
@@ -211,7 +212,7 @@ struct TypeInfoResult {
 
 // Version of the output format.  Increase it together with
 // `Bindgen::Parser::Document::FORMAT_VERSION` whenever the output changes.
-static const int BG_FORMAT_VERSION = 11;
+static const int BG_FORMAT_VERSION = 12;
 
 struct Document {
 	JsonMap<std::string, Enum> enums;

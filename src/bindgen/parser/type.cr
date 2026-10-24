@@ -99,6 +99,19 @@ module Bindgen
       # Template information, if this type is a template type.
       getter template : Template?
 
+      # Is this a C++ function type, like the `void (int)` of
+      # `std::function<void (int)>`?  Then `#template` holds its return type
+      # and parameter types, in this order.  See `Argument#after_initialize`.
+      @[JSON::Field(key: "isFunction")]
+      getter? function = false
+
+      # Is this a `std::function` turned into a `Kind::Function` type, see
+      # `Argument#after_initialize`?  The `#base_name` stays the C++ type, so
+      # the C++ glue can build it from the `CrystalProc` it is passed.
+      def std_function? : Bool
+        @kind.function? && @base_name.starts_with?("std::function<")
+      end
+
       # A copy of this type known to be non-null, see `#never_nil?`.
       def never_nil : Type
         copy = dup
