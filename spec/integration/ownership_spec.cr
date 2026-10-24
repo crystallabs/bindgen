@@ -21,6 +21,7 @@ describe "keeping objects passed to C++ alive" do
         end
         fail "The GC didn't collect the objects in time: " \
              "#{Test::Dependent.destroyed} Dependent destroyed, " \
+             "#{Test::VirtualDependent.destroyed} VirtualDependent destroyed, " \
              "#{Test::Counted.alive} Counted alive, " \
              "#{Test::Mutual.destroyed} Mutual destroyed"
       end
@@ -70,6 +71,15 @@ describe "keeping objects passed to C++ alive" do
       # owner behind.
       def leave_owner_of(counted)
         leaving { Test::Owner.new.adopt(counted) }
+      end
+
+      # A Crystal subclass overriding a virtual method: the C++ object calls
+      # the override on the Crystal object it looks up, without referring to it,
+      # so the instance is collectable like any other object.
+      class KindTwo < Test::VirtualDependent
+        def kind : Int32
+          2
+        end
       end
 
       # Stores a new `Inner` in a new `Outer`, which doesn't keep it alive by
@@ -340,6 +350,48 @@ describe "keeping objects passed to C++ alive" do
           Test::BindgenHelper.keep_alive(outer).should be(outer)
           Test::BindgenHelper.kept_alive?(outer).should be_false
           Test::BindgenHelper.release(outer.to_unsafe) # Does nothing either
+        end
+      end
+
+      context "an instance of a Crystal subclass overriding a virtual method" do
+        # Holds holders, so a spec can drop them without leaving pointers to
+        # them on the stack.
+        holders = [] of Test::Holder
+
+        it "is collected once Crystal drops it" do
+          destroyed = Test::VirtualDependent.destroyed
+          leaving { KindTwo.new.call_kind.should eq(2) }
+          collect_garbage_until { Test::VirtualDependent.destroyed == destroyed + 1 }
+        end
+
+        it "lives on with an object depending on it, with its overrides" do
+          destroyed = Test::VirtualDependent.destroyed
+          leaving { holders << Test::Holder.new(KindTwo.new) }
+          collect_garbage
+          Test::VirtualDependent.destroyed.should eq(destroyed)
+          holders[0].kind_of_held.should eq(2) # The override, not the C++ method
+
+          # Dropped, the object is destroyed before the dependency.
+          holders.clear
+          scrub_stack
+          collect_garbage_until { Test::VirtualDependent.destroyed == destroyed + 1 }
+        end
+
+        it "lives on while kept alive, with its overrides" do
+          destroyed = Test::VirtualDependent.destroyed
+          pointer = Pointer(Test::Binding::VirtualDependent).null
+          leaving { pointer = Test::BindgenHelper.keep_alive(KindTwo.new).to_unsafe }
+          collect_garbage
+          Test::VirtualDependent.destroyed.should eq(destroyed)
+
+          # A new wrapper of the C++ object: its virtual method reaches the
+          # override of the kept Crystal object.
+          Test::VirtualDependent.new(unwrap: pointer).call_kind.should eq(2)
+
+          Test::BindgenHelper.release(pointer)
+          pointer = Pointer(Test::Binding::VirtualDependent).null
+          scrub_stack
+          collect_garbage_until { Test::VirtualDependent.destroyed == destroyed + 1 }
         end
       end
 

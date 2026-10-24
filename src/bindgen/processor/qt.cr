@@ -297,15 +297,21 @@ module Bindgen
         )
       end
 
-      # Adds the *signal* connection method to *parent*.
+      # Adds the *signal* connection method to *parent*.  Connecting a signal
+      # keeps the sender alive, see `Graph::Method::KEEPS_SELF_TAG`: Qt refers
+      # to it from the connection, in memory the GC scans but doesn't collect
+      # (the `operator new` of libgccpp), so the C++ object lives on anyway,
+      # and so should the Crystal object with the overrides of its class.
       private def add_connect_method(parent, signal)
         conn_method = signal_connect_binding_method(signal)
 
-        Graph::Method.new(
+        method = Graph::Method.new(
           origin: conn_method,
           name: conn_method.name,
           parent: parent,
         )
+        method.set_tag(Graph::Method::KEEPS_SELF_TAG)
+        method
       end
 
       # Builds the method(s) used to generate the binding to a Qt signals connect

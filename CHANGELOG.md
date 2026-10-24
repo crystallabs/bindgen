@@ -182,6 +182,21 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Fixed
 
+* An instance of a Crystal subclass overriding a virtual method was never
+  collected: the `Proc` of the override, stored in the C++ object, captured
+  the Crystal object, which refers to the C++ object, and the GC doesn't
+  finalize an object reachable from itself through another ("GC Warning:
+  Finalization cycle involving").  The virtual method of the C++ subclass now
+  looks the Crystal object up, like the type discovery does, and passes it to
+  the `Proc`, which captures nothing (SPEC.md §2.3.4).  Such an instance is
+  collected once nothing holds it, like any other object; a `depends_on:`
+  dependency stores the Crystal object of the dependency, so the overrides of
+  a dependency's class keep working while the dependent object lives.  As Qt
+  refers to the sender of a connected signal, from memory the GC scans but
+  never collects (Qt allocates through the `operator new` of libgccpp), so
+  the C++ object lives on anyway, the `Qt` processor's connection methods pass
+  the sender to `BindgenHelper.keep_alive` (SPEC.md §Q.1.4): before, the
+  closure kept such a sender.
 * A Crystal subclass not overriding a virtual method got a jumptable entry
   for it anyway once the method had been called through the wrapper class
   earlier in the program: the compiler copies a method expanding `@type`,

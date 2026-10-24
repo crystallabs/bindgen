@@ -143,6 +143,7 @@ module Bindgen
         add_keep_alive_hook(wrapper_call)
         add_release_hook(wrapper_call)
         add_owner_hook(method, wrapper_call)
+        add_keeps_self_hook(method, wrapper_call)
         wrapper_call
       end
 

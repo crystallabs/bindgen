@@ -29,6 +29,12 @@ module Bindgen
       # see `Processor::CrystalWrapper#add_owner_hook`.
       OWNED_BY_ARGUMENT_TAG = "OWNED_BY_ARGUMENT_TAG"
 
+      # If this tag is set, C++ refers to the object of this method from then
+      # on, like Qt to the sender of a connected signal: the Crystal wrapper
+      # passes `self` to `BindgenHelper.keep_alive`.  The value is left empty.
+      # Set by `Processor::Qt`, see `Processor::WrapperHooks#add_keeps_self_hook`.
+      KEEPS_SELF_TAG = "KEEPS_SELF_TAG"
+
       # `Parser::Method` this method node is based on.
       getter origin : Parser::Method
 

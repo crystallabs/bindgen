@@ -130,6 +130,22 @@ private:
 int VirtualDependent::destroyed_ = 0;
 int VirtualDependent::counted_alive_at_destruction_ = -1;
 
+// Holds a `VirtualDependent` through memory the GC doesn't scan and calls its
+// virtual method, like a stream reading from a device a Crystal subclass
+// implements: `depends_on:` keeps the Crystal object of the dependency, with
+// the overrides of its class.
+struct Holder {
+  Holder(VirtualDependent *held) : d(new Data{held}) { }
+  Holder(const Holder &other) : d(new Data{other.d->held}) { }
+  ~Holder() { delete d; }
+
+  int kindOfHeld() const { return d->held->kind(); }
+
+private:
+  struct Data { VirtualDependent *held; };
+  Data *d;
+};
+
 // Checks where the `BindgenGCObject` of an object constructed from Crystal is,
 // which the glue of a method configured in `depends_on:` finds by `GC_base`.
 // The parser doesn't see `bindgen_helper.hpp`, only the compiler does.

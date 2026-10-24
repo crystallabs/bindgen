@@ -3,6 +3,14 @@ module Bindgen
     # Builder for calls made from C++ to Crystal.  Used for callbacks, Qt
     # signals and virtual method overrides.
     class CppToCrystalProc
+      # Name of the local holding the Crystal object of the C++ object, in the
+      # C++ virtual method and in the `Proc` of its Crystal override, see
+      # `#build` and `CrystalFromCpp#build`.
+      CRYSTAL_OBJECT = "_crystal_"
+
+      # Its type, `void *`.
+      CRYSTAL_OBJECT_TYPE = Parser::Type.parse("void", 1)
+
       def initialize(@db : TypeDatabase)
       end
 
@@ -10,7 +18,13 @@ module Bindgen
       # If *lambda* is true, instead of invoking the *method*, builds a C++
       # lambda expression that wraps the invocation, capturing *proc_name* by
       # value, or the *capture* given instead, like `proc = hold(f)`.
-      def build(method : Parser::Method, *, proc_name : String = "_proc_", lambda = false, capture : String? = nil) : Call
+      #
+      # With *crystal_object*, the `CrystalProc` of a virtual method override
+      # takes the Crystal object of the C++ object as its first argument, the
+      # local `_crystal_` of `CppMethod::VirtualBody`, see `CRYSTAL_OBJECT`:
+      # the `Proc` captures nothing, so the C++ object doesn't refer to the
+      # Crystal object, which would keep both from being collected.
+      def build(method : Parser::Method, *, proc_name : String = "_proc_", lambda = false, capture : String? = nil, crystal_object = false) : Call
         pass = Cpp::Pass.new(@db)
 
         # Structures are passed by pointer, see `TypeHelper#proc_by_pointer?`.
@@ -27,6 +41,10 @@ module Bindgen
             result = result.copy_with(conversion: result.conversion.followed_by(address))
           end
           result.to_argument(name)
+        end
+
+        if crystal_object
+          arguments.unshift(pass.to_cpp(CRYSTAL_OBJECT_TYPE).to_argument(CRYSTAL_OBJECT))
         end
 
         result = pass.to_cpp(method.return_type)

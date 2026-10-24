@@ -437,6 +437,19 @@ the method calls the C++ implementation the same way.  A wrapper of the
 generated class itself, like one a getter returned, calls the virtual method,
 and so reaches the Crystal override of the object's class.
 
+The C++ object doesn't refer to the Crystal object: the virtual method of the
+C++ subclass looks the Crystal object up, as the type discovery of `§2.3.7`
+does, and calls the override on it, through a `Proc` capturing nothing.  So an
+instance of a Crystal subclass is collected like any other object, once
+Crystal, a `keep_alive:` or `depends_on:` rule, or an owner like a Qt parent
+no longer holds it, and the GC then destroys the C++ object.  A `depends_on:`
+dependency is the Crystal object of the dependency, where it has one, so the
+overrides of its class keep working while the object depending on it lives.
+Were the Crystal object collected while C++ still holds the object, which
+only happens when C++ keeps it without a rule telling the binding, the
+virtual method calls the C++ implementation, and a pure virtual method
+panics.
+
 #### §2.3.5 Base-class wrapper
 
 A `Superclass` wrapper is defined for every impure abstract class in C++.  This
@@ -1381,7 +1394,17 @@ thread, whichever it is.
 * `button.on_clicked(Qt::ConnectionType::QueuedConnection) { }`: Run by the
   event loop, after the emission returns
 
-### §Q.1.4 Exceptions in the block
+### §Q.1.4 Lifetime of the sender
+
+Connecting a signal passes the sender to `BindgenHelper.keep_alive`, like a
+method configured in `keep_alive:` does with its argument: Qt refers to the
+sender from the connection, and as Qt allocates through the `operator new` of
+libgccpp, in memory the GC scans but doesn't collect, the C++ object lives on
+until it is deleted anyway.  Keeping the Crystal object with it keeps the
+overrides of a Crystal subclass (§2.3.4) working.  C++ deleting the object, or
+`BindgenHelper.release`, lets the GC collect it.
+
+### §Q.1.5 Exceptions in the block
 
 An exception the block raises is handed to `BindgenHelper.on_exception`, and
 the signal's emission returns as if the block had returned: a Crystal

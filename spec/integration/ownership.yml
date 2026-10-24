@@ -14,6 +14,7 @@ classes:
   Counted: Counted
   Dependent: Dependent
   VirtualDependent: VirtualDependent
+  Holder: Holder
   Layout: Layout
   Inner: Inner
   Outer: Outer
@@ -45,6 +46,8 @@ types:
     depends_on: [^$, ^retarget$, ^targets$] # Constructors, a method, and a static one
   VirtualDependent:
     depends_on: [^retarget$]
+  Holder:
+    depends_on: [^$]
   Owner:
     keep_alive:
       ^adopt$: true

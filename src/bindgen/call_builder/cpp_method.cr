@@ -6,20 +6,27 @@ module Bindgen
       def initialize(@db : TypeDatabase)
       end
 
+      # Builds the *method* of the shadow subclass *class_name*, calling the
+      # Crystal override through *virtual_target*, a `CppToCrystalProc` call
+      # taking the Crystal object, or *target*, the C++ implementation, if
+      # there's no override.  *wrapped_class* is the class the subclass shadows,
+      # whose pointer the Crystal object was bound to, see
+      # `BindgenHelper.set_crystal_object`.
       def build(
         method : Parser::Method, target : Call?, virtual_target : Call,
-        class_name : String? = nil, in_superclass = false,
+        class_name : String? = nil, in_superclass = false, wrapped_class : String? = nil,
       )
         pass = Cpp::Pass.new(@db)
         class_name ||= method.class_name
+        wrapped_class ||= method.class_name
 
         body = case
                when in_superclass
                  SuperclassBody.new(class_name, target || raise ArgumentError.new("Superclass method needs a target"))
                when target
-                 VirtualBody.new(class_name, target, virtual_target)
+                 VirtualBody.new(class_name, wrapped_class, target, virtual_target)
                else
-                 PureBody.new(class_name, virtual_target)
+                 PureBody.new(class_name, wrapped_class, virtual_target)
                end
 
         Call.new(
@@ -63,16 +70,42 @@ module Bindgen
         end
       end
 
-      # Body for virtual targets.
-      class VirtualBody < Body
+      # A body calling the Crystal override of a virtual method, if the
+      # Crystal subclass has one, and the Crystal object still exists.
+      abstract class OverridingBody < Body
         getter? overriding : Bool = true
 
-        def initialize(@class : String, @target : Call, @virtual_target : Call)
+        def initialize(@class : String, @wrapped_class : String, @virtual_target : Call)
+        end
+
+        # Declares `_self_`, and `_crystal_`, the Crystal object which
+        # constructed the C++ object, see `BindgenHelper.set_crystal_object`,
+        # or null once the GC collected it: the C++ object doesn't keep it
+        # alive, only Crystal, or a `keep_alive:`, `depends_on:` or owner does.
+        # The `Proc` of the override takes it, see `CppToCrystalProc#build`.
+        protected def locals(const) : String
+          crystal = CppToCrystalProc::CRYSTAL_OBJECT
+          object = "const_cast<#{@wrapped_class} *>(static_cast<const #{@wrapped_class} *>(_self_))"
+
+          %[  #{const}#{@class} *_self_ = this;\n] \
+          %[  void *#{crystal} = #{@virtual_target.name}.isValid() ? bindgen_crystal_object(#{object}) : nullptr;\n]
+        end
+
+        # The condition to call the override under.
+        protected def overridden : String
+          CppToCrystalProc::CRYSTAL_OBJECT
+        end
+      end
+
+      # Body for virtual targets.
+      class VirtualBody < OverridingBody
+        def initialize(klass : String, wrapped_class : String, @target : Call, virtual_target : Call)
+          super(klass, wrapped_class, virtual_target)
         end
 
         def code_body(const, call, platform, result_type)
-          %[  #{const}#{@class} *_self_ = this;\n] \
-          %[  if (#{@virtual_target.name}.isValid()) {\n] \
+          %[#{locals(const)}] \
+          %[  if (#{overridden}) {\n] \
           %[#{call_statements(@virtual_target, platform, result_type, "    ")}\n] \
           %[  } else {\n] \
           %[#{call_statements(@target, platform, result_type, "    ")}\n] \
@@ -92,17 +125,17 @@ module Bindgen
         end
       end
 
-      # Body for pure targets.
-      class PureBody < Body
-        getter? overriding : Bool = true
-
-        def initialize(@class : String, @virtual_target : Call)
-        end
-
+      # Body for pure targets: there's no C++ implementation to fall back to.
+      # Without an override, or once the Crystal object was collected, which
+      # only happens to an object C++ kept without the binding knowing, the
+      # program panics.
+      class PureBody < OverridingBody
         def code_body(const, call, platform, result_type)
-          %[  #{const}#{@class} *_self_ = this;\n] \
-          %[  if (bindgen_likely(#{@virtual_target.name}.isValid())) {\n] \
+          %[#{locals(const)}] \
+          %[  if (bindgen_likely(#{overridden})) {\n] \
           %[#{call_statements(@virtual_target, platform, result_type, "    ")}\n] \
+          %[  } else if (#{@virtual_target.name}.isValid()) {\n] \
+          %[    bindgen_fatal_panic("The Crystal object implementing pure method #{call.origin.class_name}::#{call.name} was collected");\n] \
           %[  } else {\n] \
           %[    bindgen_fatal_panic("No implementation for pure method #{call.origin.class_name}::#{call.name}");\n] \
           %[  }]

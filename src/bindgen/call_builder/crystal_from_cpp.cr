@@ -15,7 +15,16 @@ module Bindgen
       # `do ... end` instead of `{ ... }`.  This allows embedding the code body
       # inside a string conversion template, without the code block being
       # interpreted as an environment variable (see also `Template::Basic`).
-      def build(method : Parser::Method, receiver = "self", do_block = false) : Call
+      #
+      # With *crystal_object*, for the override of a virtual method, the `Proc`
+      # takes the Crystal object as its first argument instead of capturing
+      # `self`, see `CppToCrystalProc::CRYSTAL_OBJECT`, and calls the override
+      # on it as an instance of `typeof(self)`, the type the `Proc` is built
+      # in, which names a private type too.  So the `Proc` captures nothing: a
+      # closure the C++ object holds would refer to the
+      # Crystal object, and the GC never finalizes an object reachable from
+      # itself through another, so neither would ever be collected.
+      def build(method : Parser::Method, receiver = "self", do_block = false, crystal_object = false) : Call
         pass = Crystal::Pass.new(@db)
         argument = Crystal::Argument.new(@db)
 
@@ -31,6 +40,12 @@ module Bindgen
           result.to_argument(name)
         end
 
+        if crystal_object
+          name = CppToCrystalProc::CRYSTAL_OBJECT
+          arguments.unshift(pass.to_binding(CppToCrystalProc::CRYSTAL_OBJECT_TYPE, qualified: true).to_argument(name))
+          receiver = "#{name}.as(typeof(self))"
+        end
+
         callee = pass.to_wrapper(method.return_type)
         caller = pass.to_binding(method.return_type, to_unsafe: true, qualified: true)
         result = combine_result(caller, callee)
@@ -42,7 +57,7 @@ module Bindgen
           name: method.crystal_name,
           result: result,
           arguments: arguments,
-          body: Body.new(@db, receiver, do_block, fallback(result, by_pointer)),
+          body: Body.new(@db, receiver, do_block, fallback(result, by_pointer), crystal_object),
         )
       end
 
@@ -123,7 +138,7 @@ module Bindgen
       end
 
       class Body < Call::Body
-        def initialize(@db : TypeDatabase, @receiver : String, @do_block : Bool, @fallback : String)
+        def initialize(@db : TypeDatabase, @receiver : String, @do_block : Bool, @fallback : String, @crystal_object = false)
         end
 
         # The body of the `Proc`: the *code* calling the override, converted
@@ -151,8 +166,10 @@ module Bindgen
           func_args = call.arguments.map { |arg| typer.full(arg) }
           func_args << func_result # Add return type
 
-          # An out-only argument isn't passed to the override.
+          # An out-only argument isn't passed to the override, nor is the
+          # Crystal object, which is the receiver.
           passed = call.arguments.reject { |arg| arg.is_a?(Call::OutArgument) && !arg.in_out? }
+          passed.shift if @crystal_object
           pass_args = passed.map(&.call).join(", ")
           proc_args = func_args.join(", ")
           block_arg_names = call.arguments.map(&.name).join(", ")

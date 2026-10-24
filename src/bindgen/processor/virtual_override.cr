@@ -318,8 +318,9 @@ module Bindgen
           method: method,
           class_name: class_name,
           target: target,
-          virtual_target: to_crystal.build(method, proc_name: proc_name),
+          virtual_target: to_crystal.build(method, proc_name: proc_name, crystal_object: !in_superclass),
           in_superclass: in_superclass,
+          wrapped_class: parent_class,
         )
       end
 
@@ -380,20 +381,22 @@ module Bindgen
 
       # Returns the C++ result to the `CrystalProc<T...>` instantiation.
       private def cpp_jumptable_field(method) : Call::Result
-        m = method.origin
-        proc_type = Parser::Type.proc(m.return_type, m.arguments)
-
         pass = Cpp::Pass.new(@db)
-        pass.to_cpp(proc_type)
+        pass.to_cpp(jumptable_proc_type(method.origin))
       end
 
       # Returns the Crystal type to a `CrystalProc`
       private def crystal_jumptable_field(method) : Call::Result
-        m = method.origin
-        proc_type = Parser::Type.proc(m.return_type, m.arguments)
-
         pass = Crystal::Pass.new(@db)
-        pass.to_binding(proc_type)
+        pass.to_binding(jumptable_proc_type(method.origin))
+      end
+
+      # The type of the `CrystalProc` calling the Crystal override of *method*:
+      # it takes the Crystal object first, see
+      # `CallBuilder::CppToCrystalProc::CRYSTAL_OBJECT`.
+      private def jumptable_proc_type(method : Parser::Method) : Parser::Type
+        arguments = [CallBuilder::CppToCrystalProc::CRYSTAL_OBJECT_TYPE] + method.arguments.map(&.as(Parser::Type))
+        Parser::Type.proc(method.return_type, arguments)
       end
 
       # Adds the `JUMPTABLE` method to *klass*, which will be used to pass the
@@ -524,9 +527,7 @@ module Bindgen
         # method of the wrapper class the compiler copied into the sub-class,
         # which it does for a method expanding `@type` once that is called
         # through the base type, carries the `BindgenWrapper` annotation and
-        # doesn't count: forwarding it would call C++ through Crystal, and
-        # the closure of the forwarder, referring to the Crystal object from
-        # the C++ object, would keep both from ever being collected.
+        # doesn't count: forwarding it would call C++ through Crystal.
         private def generate_initialize_virtual_methods_macro(methods, b)
           pass = Crystal::Pass.new(@db)
           typer = Crystal::Typename.new(@db)
@@ -572,7 +573,7 @@ module Bindgen
             generate_initialize_virtual_methods_macro methods, b
             b << "jump_table = #{table_type}.new(\n"
             methods.each do |method|
-              functor = builder.build(method.origin)
+              functor = builder.build(method.origin, crystal_object: true)
               code = functor.body.to_code(functor, Graph::Platform::Crystal)
               b << "  #{method.mangled_name}: BindgenHelper.wrap_proc("
               b << "{% if forwarded.includes?(#{method.mangled_name.inspect}) %} #{code} {% else %} nil {% end %}"

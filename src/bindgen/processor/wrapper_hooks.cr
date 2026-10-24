@@ -85,6 +85,23 @@ module Bindgen
         body.add_post_hook(OwnerHook.new(owner))
       end
 
+      # Keeps the object of the *call* alive, if `Processor::Qt` tagged the
+      # *method* as making C++ refer to it, see `Graph::Method::KEEPS_SELF_TAG`.
+      private def add_keeps_self_hook(method : Graph::Method, call)
+        return unless method.tag?(Graph::Method::KEEPS_SELF_TAG)
+
+        body = call.body.as(Call::HookableBody)
+        body.add_post_hook(KeepsSelfHook.new)
+      end
+
+      # Post-hook of a wrapper method passing `self` to
+      # `BindgenHelper.keep_alive`.
+      class KeepsSelfHook < Call::Body
+        def to_code(call : Call, platform : Graph::Platform) : String
+          "BindgenHelper.keep_alive(self)"
+        end
+      end
+
       # Post-hook of a wrapper method passing `self` and its *owner* argument to
       # `BindgenHelper.owned_by`, which keeps `self` alive while the owner isn't
       # `nil`, and lets it go given `nil`.

@@ -232,6 +232,13 @@ describe "Qt-specific wrapper features" do
           called.should be_true
         end
 
+        it "keeps the sender alive" do
+          subject = Test::SomeObject.new
+          Test::BindgenHelper.kept_alive?(subject).should be_false
+          subject.on_stuff_happened { }
+          Test::BindgenHelper.kept_alive?(subject).should be_true
+        end
+
         it "rescues an exception of the block" do
           caught = [] of ::Exception
           default = Test::BindgenHelper.on_exception
