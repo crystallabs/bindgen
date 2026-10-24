@@ -12,7 +12,8 @@ lib Binding
 
   fun bindgen_qt_meta_new(class_name : UInt8*) : Void*
   fun bindgen_qt_meta_add_method(meta : Void*, kind : Int32, name : UInt8*, return_type : UInt8*, argc : Int32, types : UInt8**, names : UInt8**) : Int32
-  fun bindgen_qt_meta_add_property(meta : Void*, name : UInt8*, type : UInt8*, notify : Int32, writable : Bool) : Int32
+  fun bindgen_qt_meta_add_property(meta : Void*, name : UInt8*, type : UInt8*, notify : Int32, writable : Bool, is_enum : Bool) : Int32
+  fun bindgen_qt_meta_add_class_info(meta : Void*, key : UInt8*, value : UInt8*) : Int32
   fun bindgen_qt_meta_finish(meta : Void*, parent : Void*, metacall : CrystalProc) : Void
   fun bindgen_qt_signal_index(meta : Void*, local : Int32) : Int32
   fun bindgen_qt_activate(sender : Void*, meta : Void*, local : Int32, args : BindgenQtArg*, count : Int32) : Void
@@ -21,6 +22,8 @@ lib Binding
   fun bindgen_qt_set_string(slot : Void*, string : CrystalString) : Void
   fun bindgen_qt_bytes_at(slot : Void*) : CrystalString
   fun bindgen_qt_set_bytes(slot : Void*, bytes : CrystalString) : Void
+  fun bindgen_qt_copy_value(type : UInt8*, source : Void*) : Void*
+  fun bindgen_qt_set_value(slot : Void*, type : UInt8*, source : Void*) : Bool
 end
 
 # Marks the emission method of a signal declared with `signal`.
@@ -31,6 +34,15 @@ end
 # connectable from C++ and QML.  Its arguments and result need type
 # restrictions, of the types `BindgenMeta.cpp_type_name` knows.
 annotation Slot
+end
+
+# Marks a method as invokable by name through the meta-object, like
+# `Q_INVOKABLE`: a slot which isn't one.  Same requirements as `Slot`.
+annotation Invokable
+end
+
+# Marks the placeholder method of a class info declared with `qt_class_info`.
+annotation ClassInfo
 end
 
 # Marks the reader of a property declared with `qt_property`.
@@ -60,6 +72,7 @@ module BindgenMeta
     {% end %}
     {% raise "#{type} can't be a signal or property type: only a wrapper class may be nilable" unless types.size == 1 %}
     {% t = types[0] %}
+    {% raise "#{type} can't be nilable: only a QObject wrapper class, passed as a pointer, may be" if (parts.size > 1 || parts[0].resolve.union?) && !(t.class? && t <= %OBJECT%) %}
     {% if t == Int32 %}"int"{% elsif t == UInt32 %}"uint"{% elsif t == Int64 %}"qlonglong"{% elsif t == UInt64 %}"qulonglong"
     {% elsif t == Int16 %}"short"{% elsif t == UInt16 %}"ushort"{% elsif t == Int8 %}"signed char"{% elsif t == UInt8 %}"uchar"
     {% elsif t == Float64 %}"double"{% elsif t == Float32 %}"float"{% elsif t == Bool %}"bool"{% elsif t == Nil %}"void"
@@ -67,7 +80,19 @@ module BindgenMeta
     {% elsif (ann = t.annotation(::%MODULE%::BindgenWrapper)) && ann.args.size == 1 %}
       {% if t <= %OBJECT% %}{{ ann.args[0] + "*" }}{% else %}{{ ann.args[0] }}{% end %}
     {% else %}
-      {% raise "#{type} isn't a type the Qt meta-object system can take: use a number, Bool, String, Bytes, or a wrapped Qt class" %}
+      {% raise "#{type} isn't a type the Qt meta-object system can take: use a number, Bool, String, Bytes, a wrapped Qt class or a wrapped Qt enum" %}
+    {% end %}
+  end
+
+  # Is *type*, as written in a declaration, a Crystal enum?  A property of an
+  # enum type is flagged as such, like `Q_PROPERTY` does, so Qt looks its
+  # `QMetaEnum` up (`Qt::Orientation` in the `Qt` namespace, or an enum of the
+  # C++ base classes) and writes it from an int or a key name.
+  macro enum_type?(type)
+    {% if type.is_a?(Union) || (type.is_a?(Call) && type.name == "|") %}
+      false
+    {% else %}
+      {{ type.resolve < ::Enum }}
     {% end %}
   end
 
@@ -96,8 +121,12 @@ module BindgenMeta
       ::%MODULE%::BindgenMeta.discover({{ T }}, slot.as(Void**).value)
     {% elsif T.struct? && T.annotation(::%MODULE%::BindgenWrapper) %}
       slot.as(T*).value
-    {% elsif T.class? && T.annotation(::%MODULE%::BindgenWrapper) %}
-      {% raise "#{T} isn't supported as a signal, slot or property type yet: a class passed by value" %}
+    {% elsif T.class? && (ann = T.annotation(::%MODULE%::BindgenWrapper)) && ann.args.size == 1 %}
+      # A class passed by value: the slot points at a value owned by the caller,
+      # so copy it, through its QMetaType, into a GC allocation of our own.
+      pointer = Binding.bindgen_qt_copy_value({{ ann.args[0] }}.to_unsafe, slot)
+      raise "Qt can't copy a #{ {{ ann.args[0] }} }: the type isn't registered with QMetaType" if pointer.null?
+      ::%MODULE%::BindgenMeta.discover({{ T }}, pointer)
     {% else %}
       slot.as(T*).value
     {% end %}
@@ -117,6 +146,12 @@ module BindgenMeta
       slot.as(Void**).value = value ? value.to_unsafe.as(Void*) : Pointer(Void).null
     {% elsif T <= %OBJECT% %}
       slot.as(Void**).value = value.to_unsafe.as(Void*)
+    {% elsif T.class? && (ann = T.annotation(::%MODULE%::BindgenWrapper)) && ann.args.size == 1 %}
+      # A class returned by value: the slot points at a value Qt constructed,
+      # assigned through its QMetaType.
+      unless Binding.bindgen_qt_set_value(slot, {{ ann.args[0] }}.to_unsafe, value.to_unsafe.as(Void*))
+        raise "Qt can't copy a #{ {{ ann.args[0] }} }: the type isn't registered with QMetaType"
+      end
     {% else %}
       slot.as(T*).value = value
     {% end %}
@@ -191,14 +226,25 @@ end
       end
     end
 
+    # Declares a class info, `qt_class_info "QML.Element", "auto"`: a key and
+    # a value in the meta-object, like `Q_CLASSINFO`, read through
+    # `QMetaObject::classInfo`.
+    macro qt_class_info(key, value)
+      {% raise "qt_class_info expects two string literals, like `qt_class_info \"Author\", \"Me\"`" unless key.is_a?(StringLiteral) && value.is_a?(StringLiteral) %}
+      @[::%MODULE%::ClassInfo(key: {{ key }}, value: {{ value }})]
+      def bg_class_info_{{ key.gsub(/[^A-Za-z0-9_]/, "_").id }} : Nil
+      end
+    end
+
     # Installs the `finished` macro building the meta-object of a subclass
-    # declaring signals, slots or properties.
+    # declaring signals, slots, invokable methods, properties or class infos.
     macro inherited
       macro finished
         \{% signals = @type.methods.select(&.annotation(::%MODULE%::Signal)) %}
-        \{% slots = @type.methods.select(&.annotation(::%MODULE%::Slot)) %}
+        \{% slots = @type.methods.select { |m| m.annotation(::%MODULE%::Slot) || m.annotation(::%MODULE%::Invokable) } %}
         \{% properties = @type.methods.select(&.annotation(::%MODULE%::Property)) %}
-        \{% unless signals.empty? && slots.empty? && properties.empty? %}
+        \{% class_infos = @type.methods.select(&.annotation(::%MODULE%::ClassInfo)) %}
+        \{% unless signals.empty? && slots.empty? && properties.empty? && class_infos.empty? %}
           \{% for m, i in signals %}
             BG_SIGNAL_\{{ m.name.upcase }} = \{{ i }}
           \{% end %}
@@ -210,6 +256,10 @@ end
             return @@bg_meta_object unless @@bg_meta_object.null?
 
             meta = ::%MODULE%::Binding.bindgen_qt_meta_new(\{{ @type.name.stringify.split("::").last }}.to_unsafe)
+            \{% for m in class_infos %}
+              \{% ann = m.annotation(::%MODULE%::ClassInfo) %}
+              ::%MODULE%::Binding.bindgen_qt_meta_add_class_info(meta, \{{ ann[:key] }}.to_unsafe, \{{ ann[:value] }}.to_unsafe)
+            \{% end %}
             \{% for m, i in signals + slots %}
               \{% raise "#{@type}##{m.name} can't be a Qt slot: its name must be a plain identifier" if m.name.stringify =~ /[?!=]/ %}
               \{% for a in m.args %}
@@ -226,7 +276,7 @@ end
               \{% if i < signals.size %}
                 \{% raise "signal #{m.name} must return Nil" if !rt.is_a?(Nop) && rt.resolve != Nil %}
               \{% end %}
-              ::%MODULE%::Binding.bindgen_qt_meta_add_method(meta, \{{ i < signals.size ? 0 : 1 }}, \{{ m.name.stringify.camelcase(lower: true) }}.to_unsafe,
+              ::%MODULE%::Binding.bindgen_qt_meta_add_method(meta, \{{ i < signals.size ? 0 : (m.annotation(::%MODULE%::Slot) ? 1 : 2) }}, \{{ m.name.stringify.camelcase(lower: true) }}.to_unsafe,
                 \{% if rt.is_a?(Nop) %}"void"\{% else %}::%MODULE%::BindgenMeta.cpp_type_name(\{{ rt }})\{% end %}.to_unsafe,
                 \{{ m.args.size }}, bg_types\{{ i }}, bg_names\{{ i }})
             \{% end %}
@@ -241,7 +291,8 @@ end
               \{% end %}
               \{% raise "#{@type}: the property #{ann[:name]} notifies through #{notify}, which isn't a signal of the class" if notify && notify_index.nil? %}
               ::%MODULE%::Binding.bindgen_qt_meta_add_property(meta, \{{ ann[:name].id.stringify.camelcase(lower: true) }}.to_unsafe,
-                ::%MODULE%::BindgenMeta.cpp_type_name(\{{ p.return_type }}).to_unsafe, \{{ notify_index.nil? ? -1 : notify_index }}, \{{ ann[:write] ? true : false }})
+                ::%MODULE%::BindgenMeta.cpp_type_name(\{{ p.return_type }}).to_unsafe, \{{ notify_index.nil? ? -1 : notify_index }}, \{{ ann[:write] ? true : false }},
+                ::%MODULE%::BindgenMeta.enum_type?(\{{ p.return_type }}))
             \{% end %}
             ::%MODULE%::Binding.bindgen_qt_meta_finish(meta, \{{ @type.superclass }}.bg_meta_object, ::%MODULE%::BindgenHelper.wrap_proc(->\{{ @type }}.bg_metacall(Void*, Int32, Int32, Void**)))
             @@bg_meta_object = meta
@@ -254,7 +305,7 @@ end
             object = crystal.as(\{{ @type }})
             ::%MODULE%::BindgenHelper.rescued(nil) do
               case call
-              when 0 # InvokeMetaMethod: the slots, after the signals
+              when 0 # InvokeMetaMethod: the slots and invokables, after the signals
                 case id
                 \{% for m, i in slots %}
                 when \{{ signals.size + i }}

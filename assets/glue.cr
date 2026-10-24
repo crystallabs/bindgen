@@ -92,8 +92,9 @@ end
 # implementation of a virtual method through `#superclass`, so `super` works.
 # Also marks these methods themselves: the compiler copies them into the
 # subclasses, and the constructors must not take a copy for an override.  On a
-# class, its argument is the C++ name of the wrapped class, `"QWidget"`, which
-# the Qt meta-object macros need for the types of signals and properties.
+# class or an enum, its argument is the C++ name of the wrapped type,
+# `"QWidget"` or `"Qt::Orientation"`, which the Qt meta-object macros need for
+# the types of signals and properties.
 annotation BindgenWrapper
 end
 

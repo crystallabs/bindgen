@@ -133,7 +133,12 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `qt_metacast` and `qt_metacall`.  The `Qt` processor makes those three
   non-virtual for the wrappers, so they leave the jump tables.  The
   `BindgenWrapper` annotation of a wrapper class names the C++ class:
-  `@[BindgenWrapper("QWidget")]`.
+  `@[BindgenWrapper("QWidget")]`, and the generator writes it on every enum
+  too, `@[BindgenWrapper("Qt::Orientation")]`, so a wrapped enum is a signal,
+  slot or property type.  A wrapper class other than a `QObject` is taken by
+  value, copied through its `QMetaType`, like `QColor`.  `@[Qt::Invokable]`
+  marks a method invokable by name without being a slot (`Q_INVOKABLE`), and
+  `qt_class_info "key", "value"` adds a class info (`Q_CLASSINFO`).
 * `builtin_out_arguments:` option: a non-const reference or pointer to a
   built-in type or an enum a method writes through, like `bool *ok` or
   `int &`, is an out argument in every method, returned with the result:

@@ -314,6 +314,8 @@ module Bindgen
         type = Parser::Type.parse(enumeration.origin.type)
         type_name = typename.qualified(*typename.wrapper(type))
 
+        # See the glue: the C++ name, for the Qt meta-object macros.
+        puts "@[BindgenWrapper(#{enumeration.origin.name.inspect})]"
         write_doc enumeration.origin.doc
         puts "@[Flags]" if enumeration.origin.flags?
         code_block "enum", enumeration.name, ":", type_name do

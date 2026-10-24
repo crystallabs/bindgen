@@ -1462,8 +1462,13 @@ class Counter < Qt::Object
     a + b.size
   end
 
+  @[Qt::Invokable]           # Q_INVOKABLE: by name, but not a slot
+  def reset : Nil
+  end
+
   qt_property value : Int32, write: :set_value, notify: :value_changed
   qt_property label : String # Read-only, by `#label`
+  qt_class_info "Author", "Me" # Q_CLASSINFO
 end
 
 counter.on_value_changed { |value| }                             # §Q.1
@@ -1475,21 +1480,30 @@ counter.property("value")                                       # A QVariant
 `signal name(arg : Type, ...)` defines the emission method `name(args)`, which
 calls `QMetaObject::activate`, and the connection method `on_name`, taking
 the `Qt::ConnectionType` like the connection methods of §Q.1 and returning the
-connection object.  A `@[Qt::Slot]` method is a slot; its arguments and its
-result, if any, need type restrictions.  `qt_property name : Type` declares a
-property read by the method `name`, or the one `read:` names, written by the
-method `write:` names, if any, and notified by the signal `notify:` names, if
-any.  The C++ names are the camel-cased Crystal names: `value_changed` is
+connection object.  A `@[Qt::Slot]` method is a slot, a `@[Qt::Invokable]`
+method is invokable by name without being a slot (`Q_INVOKABLE`); the
+arguments and the result, if any, of both need type restrictions.
+`qt_property name : Type` declares a property read by the method `name`, or
+the one `read:` names, written by the method `write:` names, if any, and
+notified by the signal `notify:` names, if any.  `qt_class_info "key",
+"value"` adds a class info (`Q_CLASSINFO`), like the `QML.Element` QML reads.
+The C++ names are the camel-cased Crystal names: `value_changed` is
 `valueChanged(int)`, `set_value` is `setValue(int)`.
 
 The types of the arguments, results and properties are the built-in numbers
 (`int`, `uint`, `qlonglong`, `qulonglong`, `short`, `ushort`, `signed char`,
 `uchar`, `double`, `float`), `Bool`, `String` (`QString`), `Bytes`
-(`QByteArray`), `Nil` as a result (`void`), and the wrapper classes: a
-subclass of the `QObject` wrapper as a pointer, `QWidget *`, which may be
-nilable, and a `kind: Struct` wrapper by value.  The C++ name is the argument
-of the class's `BindgenWrapper` annotation.  Other wrapper classes, enums and
-containers aren't supported.
+(`QByteArray`), `Nil` as a result (`void`), the wrapped enums
+(`Qt::Orientation`), and the wrapper classes: a subclass of the `QObject`
+wrapper as a pointer, `QWidget *`, which may be nilable, a `kind: Struct`
+wrapper by value, and any other wrapper class by value, `QColor`, which Qt
+must know (`QMetaType::fromName`): a value received is copied out of the
+argument vector into a GC allocation through its `QMetaType`
+(`bindgen_qt_copy_value`), a value returned is assigned to the slot the same
+way.  The C++ name is the argument of the type's `BindgenWrapper` annotation,
+which the generator writes on every wrapper class and enum.  Containers,
+Crystal enums and converted value types other than `QString` and `QByteArray`
+(like a `QVariant` with `to_cpp`/`from_cpp` templates) aren't supported.
 
 The meta-object of a class is built once, on the first construction of an
 instance, from the methods the macros annotated (`Qt::Signal`, `Qt::Slot`,
