@@ -49,6 +49,7 @@ clang::ast_matchers::MatchFinder BindgenASTConsumer::makeBasicMatchFinder() {
 		auto handler = std::make_unique<RecordMatchHandler>(m_document, className);
 
 		// Instantiations can't be matched by name, see `gatherInstantiations`.
+		// A typedef of one is matched by nothing, and is found there too.
 		if (!RecordMatchHandler::isInstantiation(className)) {
 			DeclarationMatcher classMatcher = cxxRecordDecl(isDefinition(), hasName(className)).bind("recordDecl");
 			finder.addMatcher(classMatcher, handler.get());
@@ -87,12 +88,16 @@ clang::ast_matchers::MatchFinder BindgenASTConsumer::makeDependentMatchFinder() 
 
 	for (const std::string &className : ClassList) {
 		// The first parameter is the class, by reference or by value like in
-		// `friend bool operator==(QDate lhs, QDate rhs)`.
+		// `friend bool operator==(QDate lhs, QDate rhs)`.  A plain name may
+		// turn out to be a typedef of an instantiation, registered under the
+		// name by `gatherInstantiations`, so both are tried.
 		clang::ast_matchers::internal::Matcher<clang::QualType> selfType = RecordMatchHandler::isInstantiation(className)
 			? clang::ast_matchers::internal::Matcher<clang::QualType>(qualType(anyOf(
 				references(qualType(isRegisteredAs(className))),
 				isRegisteredAs(className))))
 			: clang::ast_matchers::internal::Matcher<clang::QualType>(qualType(anyOf(
+				references(qualType(isRegisteredAs(className))),
+				isRegisteredAs(className),
 				references(cxxRecordDecl(hasName(className))),
 				hasUnqualifiedDesugaredType(recordType(hasDeclaration(cxxRecordDecl(hasName(className))))))));
 		auto self = hasType(selfType);
@@ -130,7 +135,7 @@ void BindgenASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
 
 	// Before matching, as the operators are added to the classes.
 	for (const auto &instantiation : instantiations) {
-		this->m_classHandlers[instantiation.first]->runOnDefinition(instantiation.second);
+		this->m_classHandlers[instantiation.first]->runOnInstantiation(instantiation.second);
 	}
 
 	for (auto &finder : this->m_matchFinders) {
@@ -240,8 +245,13 @@ std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> BindgenASTConsumer:
 		if (index >= ClassList.size()) continue;
 
 		// `BindgenInstantiation` made the record complete, unless it's invalid.
+		// A plain class, which isn't a template specialization, is matched by
+		// its name instead; a typedef of a specialization, like `QMatrix3x3`
+		// for `QGenericMatrix<3, 3, float>`, is found here only.
 		const clang::CXXRecordDecl *record = args[1].getAsType()->getAsCXXRecordDecl();
-		if (record && record->getDefinition() && !record->isInvalidDecl()) {
+		if (!record || !llvm::isa<clang::ClassTemplateSpecializationDecl>(record)) continue;
+
+		if (record->getDefinition() && !record->isInvalidDecl()) {
 			TypeHelper::registerTypeName(TypeHelper::recordType(record), ClassList[index]);
 			registerArgumentNames(record->getDefinition(), ClassList[index]);
 			result.push_back(std::make_pair(index, record->getDefinition()));

@@ -10,6 +10,11 @@ public:
 	// Exports the class *definition*, and its anonymous members.
 	void runOnDefinition(const clang::CXXRecordDecl *definition);
 
+	// Exports the class template instantiation *definition* found through
+	// `BindgenInstantiation`.  A later match of the name, like of a typedef's
+	// class, is ignored then.
+	void runOnInstantiation(const clang::CXXRecordDecl *definition);
+
 	// To be called once all matches were handled.  Reports an error if the
 	// class turned out to be a class template only, or if the instantiation
 	// couldn't be found.
@@ -38,6 +43,7 @@ private:
 	Document &m_document;
 	std::string m_className;
 	bool m_found = false; // Was a record of this name exported?
+	bool m_instantiated = false; // Was it exported through `runOnInstantiation`?
 	bool m_foundTemplate = false; // Was a class template of this name seen?
 
 	// first = record definition, second = qualified type name

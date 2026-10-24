@@ -73,10 +73,10 @@ module Bindgen
           @classes.each_with_index do |klass, index|
             file.puts %[template class BindgenTypeInfo<#{klass} >;]
 
-            # Class template instantiations are named through their index.
-            if Util.template_instantiation?(klass)
-              file.puts %[template struct BindgenInstantiation<#{index}, #{klass} >;]
-            end
+            # Class template instantiations are named through their index: a
+            # name like `List<int>`, or a typedef of one like `IntList`, which
+            # only this tells from a plain class.
+            file.puts %[template struct BindgenInstantiation<#{index}, #{klass} >;]
           end
 
           file.flush

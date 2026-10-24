@@ -17,6 +17,12 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `new(unwrap:)`.  Without RTTI nothing is discovered.  Specs expecting the
   declared class, like the `Impl` of an abstract class, see the sub-class now.
 
+* `classes:` takes a typedef naming a class template instantiation, like
+  `QMatrix3x3` for `QGenericMatrix<3, 3, float>`, wrapping the instantiation
+  under the typedef's name.  The clang tool is told every class through
+  `BindgenInstantiation` now, and takes a class template specialization found
+  that way as an instantiation; the operators of a plain class name are also
+  matched by the registered name.  The output format is unchanged.
 * Wrapper identity for objects constructed from Crystal: a pointer to one
   comes back as the Crystal object which constructed it, an instance of a
   Crystal sub-class with its instance variables included.  The constructors

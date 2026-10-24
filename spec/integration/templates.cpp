@@ -90,3 +90,22 @@ public:
   // Not configured, so it's skipped.
   Box<double> unknown() const { return Box<double>(1.5); }
 };
+
+// A typedef naming an instantiation, like Qt's `QMatrix3x3`: configured by
+// the typedef's name.
+typedef Array<float, 2> FloatPair;
+
+bool operator==(const FloatPair &a, const FloatPair &b) { return a.at(0) == b.at(0) && a.at(1) == b.at(1); }
+
+// A member class template, like `QCborStreamReader::StringResult<T>`.
+struct Reader {
+  template<typename T>
+  struct Result {
+    T data;
+    int status;
+  };
+
+  Result<int> read() const { return Result<int>{7, 1}; }
+  FloatPair pair() const { FloatPair p; p.set(0, 1.5f); p.set(1, 2.5f); return p; }
+  Array<float, 2> spelledOut() const { return pair(); }
+};

@@ -95,6 +95,26 @@ describe "class template instantiations" do
         end
       end
 
+      context "typedef of an instantiation" do
+        it "is wrapped under the typedef's name" do
+          pair = Test::Reader.new.pair
+          pair.should be_a(Test::FloatPair)
+          pair.size.should eq(2)
+          pair.at(1).should eq(2.5_f32)
+          Test::Reader.new.spelled_out.should be_a(Test::FloatPair)
+          (pair == Test::Reader.new.spelled_out).should be_true
+        end
+      end
+
+      context "member class template" do
+        it "wraps an instantiation" do
+          result = Test::Reader.new.read
+          result.should be_a(Test::IntResult)
+          result.data.should eq(7)
+          result.status.should eq(1)
+        end
+      end
+
       context "inheritance" do
         it "inherits from an instantiation" do
           counter = Test::Counter.new

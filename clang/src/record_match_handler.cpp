@@ -11,7 +11,7 @@ RecordMatchHandler::RecordMatchHandler(Document &doc, const std::string &name)
 
 void RecordMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResult &result) {
 	const clang::CXXRecordDecl *record = result.Nodes.getNodeAs<clang::CXXRecordDecl>("recordDecl");
-	if (!record) return;
+	if (!record || this->m_instantiated) return;
 
 	// The pattern of a class template has no layout, only its
 	// instantiations do.  It may also be another type of the same name in
@@ -44,6 +44,11 @@ void RecordMatchHandler::runOnDefinition(const clang::CXXRecordDecl *definition)
 		// every added record is anonymous except the first one
 		anonymous = true;
 	}
+}
+
+void RecordMatchHandler::runOnInstantiation(const clang::CXXRecordDecl *definition) {
+	this->m_instantiated = true;
+	runOnDefinition(definition);
 }
 
 bool RecordMatchHandler::isInstantiation(const std::string &className) {

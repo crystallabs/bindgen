@@ -10,3 +10,6 @@ classes:
   "Array<int,3>": IntArray3
   "Scaled<int>": ScaledInt
   "Offset<-2, true>": Offset::MinusTwice
+  Reader: Reader
+  FloatPair: FloatPair
+  "Reader::Result<int>": IntResult

@@ -340,7 +340,13 @@ instantiation which is not a container are skipped.
 classes:
   "scoped_refptr<nu::MenuBar>": MenuBarRef
   "std::array<int, 4>": IntArray4
+  QMatrix3x3: Matrix3x3 # typedef QGenericMatrix<3, 3, float> QMatrix3x3;
+  "QCborStreamReader::StringResult<QString>": CborStringResult
 ```
+
+A typedef naming an instantiation is configured by the typedef's name, which
+the wrapped methods then show.  An instantiation of a member class template
+is configured by its qualified name.
 
 Containers like `std::vector` are configured in [`containers`](#containers)
 instead.
