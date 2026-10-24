@@ -323,6 +323,28 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clan
 		}
 	}
 
+	// A typedef of a `std::function`, like `QTextDocument::ResourceProvider`,
+	// gets the template arguments of the function it names, so bindgen takes
+	// it as one: the typedef itself names no template.
+	if (!target.templ && qt->isTypedefNameType()) {
+		if (const auto *record = qt.getCanonicalType()->getAsCXXRecordDecl()) {
+			if (const auto *spec = llvm::dyn_cast<clang::ClassTemplateSpecializationDecl>(record)) {
+				std::string name = spec->getSpecializedTemplate()->getQualifiedNameAsString();
+				if (name == "std::function") {
+					Template t;
+					t.baseName = name;
+					t.fullName = target.baseName;
+					for (const clang::TemplateArgument &argument : spec->getTemplateArgs().asArray()) {
+						if (argument.getKind() == clang::TemplateArgument::Type) {
+							t.arguments.push_back(qualTypeToType(argument.getAsType(), ctx));
+						}
+					}
+					target.templ = t;
+				}
+			}
+		}
+	}
+
 	// A function type, like the argument of `std::function<int (int)>` or the
 	// pointee of a function pointer: its return and parameter types, in this
 	// order, as the arguments of a template named like the function type, so

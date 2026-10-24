@@ -283,8 +283,10 @@ further arguments have exposed defaults replaces a shorter one.
 #### §2.2.6 `std::function` arguments
 
 An argument of type `std::function<R (Args...)>`, by value or by reference,
-is taken as a `Proc(Args..., R)`: as a block if it is the last argument, as
-a `Proc` argument otherwise.  The arguments and the result are converted like
+written out or through a typedef like `QTextDocument::ResourceProvider`, is
+taken as a `Proc(Args..., R)`: as a block if it is the last argument, as a
+`Proc` argument otherwise, and in a setter (`setHandler(f)` is `#handler=`),
+which can't take a block.  The arguments and the result are converted like
 those of a Qt signal or a Crystal override: a `const std::string &` arrives
 as a `String`, a `std::string` result is copied back.  A method returning a
 `std::function`, or taking a bare function pointer, which can't carry a
@@ -304,6 +306,7 @@ struct Button {
 button.on_click { puts "clicked" }
 button.each(3) { |index, name| index * 2 } # => 0 + 2 + 4
 button.set_filter(->(value : Int32) { value.even? }, 10)
+document.resource_provider = ->(url : Url) { Variant.new("resource") }
 ```
 
 The C++ glue builds the `std::function` from a lambda calling the Crystal

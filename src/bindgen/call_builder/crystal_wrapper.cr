@@ -12,7 +12,8 @@ module Bindgen
       def build(method : Parser::Method, target : Call, bind = true)
         pass = Crystal::Pass.new(@db)
 
-        arguments = pass.arguments_to_wrapper(method.arguments, method.out_arguments(@db))
+        block = !method.crystal_name.ends_with?('=') # A setter can't take a block
+        arguments = pass.arguments_to_wrapper(method.arguments, method.out_arguments(@db), block: block)
         if method.any_constructor?
           body = ConstructorBody.new(@db, target, bind: bind && pointer_wrapper?(method.class_name))
         else

@@ -34,11 +34,18 @@ struct Button {
   // Virtual: called through the wrapper, not overridable from Crystal.
   virtual int visit(std::function<int(int)> f) { return f(21); }
 
+  // A typedef of a `std::function`, like `QTextDocument::ResourceProvider`.
+  using Handler = std::function<int(int)>;
+  void setHandler(const Handler &h) { handler = h; }
+  int handle(int value) { return handler ? handler(value) : -1; }
+
   // Not supported: a `std::function` result, and a bare function pointer.
-  std::function<void()> handler() const { return clicked; }
+  std::function<void()> clickHandler() const { return clicked; }
+  Handler currentHandler() const { return handler; }
   void raw(void (*cb)(int)) { cb(1); }
 
   std::function<void()> clicked;
   std::function<bool(int)> filter;
+  Handler handler;
   int threshold = 0;
 };

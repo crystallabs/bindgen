@@ -61,7 +61,18 @@ describe "std::function arguments" do
 
         it "are called through a virtual method" do
           Test::Button.new.visit { |value| value * 2 }.should eq(42)
-          {{ Test::Button.methods.map(&.name.stringify) }}.should_not contain("handler")
+        end
+
+        it "are taken through a typedef" do
+          button = Test::Button.new
+          button.handle(2).should eq(-1)
+          button.handler = ->(value : Int32) { value + 40 } # A setter: no block
+          button.handle(2).should eq(42)
+        end
+
+        it "skip results and function pointers" do
+          {{ Test::Button.methods.map(&.name.stringify) }}.should_not contain("click_handler")
+          {{ Test::Button.methods.map(&.name.stringify) }}.should_not contain("current_handler")
           {{ Test::Button.methods.map(&.name.stringify) }}.should_not contain("raw")
         end
 

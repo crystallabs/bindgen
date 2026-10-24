@@ -106,10 +106,12 @@ module Bindgen
       getter? function = false
 
       # Is this a `std::function` turned into a `Kind::Function` type, see
-      # `Argument#after_initialize`?  The `#base_name` stays the C++ type, so
-      # the C++ glue can build it from the `CrystalProc` it is passed.
+      # `Argument#after_initialize`?  The `#base_name` stays the C++ type, the
+      # `std::function<...>` or a typedef of one, so the C++ glue can build it
+      # from the `CrystalProc` it is passed.  A `Type.proc` is named
+      # `CrystalProc<...>` instead.
       def std_function? : Bool
-        @kind.function? && @base_name.starts_with?("std::function<")
+        @kind.function? && !@base_name.starts_with?(CRYSTAL_PROC)
       end
 
       # A copy of this type known to be non-null, see `#never_nil?`.

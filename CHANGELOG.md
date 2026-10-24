@@ -6,8 +6,9 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Added
 
-* `std::function<R (Args...)>` arguments are taken as a block, or a `Proc`
-  when not last (SPEC.md §2.2.6).  The clang tool describes a function type
+* `std::function<R (Args...)>` arguments, also through a typedef like
+  `QTextDocument::ResourceProvider`, are taken as a block, or a `Proc` when
+  not last or in a setter (SPEC.md §2.2.6).  The clang tool describes a function type
   with its return and parameter types (`isFunction`, format version 12);
   `Parser::Argument` turns a `std::function` into a `Kind::Function` type
   like a signal's, and `Cpp::Pass` builds the `std::function` from a lambda

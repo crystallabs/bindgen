@@ -93,8 +93,9 @@ module Bindgen
       # out arguments at the indices *outs*, see `Parser::Method#out_arguments`,
       # the wrapper takes the in/out ones, the references, by value, and drops
       # the out-only ones, the pointers: their values are part of the result,
-      # see `#wrapper_result`.
-      def arguments_to_wrapper(list : Enumerable(Parser::Argument), outs = [] of Int32)
+      # see `#wrapper_result`.  A `Proc` argument is taken as a block if it is
+      # the last one, unless *block* is `false`: a setter can't have a block.
+      def arguments_to_wrapper(list : Enumerable(Parser::Argument), outs = [] of Int32, block = true)
         argument = Argument.new(@db)
         arguments = [] of Call::Argument
 
@@ -119,7 +120,7 @@ module Bindgen
           Log.trace { "arg to wrapper name: #{name}" }
           if result.is_a?(Call::ProcResult)
             # Treat as block if it's the last argument.
-            arguments << result.to_argument(name, block: is_last)
+            arguments << result.to_argument(name, block: is_last && block)
           else
             value = arg.value if arg.has_default?
             arguments << result.to_argument(name, default: value)
