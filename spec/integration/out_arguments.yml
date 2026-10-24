@@ -9,3 +9,8 @@ classes:
   Transformer: Transformer
   AbstractFormatter: AbstractFormatter
   Formatters: Formatters
+
+types:
+  Outs:
+    out_arguments:
+      forced: true

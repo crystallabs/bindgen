@@ -72,6 +72,16 @@ describe "out arguments" do
           subject.pick(3, Test::Flavor.new(4), 5).should eq({"picked 3", "45"})
         end
 
+        it "leaves a pointer to a built-in type alone without builtin_out_arguments" do
+          value = 1
+          Test::Outs.new.plain_pointer(pointerof(value)).should eq(2)
+          value.should eq(2)
+        end
+
+        it "takes a pointer to a built-in type as out by an out_arguments entry" do
+          Test::Outs.new.forced.should eq({1, 7})
+        end
+
         it "drops other indirections to converted types" do
           subject = Test::Outs.new
           subject.responds_to?(:dropped_pointer_to_pointer).should be_false

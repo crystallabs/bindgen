@@ -44,6 +44,7 @@ module Bindgen
     private def build_database(config : Configuration) : TypeDatabase
       database = TypeDatabase.new(config.types, config.cookbook)
       database.nilable_results = config.nilable_results?
+      database.builtin_out_arguments = config.builtin_out_arguments?
 
       # Add enum types to the db
       config.enums.each do |cpp_name, crystal_name|

@@ -236,6 +236,17 @@ one, a non-const reference or pointer to a built-in type or an enum, like
 `int &` or `bool *`, is an out argument too; elsewhere it stays an `Int32*` or
 `Bool*`.
 
+With `builtin_out_arguments: true`, a non-const reference or pointer to a
+built-in type or an enum is an out argument in every method, not only next to
+a converted one: `QString::toInt(bool *ok)` returns `{Int32, Bool}`, and
+`QDate::getDate(int *, int *, int *)` returns `{Int32, Int32, Int32}`.  A
+pointer to a byte or character type, like `char *`, `uchar *` or `wchar_t *`,
+or to `void`, is a buffer the method fills, not a value, so it stays a pointer,
+also next to a converted out argument.  The `out_arguments` rule of a type
+decides instead for the methods it names: `true` takes every such argument,
+buffers included, `false` none, and a list of indices those among them; the
+rule of a base class covers the overrides.
+
 A reference is an in/out argument: the wrapper takes it by value and returns
 its new value.  A pointer is out-only: the wrapper takes no argument for it
 and returns the value written.  A pointer defaulting to `nullptr` is still

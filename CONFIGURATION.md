@@ -16,6 +16,7 @@ What each processor does is described under [Processors](README.md#processors).
    * [module](#module)
    * [cookbook](#cookbook)
    * [library](#library)
+   * [builtin_out_arguments](#builtin_out_arguments)
    * [processors](#processors)
    * [generators](#generators)
    * [find_paths](#find_paths)
@@ -57,6 +58,7 @@ What each processor does is described under [Processors](README.md#processors).
       * [shadowed_by](#shadowed_by)
       * [rename](#rename)
       * [nilable](#nilable)
+      * [out_arguments](#out_arguments)
       * [superclass_ignore_methods](#superclass_ignore_methods)
       * [keep_alive](#keep_alive)
       * [release](#release)
@@ -153,6 +155,22 @@ set this for them; references are never nilable.
 
 ```yaml
 nilable_results: true
+```
+
+## `builtin_out_arguments`
+
+Whether every non-const reference or pointer to a built-in type or an enum a
+method writes through, like `bool *ok` or `int &`, is an out argument,
+returned with the result (SPEC.md §2.2.5): `value, ok = variant.to_int`,
+`year, month, day = date.get_date`.  Defaults to `false`, in which case such an
+argument is a pointer, `Bool*`, unless the method has an out argument of a
+converted type, like `QString &`, already.  A pointer to a byte or character
+type, like `char *` or `uchar *`, or to `void` is a buffer either way and
+stays a pointer.  The [`out_arguments`](#out_arguments) rule of a type decides
+per method.  Turning this on changes the signature of every such method.
+
+```yaml
+builtin_out_arguments: true
 ```
 
 ## `processors`
@@ -845,6 +863,25 @@ affected.
     nilable:
       menuBar: false # Qt creates one
       setModel: [0]  # A null model is allowed
+```
+
+### `out_arguments`
+
+Which arguments of methods are out arguments (SPEC.md §2.2.5), by the entries
+of `ignore_methods`, where the default is wrong.  `true` takes every non-const
+reference and single pointer to a converted value type, a built-in type or an
+enum, a pointer to a byte or character type included; `false` takes none, so
+such a pointer stays a pointer, and a method taking a converted type that way
+is dropped; a list of argument indices takes those among them, and leaves the
+others as pointers.  The first matching entry of the class, or of the nearest
+base class with one, applies, so an override is wrapped like the method it
+overrides.
+
+```yaml
+    out_arguments:
+      copyDataTo: false      # An array of 16 floats, not a value
+      readByte: true         # `char *out` is a value here
+      getItemPosition: [1, 2] # Only the row and the column
 ```
 
 ### `superclass_ignore_methods`

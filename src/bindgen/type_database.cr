@@ -287,6 +287,21 @@ module Bindgen
         indices.uniq!.sort!
       end
 
+      # Which arguments of methods are out arguments (SPEC.md §2.2.5), by the
+      # entries of `ignore_methods`: `true` makes every non-const reference and
+      # single pointer to a converted value type, a built-in type or an enum
+      # one, a pointer to a byte or character type included, `false` none,
+      # and a list of argument indices those among them: `copyTo: false`,
+      # `readByte: true`, `two: [1]`.  Without an entry, see
+      # `Parser::Method#out_arguments`.
+      property out_arguments = {} of MethodPattern => Bool | Array(Int32)
+
+      # The `out_arguments` entry for the *method*, if any: the first matching.
+      def out_arguments_for(method : Parser::Method) : Bool | Array(Int32) | Nil
+        @out_arguments.each { |pattern, value| return value if pattern.matches?(method) }
+        nil
+      end
+
       # Which methods to filter out in the superclass wrapper.  A method is
       # ignored if it matches any of the regex patterns specified.
       @[YAML::Field(converter: Bindgen::TypeDatabase::ArrayRegexConverter)]
@@ -345,6 +360,7 @@ module Bindgen
         @declare_methods = [] of String, @shadowed_by = [] of String,
         @rename = {} of MethodPattern => String,
         @nilable = {} of MethodPattern => Bool | Array(Int32),
+        @out_arguments = {} of MethodPattern => Bool | Array(Int32),
         @superclass_ignore_methods = Util::FAIL_RX, @keep_alive = KeepAlive.new,
         @release = KeepAlive.new, @depends_on = KeepAlive.new,
         @parent_arguments = [] of String, @instance_variables = InstanceVariableConfig::Collection.new,
@@ -440,6 +456,11 @@ module Bindgen
     # Are pointers to wrapped classes returned as `T?`?  See
     # `Configuration#nilable_results?`.
     property? nilable_results = false
+
+    # Is every non-const reference or pointer to a built-in type or enum a
+    # method writes through an out argument?  See
+    # `Configuration#builtin_out_arguments?` and `Parser::Method#out_arguments`.
+    property? builtin_out_arguments = false
 
     def initialize(config : Configuration, cookbook : String | Cpp::Cookbook, with_builtins = true)
       Log.info { "creating new database" }
@@ -762,6 +783,48 @@ module Bindgen
         !rules.pass_by.value? && !rules.copy_structure? &&
           ((rules.builtin? && rules.kind.struct?) || rules.kind.enum?)
       end
+    end
+
+    # The `out_arguments` rule for the *method*: the first matching entry of
+    # its class, or of the nearest base class with one, see
+    # `TypeConfig#out_arguments_for`, so an override is wrapped like the method
+    # it overrides.  `nil` without an entry.
+    def out_arguments_rule(method : Parser::Method) : Bool | Array(Int32) | Nil
+      seen = Set(String).new
+      pending = [method.class_name]
+
+      while name = pending.shift?
+        next unless seen.add?(name)
+        next unless rules = self[name]?
+
+        value = rules.out_arguments_for(method)
+        return value unless value.nil?
+
+        if klass = rules.graph_node.as?(Graph::Class)
+          klass.origin.bases.each { |base| pending << base.name }
+        end
+      end
+
+      nil
+    end
+
+    # The C++ types a method takes a buffer of by pointer, not a value to write.
+    BUFFER_BASE_TYPES = %w[char wchar_t char8_t char16_t char32_t]
+
+    # The binding types of a byte: a pointer to one is a buffer too, like
+    # `uchar *` or `quint8 *`.
+    BYTE_BINDING_TYPES = %w[UInt8 Int8]
+
+    # Is *type* a pointer to a byte or character type, like `char *`, `uchar *`
+    # or `wchar_t *`, or to `void`?  A method writes a buffer through such a
+    # pointer, not a value, so it isn't an out argument unless an
+    # `out_arguments` entry says so, see `Parser::Method#out_arguments`.  A
+    # reference to one, like `char &`, is a value.
+    def buffer_argument?(type : Parser::Type) : Bool
+      return false unless type.pointer == 1 && !type.reference?
+      return true if type.void? || BUFFER_BASE_TYPES.includes?(type.base_name)
+
+      try_or(type, false) { |rules| BYTE_BINDING_TYPES.includes?(rules.binding_type.to_s) }
     end
 
     # Is *type* a non-const reference or pointer to a copied structure passed

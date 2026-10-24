@@ -277,6 +277,12 @@ module Bindgen
     # `T?`.  Otherwise a wrapper of a null pointer is returned.
     property? nilable_results : Bool = false
 
+    # Take every non-const reference or pointer to a built-in type or an enum a
+    # method writes through, like `bool *ok` or `int &`, as an out argument,
+    # returned with the result (SPEC.md §2.2.5), not only in a method with a
+    # converted one.  Pointers to byte and character types, buffers, excepted.
+    property? builtin_out_arguments : Bool = false
+
     # Which enums to wrap
     @[YAML::Field(converter: Bindgen::Configuration::GenericConverter(Bindgen::Configuration::Enum))]
     property enums : Hash(String, Bindgen::Configuration::Enum) = Hash(String, Bindgen::Configuration::Enum).new

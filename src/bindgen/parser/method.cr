@@ -516,9 +516,10 @@ module Bindgen
         # the value directly, or a const-reference to it.  A non-const reference
         # or pointer to a converted type is an out argument, see
         # `#out_arguments`.
-        pass_by_value_violation = @arguments.any? do |arg|
+        outs = out_arguments(db)
+        pass_by_value_violation = @arguments.each_with_index.any? do |arg, index|
           next false unless passed_by_value?(db, arg)
-          next false if takes_out_arguments? && db.converted_out_argument?(arg)
+          next false if outs.includes?(index)
           next false if takes_storage_references? && db.storage_reference?(arg)
           next true if arg.reference? && !arg.const? # Not const-ref - Violation!
 
@@ -547,14 +548,36 @@ module Bindgen
       # which it drops.  Empty for a method which can't take out arguments, see
       # `#takes_out_arguments?`, and for one without a converted out argument,
       # whose `int &` stays an `Int32*`.
+      #
+      # An `out_arguments` entry of the class decides instead, see
+      # `TypeDatabase#out_arguments_rule`: `true` takes every such argument,
+      # `false` none, and a list of indices those among them.  Without one,
+      # with `TypeDatabase#builtin_out_arguments?` the built-in ones are out
+      # arguments in every method, not only next to a converted one; a
+      # pointer to a byte or character type, or to `void`, is a buffer then,
+      # not an out argument (`TypeDatabase#buffer_argument?`).
       def out_arguments(db : TypeDatabase) : Array(Int32)
         return [] of Int32 unless takes_out_arguments?
-        return [] of Int32 unless @arguments.any? { |arg| db.converted_out_argument?(arg) }
 
-        @arguments.each_index.select do |index|
+        rule = db.out_arguments_rule(self)
+        return [] of Int32 if rule == false
+
+        eligible = @arguments.each_index.select do |index|
           arg = @arguments[index]
           db.converted_out_argument?(arg) || db.builtin_out_argument?(arg)
         end.to_a
+
+        case rule
+        in Array(Int32) then eligible & rule
+        in true         then eligible
+        in false        then [] of Int32
+        in nil
+          if db.builtin_out_arguments? || @arguments.any? { |arg| db.converted_out_argument?(arg) }
+            eligible.reject { |index| db.buffer_argument?(@arguments[index]) }
+          else
+            [] of Int32
+          end
+        end
       end
 
       # Can this method take a pointer to the structure a wrapper hosts, see

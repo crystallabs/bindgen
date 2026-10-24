@@ -121,6 +121,15 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   setters, signals and operators keep dropping such arguments.  See SPEC.md
   §2.2.5.
 
+* `builtin_out_arguments:` option: a non-const reference or pointer to a
+  built-in type or an enum a method writes through, like `bool *ok` or
+  `int &`, is an out argument in every method, returned with the result:
+  `value, ok = variant.to_int`, `year, month, day = date.get_date`.  Without
+  it, as before, only next to a converted out argument.  A pointer to a byte
+  or character type, or to `void`, is a buffer and stays a pointer either way.
+* `out_arguments:` type rule, by the entries of `ignore_methods`: `true`
+  takes every such argument of a method, buffers included, `false` none, a
+  list of indices those; the rule of a base class covers the overrides.
 * `declare_methods:` type rule: C++ declarations of methods the parser
   doesn't report, like the instantiations of template members
   (`QAction::menu` and `setMenu` in Qt 6, `QMutex::tryLockFor`), bound like

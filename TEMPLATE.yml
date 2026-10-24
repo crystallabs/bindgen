@@ -40,6 +40,14 @@ ignore_deprecated: false
 # `T?`.  Defaults to `false`, returning a wrapper of the null pointer.
 nilable_results: false
 
+# Take every non-const reference or pointer to a built-in type or an enum a
+# method writes through, like `bool *ok` or `int &`, as an out argument,
+# returned with the result (`value, ok = str.to_int`), not only in a method
+# with a converted one.  Pointers to bytes and characters are buffers and stay
+# pointers; the `out_arguments:` rule of a type decides per method.  Defaults
+# to `false`.
+builtin_out_arguments: false
+
 # Processors pipeline.  See `README.md` for details on each.
 # Defaults to the following, without `block_overloads`:
 processors:
@@ -594,6 +602,16 @@ types:
     nilable:
       menuBar: false
       setModel: [0]
+
+    # Which arguments of methods are out arguments, returned with the result,
+    # by name, signature or /regex/ like `ignore_methods`: `true` every
+    # non-const reference and pointer to a converted value type, a built-in
+    # type or an enum, byte and character pointers included, `false` none,
+    # a list of indices those.  Without an entry, see SPEC.md §2.2.5.
+    out_arguments:
+      copyDataTo: false # An array of 16 floats, not a value
+      readByte: true
+      getItemPosition: [1, 2]
 
     # List of methods to ignore in only the `Superclass` wrapper of this type.
     # Each element is a regex that is matched against the method name.

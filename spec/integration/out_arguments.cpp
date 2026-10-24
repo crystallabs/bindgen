@@ -57,6 +57,19 @@ public:
     return "picked " + std::to_string(index);
   }
 
+  // Without `builtin_out_arguments`, a pointer to a built-in type stays a
+  // pointer in a method without a converted out argument...
+  int plainPointer(int *value) const {
+    *value += 1;
+    return *value;
+  }
+
+  // ...unless an `out_arguments` entry says so.
+  int forced(int *value) const {
+    *value = 7;
+    return 1;
+  }
+
   // Stay dropped: not a single indirection to a value, or const.
   void droppedPointerToPointer(std::string **text) { }
   void droppedConstPointer(const std::string *text) { }

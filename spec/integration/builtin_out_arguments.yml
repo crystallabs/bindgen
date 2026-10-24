@@ -1,0 +1,18 @@
+<<: spec_base.yml
+
+builtin_out_arguments: true
+
+classes:
+  Numbers: Numbers
+  Measurer: Measurer
+  Ruler: Ruler
+
+enums:
+  Unit: Unit
+
+types:
+  Numbers:
+    out_arguments:
+      copyTo: false
+      readByte: true
+      two: [1]
