@@ -144,6 +144,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `bindgen_qt_meta.hpp` registers it with `QMetaType` as `Class::Name`, so
   `property` returns it, `setProperty` takes an int or a key, and queued
   connections carry it.  Type names in the tables are normalized.
+* A converted value type, with `to_cpp` and `from_cpp` templates, like
+  `QVariant` as `Qt::Variant` or `QChar` as `Char`, is a signal, slot or
+  property type of a Crystal subclass (SPEC.md §Q.4): the `qt_meta_object`
+  processor generates the conversions per type into the glue.
 * `builtin_out_arguments:` option: a non-const reference or pointer to a
   built-in type or an enum a method writes through, like `bool *ok` or
   `int &`, is an out argument in every method, returned with the result:

@@ -1501,9 +1501,24 @@ must know (`QMetaType::fromName`): a value received is copied out of the
 argument vector into a GC allocation through its `QMetaType`
 (`bindgen_qt_copy_value`), a value returned is assigned to the slot the same
 way.  The C++ name is the argument of the type's `BindgenWrapper` annotation,
-which the generator writes on every wrapper class and enum.  Containers and
-converted value types other than `QString` and `QByteArray` (like a `QVariant`
-with `to_cpp`/`from_cpp` templates) aren't supported.
+which the generator writes on every wrapper class and enum.  Containers
+aren't supported.
+
+A converted value type, one with `to_cpp` and `from_cpp` templates passed by
+value (§2.4), like `QVariant` as `Qt::Variant` or `QChar` as `Char`, crosses
+through three conversion functions the processor generates per type into the
+glue, applying its templates: `bg_qt_meta_from_T(slot)` reads the value out of
+an argument vector slot, `bg_qt_meta_to_T(slot, value)` assigns a result or a
+property value to one, and `bg_qt_meta_pack_T(value)` copies a signal argument
+into GC memory, destructed by a finalizer.  The Crystal side applies
+`to_crystal` and `from_crystal`, so the templates must resolve from outside
+the module too (`Qt::Variant.new(%)`).  The Crystal type of a declaration is
+matched by its name, as the rules' `crystal_type` names it from inside the
+module or from the top level; of two rules with the same Crystal type, like
+`std::chrono::seconds` and `milliseconds` both as `Time::Span`, the first
+wins.  Qt must know the C++ type (`QMetaType`) for properties and queued
+connections, as for the classes by value.  `QString` and `QByteArray` keep
+their own conversions.
 
 A Crystal enum used by a signal, slot or property is an enumerator of the
 class, like a `Q_ENUM`: listed in the meta-object with its keys and values
