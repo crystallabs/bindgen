@@ -1501,9 +1501,22 @@ must know (`QMetaType::fromName`): a value received is copied out of the
 argument vector into a GC allocation through its `QMetaType`
 (`bindgen_qt_copy_value`), a value returned is assigned to the slot the same
 way.  The C++ name is the argument of the type's `BindgenWrapper` annotation,
-which the generator writes on every wrapper class and enum.  Containers,
-Crystal enums and converted value types other than `QString` and `QByteArray`
-(like a `QVariant` with `to_cpp`/`from_cpp` templates) aren't supported.
+which the generator writes on every wrapper class and enum.  Containers and
+converted value types other than `QString` and `QByteArray` (like a `QVariant`
+with `to_cpp`/`from_cpp` templates) aren't supported.
+
+A Crystal enum used by a signal, slot or property is an enumerator of the
+class, like a `Q_ENUM`: listed in the meta-object with its keys and values
+(`QMetaEnum`, flagged as flags for an `@[Flags]` enum), and registered with
+`QMetaType` as `Class::Name` (`Machine::Mode`, the Crystal class's and the
+enum's last name components) when the meta-object is built: an int-sized
+enumeration type whose meta-object is the class's, as `bindgen_qt_meta.hpp`
+makes it from a `QMetaTypeInterface` in Qt 6 and `registerNormalizedType`
+in Qt 5.  So `property` returns a `QVariant` of that type, which
+`Qt::Variant#to(Machine::Mode)` unpacks, `setProperty` takes an int, a key
+(`"Slow"`, `"Verbose|Dry"`) or such a variant, queued connections copy the
+argument, and QML can use it.  The values must fit an `int`; two enums of
+the same name in one class are an error.
 
 The meta-object of a class is built once, on the first construction of an
 instance, from the methods the macros annotated (`Qt::Signal`, `Qt::Slot`,

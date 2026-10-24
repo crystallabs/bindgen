@@ -139,6 +139,11 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   value, copied through its `QMetaType`, like `QColor`.  `@[Qt::Invokable]`
   marks a method invokable by name without being a slot (`Q_INVOKABLE`), and
   `qt_class_info "key", "value"` adds a class info (`Q_CLASSINFO`).
+* A Crystal enum is a signal, slot or property type of a Crystal subclass
+  (SPEC.md §Q.4): the class lists it as an enumerator, like `Q_ENUM`, and
+  `bindgen_qt_meta.hpp` registers it with `QMetaType` as `Class::Name`, so
+  `property` returns it, `setProperty` takes an int or a key, and queued
+  connections carry it.  Type names in the tables are normalized.
 * `builtin_out_arguments:` option: a non-const reference or pointer to a
   built-in type or an enum a method writes through, like `bool *ok` or
   `int &`, is an out argument in every method, returned with the result:

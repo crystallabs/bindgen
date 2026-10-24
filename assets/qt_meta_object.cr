@@ -14,6 +14,7 @@ lib Binding
   fun bindgen_qt_meta_add_method(meta : Void*, kind : Int32, name : UInt8*, return_type : UInt8*, argc : Int32, types : UInt8**, names : UInt8**) : Int32
   fun bindgen_qt_meta_add_property(meta : Void*, name : UInt8*, type : UInt8*, notify : Int32, writable : Bool, is_enum : Bool) : Int32
   fun bindgen_qt_meta_add_class_info(meta : Void*, key : UInt8*, value : UInt8*) : Int32
+  fun bindgen_qt_meta_add_enum(meta : Void*, name : UInt8*, is_flags : Bool, count : Int32, keys : UInt8**, values : Int32*) : Int32
   fun bindgen_qt_meta_finish(meta : Void*, parent : Void*, metacall : CrystalProc) : Void
   fun bindgen_qt_signal_index(meta : Void*, local : Int32) : Int32
   fun bindgen_qt_activate(sender : Void*, meta : Void*, local : Int32, args : BindgenQtArg*, count : Int32) : Void
@@ -53,7 +54,9 @@ end
 # the meta-object system, for `signal`, `@[Slot]` and `qt_property`.
 module BindgenMeta
   # The C++ type name of *type* in the meta-object tables: a string literal.
-  macro cpp_type_name(type)
+  # *type* is resolved, or absolute: a Crystal enum is named after *scope*,
+  # the class's name.
+  macro cpp_type_name(type, scope)
     {% if type.is_a?(Call) && type.name == "|" %}
       {% parts = [type.receiver] + type.args %}
     {% elsif type.is_a?(Union) %}
@@ -79,9 +82,18 @@ module BindgenMeta
     {% elsif t == String %}"QString"{% elsif t == Bytes %}"QByteArray"
     {% elsif (ann = t.annotation(::%MODULE%::BindgenWrapper)) && ann.args.size == 1 %}
       {% if t <= %OBJECT% %}{{ ann.args[0] + "*" }}{% else %}{{ ann.args[0] }}{% end %}
+    {% elsif t < ::Enum %}
+      # A Crystal enum: registered as `Class::Name` with the class's enumerator.
+      {{ scope + "::" + t.name.stringify.split("::").last }}
     {% else %}
-      {% raise "#{type} isn't a type the Qt meta-object system can take: use a number, Bool, String, Bytes, a wrapped Qt class or a wrapped Qt enum" %}
+      {% raise "#{type} isn't a type the Qt meta-object system can take: use a number, Bool, String, Bytes, a Crystal enum, a wrapped Qt class or a wrapped Qt enum" %}
     {% end %}
+  end
+
+  # The value of the Crystal enum *type* for the int *value*, whatever the
+  # enum's base type.
+  macro enum_from_int(type, value)
+    {{ type }}.new(typeof({{ type }}.new(0).value).new!({{ value }}))
   end
 
   # Is *type*, as written in a declaration, a Crystal enum?  A property of an
@@ -127,6 +139,8 @@ module BindgenMeta
       pointer = Binding.bindgen_qt_copy_value({{ ann.args[0] }}.to_unsafe, slot)
       raise "Qt can't copy a #{ {{ ann.args[0] }} }: the type isn't registered with QMetaType" if pointer.null?
       ::%MODULE%::BindgenMeta.discover({{ T }}, pointer)
+    {% elsif T < ::Enum && !T.annotation(::%MODULE%::BindgenWrapper) %}
+      ::%MODULE%::BindgenMeta.enum_from_int(T, slot.as(Int32*).value) # Registered as an int-sized type
     {% else %}
       slot.as(T*).value
     {% end %}
@@ -152,6 +166,8 @@ module BindgenMeta
       unless Binding.bindgen_qt_set_value(slot, {{ ann.args[0] }}.to_unsafe, value.to_unsafe.as(Void*))
         raise "Qt can't copy a #{ {{ ann.args[0] }} }: the type isn't registered with QMetaType"
       end
+    {% elsif T < ::Enum && !T.annotation(::%MODULE%::BindgenWrapper) %}
+      slot.as(Int32*).value = value.value.to_i32!
     {% else %}
       slot.as(T*).value = value
     {% end %}
@@ -194,6 +210,9 @@ end
               bg_args[{{ i }}] = ::%MODULE%::Binding::BindgenQtArg.new(kind: 0, pointer: pointerof(bg_value{{ i }}).as(Void*))
             {% elsif t.class? && t.annotation(::%MODULE%::BindgenWrapper) %}
               bg_args[{{ i }}] = ::%MODULE%::Binding::BindgenQtArg.new(kind: 0, pointer: {{ a.var }}.to_unsafe.as(Void*))
+            {% elsif t < ::Enum && !t.annotation(::%MODULE%::BindgenWrapper) %}
+              bg_value{{ i }} = {{ a.var }}.value.to_i32!
+              bg_args[{{ i }}] = ::%MODULE%::Binding::BindgenQtArg.new(kind: 0, pointer: pointerof(bg_value{{ i }}).as(Void*))
             {% else %}
               bg_value{{ i }} = {{ a.var }}
               bg_args[{{ i }}] = ::%MODULE%::Binding::BindgenQtArg.new(kind: 0, pointer: pointerof(bg_value{{ i }}).as(Void*))
@@ -255,7 +274,28 @@ end
           def self.bg_meta_object : Void*
             return @@bg_meta_object unless @@bg_meta_object.null?
 
-            meta = ::%MODULE%::Binding.bindgen_qt_meta_new(\{{ @type.name.stringify.split("::").last }}.to_unsafe)
+            \{% class_name = @type.name.stringify.split("::").last %}
+            meta = ::%MODULE%::Binding.bindgen_qt_meta_new(\{{ class_name }}.to_unsafe)
+
+            # The Crystal enums the members use become the enumerators of the
+            # class, like `Q_ENUM`, registered as `Class::Name`.
+            \{% enums = [] of Nil %}
+            \{% for m in signals + slots + properties %}
+              \{% for restriction in m.args.map(&.restriction) + [m.return_type] %}
+                \{% if !restriction.is_a?(Nop) && !restriction.is_a?(Union) && !(restriction.is_a?(Call) && restriction.name == "|") && restriction.resolve < ::Enum && !restriction.resolve.annotation(::%MODULE%::BindgenWrapper) %}
+                  \{% enums << restriction.resolve unless enums.includes?(restriction.resolve) %}
+                \{% end %}
+              \{% end %}
+            \{% end %}
+            \{% for e, i in enums %}
+              \{% short = e.name.stringify.split("::").last %}
+              \{% for other, j in enums %}
+                \{% raise "#{@type}: the enums #{other} and #{e} would both be #{class_name.id}::#{short} in the meta-object" if j < i && other.name.stringify.split("::").last == short %}
+              \{% end %}
+              bg_enum_keys\{{ i }} = StaticArray[\{% for c in e.constants %}\{{ c.stringify }}.to_unsafe, \{% end %}]
+              bg_enum_values\{{ i }} = StaticArray[\{% for c in e.constants %}\{{ e }}::\{{ c }}.value.to_i32!, \{% end %}]
+              ::%MODULE%::Binding.bindgen_qt_meta_add_enum(meta, \{{ short }}.to_unsafe, \{{ e.annotation(::Flags) ? true : false }}, \{{ e.constants.size }}, bg_enum_keys\{{ i }}.to_unsafe, bg_enum_values\{{ i }}.to_unsafe)
+            \{% end %}
             \{% for m in class_infos %}
               \{% ann = m.annotation(::%MODULE%::ClassInfo) %}
               ::%MODULE%::Binding.bindgen_qt_meta_add_class_info(meta, \{{ ann[:key] }}.to_unsafe, \{{ ann[:value] }}.to_unsafe)
@@ -269,15 +309,17 @@ end
                 bg_types\{{ i }} = Pointer(UInt8*).null
                 bg_names\{{ i }} = Pointer(UInt8*).null
               \{% else %}
-                bg_types\{{ i }} = StaticArray[\{% for a in m.args %}::%MODULE%::BindgenMeta.cpp_type_name(\{{ a.restriction }}).to_unsafe, \{% end %}].to_unsafe
+                # The types are resolved here, in the class's scope: `Mode` is `Machine::Mode`.
+                bg_types\{{ i }} = StaticArray[\{% for a in m.args %}::%MODULE%::BindgenMeta.cpp_type_name(\{{ (a.restriction.is_a?(Path) || a.restriction.is_a?(Generic)) ? a.restriction.resolve : a.restriction }}, \{{ class_name }}).to_unsafe, \{% end %}].to_unsafe
                 bg_names\{{ i }} = StaticArray[\{% for a in m.args %}\{{ a.name.stringify }}.to_unsafe, \{% end %}].to_unsafe
               \{% end %}
               \{% rt = m.return_type %}
+              \{% rt = rt.resolve if rt.is_a?(Path) || rt.is_a?(Generic) %}
               \{% if i < signals.size %}
                 \{% raise "signal #{m.name} must return Nil" if !rt.is_a?(Nop) && rt.resolve != Nil %}
               \{% end %}
               ::%MODULE%::Binding.bindgen_qt_meta_add_method(meta, \{{ i < signals.size ? 0 : (m.annotation(::%MODULE%::Slot) ? 1 : 2) }}, \{{ m.name.stringify.camelcase(lower: true) }}.to_unsafe,
-                \{% if rt.is_a?(Nop) %}"void"\{% else %}::%MODULE%::BindgenMeta.cpp_type_name(\{{ rt }})\{% end %}.to_unsafe,
+                \{% if rt.is_a?(Nop) %}"void"\{% else %}::%MODULE%::BindgenMeta.cpp_type_name(\{{ rt }}, \{{ class_name }})\{% end %}.to_unsafe,
                 \{{ m.args.size }}, bg_types\{{ i }}, bg_names\{{ i }})
             \{% end %}
             \{% for p, i in properties %}
@@ -290,9 +332,11 @@ end
                 \{% end %}
               \{% end %}
               \{% raise "#{@type}: the property #{ann[:name]} notifies through #{notify}, which isn't a signal of the class" if notify && notify_index.nil? %}
+              \{% pt = p.return_type %}
+              \{% pt = pt.resolve if pt.is_a?(Path) || pt.is_a?(Generic) %}
               ::%MODULE%::Binding.bindgen_qt_meta_add_property(meta, \{{ ann[:name].id.stringify.camelcase(lower: true) }}.to_unsafe,
-                ::%MODULE%::BindgenMeta.cpp_type_name(\{{ p.return_type }}).to_unsafe, \{{ notify_index.nil? ? -1 : notify_index }}, \{{ ann[:write] ? true : false }},
-                ::%MODULE%::BindgenMeta.enum_type?(\{{ p.return_type }}))
+                ::%MODULE%::BindgenMeta.cpp_type_name(\{{ pt }}, \{{ class_name }}).to_unsafe, \{{ notify_index.nil? ? -1 : notify_index }}, \{{ ann[:write] ? true : false }},
+                ::%MODULE%::BindgenMeta.enum_type?(\{{ pt }}))
             \{% end %}
             ::%MODULE%::Binding.bindgen_qt_meta_finish(meta, \{{ @type.superclass }}.bg_meta_object, ::%MODULE%::BindgenHelper.wrap_proc(->\{{ @type }}.bg_metacall(Void*, Int32, Int32, Void**)))
             @@bg_meta_object = meta
