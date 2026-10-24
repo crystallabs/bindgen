@@ -1,0 +1,15 @@
+<<: spec_base.yml
+
+ignore_methods:
+  - drop
+  - "dropOne(int)"
+  - "/^dropBy/"
+
+classes:
+  Api: Api
+  Noisy: Noisy
+  Quiet: Quiet
+
+functions:
+  "^(helper|old_helper)$":
+    destination: "::"

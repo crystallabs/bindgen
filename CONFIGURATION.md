@@ -125,7 +125,23 @@ Unlike `ignore_methods` of a type rule, this needs no signature to drop
 exactly the deprecated overloads.  Qt declares its deprecated API
 with `QT_DEPRECATED_VERSION_X`, which hides the API deprecated before
 `QT_DISABLE_DEPRECATED_BEFORE` and marks the rest `[[deprecated]]`, so set
-this instead of listing them.
+this instead of listing them.  Left `false`, the deprecated methods are
+wrapped under `@[Deprecated]`, so the Crystal compiler warns about their
+uses.  The C++ glue ignores `-Wdeprecated-declarations` for its own calls of
+them (`bindgen_helper.hpp`).
+
+## `ignore_methods`
+
+Methods to drop in every class, and functions, by name, by C++ signature or
+by a regular expression between slashes, like the
+[`ignore_methods`](#ignore_methods-1) of a type rule.  Requires the
+`filter_methods` processor.
+
+```yaml
+ignore_methods:
+  - d_func # Every class' private data accessor
+  - "/^qt_/"
+```
 
 ## `nilable_results`
 

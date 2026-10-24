@@ -6,6 +6,16 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Added
 
+* A top-level `ignore_methods:` drops methods in every class, and functions,
+  by name, signature or regular expression like the type rule.
+* A method declared `[[deprecated]]` is wrapped under `@[Deprecated]` unless
+  `ignore_deprecated` drops it; the glue ignores `-Wdeprecated-declarations`
+  for calling it.
+* A virtual method's unnamed arguments take the names an override gives
+  them, like `QValidator::validate(QString &, int &)` from
+  `QAbstractSpinBox::validate(QString &input, int &pos)`, so a Crystal
+  subclass can name them without a warning.  `Processor::Inheritance` names
+  them in place before unifying the overrides.
 * `Set` container kind (SPEC.md §2.6.4): `std::set<T>` and `QSet<T>` are
   wrapped as an `Enumerable(T)` with `#includes?`, `#add`/`#<<`, `#delete`,
   `#concat`, `#size` and `#empty?`, taking any `Enumerable` as argument and

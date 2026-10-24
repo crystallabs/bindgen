@@ -57,6 +57,7 @@ module Bindgen
 
       def process(graph : Graph::Container, doc : Parser::Document)
         @all_classes = doc.classes
+        name_unnamed_arguments
         super
 
         add_discovery_methods
@@ -568,6 +569,31 @@ module Bindgen
           fields: klass.fields.select { |f| !f.static? },
           methods: klass.methods.map { |m| unabstract_method(m) },
         )
+      end
+
+      # Names the unnamed arguments of every overridden virtual method like
+      # those of an override: Qt declares `QValidator::validate(QString &,
+      # int &)` without names, and `QAbstractSpinBox::validate(QString &input,
+      # int &pos)` with them.  Done before `#unify_virtual_methods` takes the
+      # names of the overridden method for every override, and in place, so
+      # the overridden method's own wrapper gets the names too.  Of several
+      # overrides naming an argument differently, the first wins.
+      private def name_unnamed_arguments
+        @all_classes.each_value do |klass|
+          klass.methods.each do |method|
+            next unless method.virtual? && method.arguments.any? { |arg| !arg.name.empty? }
+
+            current_class, current = klass, method
+            while found = overridden_method(current_class, current)
+              current_class, current = found
+              current.arguments.each_with_index do |arg, idx|
+                next unless arg.name.empty?
+                name = method.arguments[idx]?.try(&.name)
+                current.arguments[idx] = arg.named(name) if name && !name.empty?
+              end
+            end
+          end
+        end
       end
 
       # Unifies the arguments of the virtual methods of *klass* with those of

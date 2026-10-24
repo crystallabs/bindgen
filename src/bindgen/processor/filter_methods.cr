@@ -33,8 +33,9 @@ module Bindgen
         # Rule 1: Ignored types
         remove = m.filtered?(@db)
 
-        # Rule 2: Explicitly ignored method
+        # Rule 2: Explicitly ignored method, by the type rule or globally
         remove ||= @db[m.class_name]?.try(&.ignore_method?(m)) || false
+        remove ||= @config.ignore_methods.any?(&.matches?(m))
 
         # Rule 3: Anonymous types
         remove ||= type_ignored?(m.class_name)

@@ -90,6 +90,11 @@ module Bindgen
         defaults_to_nil? || super
       end
 
+      # Returns a copy of this argument named *name*.
+      def named(name : String) : Argument
+        Argument.new(name: name, type: self, has_default: @has_default, value: @value)
+      end
+
       # Returns a copy of this argument without a default value.
       def without_default : Argument
         Argument.new(

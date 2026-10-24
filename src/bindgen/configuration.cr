@@ -268,6 +268,11 @@ module Bindgen
     # Drop the methods declared `[[deprecated]]`, in `filter_methods`.
     property? ignore_deprecated : Bool = false
 
+    # Methods to drop in every class, and functions, by name, signature or
+    # regular expression like the `ignore_methods` of a type rule, see
+    # `TypeDatabase::MethodPattern`.
+    property ignore_methods = [] of Bindgen::TypeDatabase::MethodPattern
+
     # Return `nil` for a null pointer to a wrapped class, so such results are
     # `T?`.  Otherwise a wrapper of a null pointer is returned.
     property? nilable_results : Bool = false

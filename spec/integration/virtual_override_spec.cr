@@ -446,8 +446,15 @@ describe "C++ virtual overriding from Crystal feature" do
           {% begin %}
             {% method = Test::UnnamedArgument.methods.find(&.name.== "named") %}
             {{ method.args.first.name.stringify }}.should eq("value")
+          {% end %}
+        end
+
+        it "names the unnamed arguments of the overridden method like an override's" do
+          {% begin %}
+            {% method = Test::NamedArgument.methods.find(&.name.== "unnamed") %}
+            {{ method.args.first.name.stringify }}.should eq("value")
             {% method = Test::UnnamedArgument.methods.find(&.name.== "unnamed") %}
-            {{ method.args.first.name.stringify }}.should eq("unnamed_arg_0")
+            {{ method.args.first.name.stringify }}.should eq("value")
           {% end %}
         end
       end

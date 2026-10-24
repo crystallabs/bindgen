@@ -164,6 +164,12 @@ where `X` is the zero-indexed index of the affected argument.
 Given `void foo(int, int two, int)`, the generated wrapper prototype would look
 like this: `foo(unnamed_arg_0 : Int32, two : Int32, unnamed_arg_2 : Int32)`.
 
+A virtual method's unnamed arguments take the names an override gives them:
+Qt declares `QValidator::validate(QString &, int &)`, and
+`QAbstractSpinBox::validate(QString &input, int &pos)`, so both wrappers, and
+the abstract `def` a Crystal subclass implements, name them `input` and
+`pos`.  Of several overrides naming an argument differently, the first wins.
+
 #### §2.2.3 Argument renaming
 
 If an argument has a name which is a reserved word in Crystal, it gets an

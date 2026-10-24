@@ -125,8 +125,11 @@ module Bindgen
           # type.  The annotation tells `Processor::VirtualOverride`'s hook
           # such a copy from an override of the subclass.
           marker = "@[BindgenWrapper]\n" if @super_forwarder
+          # A method declared `[[deprecated]]` is kept under `@[Deprecated]`,
+          # unless `ignore_deprecated` dropped it.
+          deprecated = "@[Deprecated]\n" if call.origin.deprecated?
 
-          %[#{marker}#{head_line}\n] \
+          %[#{deprecated}#{marker}#{head_line}\n] \
           %[  #{code}\n] \
           %[end\n]
         end
