@@ -1501,8 +1501,23 @@ must know (`QMetaType::fromName`): a value received is copied out of the
 argument vector into a GC allocation through its `QMetaType`
 (`bindgen_qt_copy_value`), a value returned is assigned to the slot the same
 way.  The C++ name is the argument of the type's `BindgenWrapper` annotation,
-which the generator writes on every wrapper class and enum.  Containers
-aren't supported.
+which the generator writes on every wrapper class and enum.
+
+A container instantiation (§2.6) is declared as the Crystal generic the
+wrapper exchanges it as: an `Array(T)` or `Enumerable(T)` is the first
+sequential container of `T` the configuration instantiates (`QList<int>` for
+`Array(Int32)`, or `QVector<int>` where that is the one), a `Set(T)` the set
+container of `T`, a `Hash(K, V)` the first associative container of `K` and
+`V` (`QMap<QString,QVariant>`), each matched by the Crystal names of the
+elements; containers of containers and of nilable pointers aren't taken.  The
+processor registers every instantiation with `QMetaType` under its C++ name
+in `bg_qt_meta_register_types`, called before a meta-object is built, so Qt
+resolves the type, copies it for queued connections, and holds it in a
+`QVariant` (as an unknown type to `Qt::Variant`, unless Qt knows it, like
+`QStringList`).  A value received is copied through its `QMetaType` like a
+class by value, wrapped in the container class, and converted to the declared
+generic (`to_a`, `to_set`, `to_h`; an `Enumerable` gets the container itself);
+a value sent is a container built from the declared generic.
 
 A converted value type, one with `to_cpp` and `from_cpp` templates passed by
 value (§2.4), like `QVariant` as `Qt::Variant` or `QChar` as `Char`, crosses

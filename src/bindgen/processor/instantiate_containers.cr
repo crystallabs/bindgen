@@ -149,6 +149,7 @@ module Bindgen
 
         graph = builder.build_class(klass, klass.name, root)
         graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
+        tag_container(graph, templ_type, "set")
         graph.included_modules << container_module(SET_MODULE, templ_args)
         graph.included_modules << container_module(container.class, templ_args)
         @db.get_or_add(templ_type.full_name).graph_node = graph
@@ -285,6 +286,7 @@ module Bindgen
 
         graph = builder.build_class(klass, crystal_name, root)
         graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
+        tag_container(graph, templ_type, "sequential")
         graph.included_modules << container_module(SEQUENTIAL_MODULE, templ_args)
         graph.included_modules << container_module(container.class, templ_args)
 
@@ -345,6 +347,7 @@ module Bindgen
 
         graph = builder.build_class(klass, klass.name, root)
         graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
+        tag_container(graph, templ_type, "associative")
         graph.included_modules << container_module(ASSOCIATIVE_MODULE, templ_args)
         graph.included_modules << container_module(container.class, templ_args)
         @db.get_or_add(templ_type.full_name).graph_node = graph
@@ -362,6 +365,15 @@ module Bindgen
       # Generates the Crystal module name of a container class.
       private def container_module(kind, types)
         "#{Graph::Path.from(module_name(kind)).camelcase}(#{wrapper_type_list(types)})"
+      end
+
+      # Tags the wrapper class *graph* of the *kind* container instantiated as
+      # *templ_type*, for the processors taking containers by their C++ type,
+      # like `QtMetaObject`.
+      private def tag_container(graph : Graph::Class, templ_type : Parser::Type, kind : String)
+        graph.set_tag(Graph::Class::CONTAINER_TYPE_TAG, templ_type.full_name)
+        graph.set_tag(Graph::Class::CONTAINER_KIND_TAG, kind)
+        graph.set_tag(Graph::Class::CONTAINER_ELEMENTS_TAG, wrapper_type_list(templ_type.template_arguments))
       end
 
       # Returns the comma-separated Crystal wrapper types of *types*.

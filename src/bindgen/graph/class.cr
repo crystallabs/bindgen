@@ -8,6 +8,19 @@ module Bindgen
       # its default behaviour of deducing if these are required.
       FORCE_UNWRAP_VARIABLE_TAG = "FORCE_UNWRAP_VARIABLE_TAG"
 
+      # Set by `Processor::InstantiateContainers` on the wrapper class of a
+      # sequential, set or associative container instantiation: the C++ type,
+      # like `QList<int>`.
+      CONTAINER_TYPE_TAG = "CONTAINER_TYPE_TAG"
+
+      # With `CONTAINER_TYPE_TAG`: the container kind, `sequential`, `set` or
+      # `associative`.
+      CONTAINER_KIND_TAG = "CONTAINER_KIND_TAG"
+
+      # With `CONTAINER_TYPE_TAG`: the Crystal types of the elements, comma
+      # separated as the wrapper names them: `Int32`, or `String, Variant`.
+      CONTAINER_ELEMENTS_TAG = "CONTAINER_ELEMENTS_TAG"
+
       # The origin class
       getter origin : Parser::Class
 

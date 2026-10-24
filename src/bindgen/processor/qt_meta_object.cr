@@ -56,8 +56,26 @@ module Bindgen
         end
       end
 
+      # A container instantiation (SPEC.md §Q.4): its C++ *name*, the *kind*
+      # (`sequential`, `set` or `associative`), the Crystal types of its
+      # *elements* as the wrapper names them, and its *wrapper* class.
+      record Container, name : String, kind : String, elements : Array(String), wrapper : String do
+        # The Crystal generic the declaration of a member uses for it: the
+        # first of the alternatives is the one `arg` converts to.
+        def generics : Array(String)
+          case kind
+          when "set"         then ["Set"]
+          when "associative" then ["Hash"]
+          else                    ["Array", "Enumerable"]
+          end
+        end
+      end
+
       # The `QObject` class, if subclassable.
       @qobject : Graph::Class?
+
+      # The container instantiations, in order, see `#visit_class`.
+      @containers = [] of Container
 
       def process(graph : Graph::Container, doc : Parser::Document)
         register_meta_type
@@ -66,9 +84,97 @@ module Bindgen
         if qobject = @qobject
           converted = converted_types
           add_converted_glue(graph, converted)
+          add_container_glue(graph)
           add_glue(graph, qobject, converted)
         else
           Log.warn { "No subclassable #{QOBJECT} class: no meta-objects for Crystal subclasses" }
+        end
+      end
+
+      # Notes a container instantiation `Processor::InstantiateContainers`
+      # tagged, if its elements are plain types: no nested containers, no
+      # nilable pointers.
+      private def note_container(klass : Graph::Class)
+        return unless name = klass.tag?(Graph::Class::CONTAINER_TYPE_TAG)
+        kind = klass.tag(Graph::Class::CONTAINER_KIND_TAG)
+        elements = klass.tag(Graph::Class::CONTAINER_ELEMENTS_TAG).split(", ")
+        return if elements.any? { |e| e =~ /[(|?*]/ }
+        @containers << Container.new(name, kind, elements, "::#{klass.path_name}")
+      end
+
+      # Adds `bg_qt_meta_register_types`, registering the container
+      # instantiations with `QMetaType` under their C++ names, so the
+      # meta-objects resolve them and `bindgen_qt_copy_value` copies them.
+      private def add_container_glue(graph : Graph::Container)
+        code = String.build do |b|
+          b << "// Registers the container instantiations with QMetaType, for the meta-objects of Crystal classes.\n"
+          b << "extern \"C\" void bg_qt_meta_register_types() {\n"
+          @containers.each do |c|
+            b << "  qRegisterMetaType<#{c.name}>(#{c.name.inspect});\n"
+          end
+          b << "}\n"
+        end
+
+        add_cpp_code(graph, "bg_qt_meta_register_types", code)
+      end
+
+      # The macro condition matching the declared type *var*, a `TypeNode`,
+      # with the container *c*: the generic and the element types.
+      private def container_condition(c : Container, var : String) : String
+        generic = c.generics.map { |g| %[#{var}.name(generic_args: false).stringify == #{g.inspect}] }.join(" || ")
+        elements = c.elements.map_with_index { |e, i| name_condition(e, "#{var}.type_vars[#{i}]") }.join(" && ")
+        "(#{generic}) && #{var}.type_vars.size == #{c.elements.size} && #{elements}"
+      end
+
+      # The `cpp_type_name` branches of the containers.
+      private def container_names : String
+        String.build do |b|
+          @containers.each do |c|
+            b << "    {% elsif #{container_condition(c, "t")} %}#{c.name.inspect}\n"
+          end
+        end
+      end
+
+      # The `arg` branches: the container copied through its `QMetaType`, as
+      # the declared generic.
+      private def container_args : String
+        String.build do |b|
+          @containers.each do |c|
+            b << "    {% elsif #{container_condition(c, "T")} %}\n"
+            b << "      bg_pointer = Binding.bindgen_qt_copy_value(#{c.name.inspect}.to_unsafe, slot)\n"
+            b << "      raise \"Qt can't copy a #{c.name}: the type isn't registered with QMetaType\" if bg_pointer.null?\n"
+            b << "      bg_container = ::#{@config.module}::BindgenMeta.discover(#{c.wrapper}, bg_pointer)\n"
+            case c.kind
+            when "set"         then b << "      bg_container.to_set\n"
+            when "associative" then b << "      bg_container.to_h\n"
+            else                    b << "      {% if T.name(generic_args: false).stringify == \"Array\" %}bg_container.to_a{% else %}bg_container{% end %}\n"
+            end
+          end
+        end
+      end
+
+      # The `result` branches: the container built from the value, assigned.
+      private def container_results : String
+        String.build do |b|
+          @containers.each do |c|
+            b << "    {% elsif #{container_condition(c, "T")} %}\n"
+            b << "      bg_container = ::#{@config.module}::BindgenHelper.wrap_container(#{c.wrapper}, value)\n"
+            b << "      unless Binding.bindgen_qt_set_value(slot, #{c.name.inspect}.to_unsafe, bg_container.to_unsafe.as(Void*))\n"
+            b << "        raise \"Qt can't copy a #{c.name}: the type isn't registered with QMetaType\"\n"
+            b << "      end\n"
+          end
+        end
+      end
+
+      # The `signal` branches: the container built from the argument, passed
+      # by pointer while it lives.
+      private def container_signal_args : String
+        String.build do |b|
+          @containers.each do |c|
+            b << "            {% elsif #{container_condition(c, "t")} %}\n"
+            b << "              bg_value{{ i }} = ::#{@config.module}::BindgenHelper.wrap_container(#{c.wrapper}, {{ a.var }})\n"
+            b << "              bg_args[{{ i }}] = ::#{@config.module}::Binding::BindgenQtArg.new(kind: 0, pointer: bg_value{{ i }}.to_unsafe.as(Void*))\n"
+          end
         end
       end
 
@@ -129,17 +235,20 @@ module Bindgen
         end
       end
 
-      # The macro condition matching the Crystal type of *c* by name: the
-      # type's full name is the one of the rules, in the module or at the
-      # top level (`Qt::Variant` or `Variant`), as the rules are written from
-      # inside the module.
-      private def converted_condition(c : Converted, var : String) : String
-        crystal = c.crystal_type
+      # The macro condition matching the `TypeNode` *var* with the Crystal
+      # type named *crystal* as the rules name it, from inside the module or
+      # from the top level: `Qt::Variant` or `Variant`.
+      private def name_condition(crystal : String, var : String) : String
         if crystal.starts_with?("::")
           %[#{var}.name.stringify == #{crystal.lchop("::").inspect}]
         else
           %[(#{var}.name.stringify == #{"#{@config.module}::#{crystal}".inspect} || #{var}.name.stringify == #{crystal.inspect})]
         end
+      end
+
+      # The macro condition matching the Crystal type of *c*.
+      private def converted_condition(c : Converted, var : String) : String
+        name_condition(c.crystal_type, var)
       end
 
       # The `cpp_type_name` branches of the *converted* types.
@@ -183,6 +292,7 @@ module Bindgen
 
       def visit_class(klass)
         return super if klass.wrapped_class # Don't change `Impl` classes.
+        note_container(klass)
 
         if (subclass_name = klass.cpp_sub_class) && derives_from_qobject?(klass.origin.name) && (structure = find_subclass(klass, subclass_name))
           Log.trace { "adding the meta-object to #{klass.diagnostics_path}" }
@@ -355,10 +465,10 @@ module Bindgen
 
         code
           .gsub("%CONVERTED_FUNS%", converted_funs(converted))
-          .gsub("%CONVERTED_NAMES%", converted_names(converted))
-          .gsub("%CONVERTED_ARGS%", converted_args(converted))
-          .gsub("%CONVERTED_RESULTS%", converted_results(converted))
-          .gsub("%CONVERTED_SIGNAL_ARGS%", converted_signal_args(converted))
+          .gsub("%CONVERTED_NAMES%", converted_names(converted) + container_names)
+          .gsub("%CONVERTED_ARGS%", converted_args(converted) + container_args)
+          .gsub("%CONVERTED_RESULTS%", converted_results(converted) + container_results)
+          .gsub("%CONVERTED_SIGNAL_ARGS%", converted_signal_args(converted) + container_signal_args)
           .gsub("%MODULE%", @config.module)
           .gsub("%OBJECT%", "::#{qobject.path_name}")
           .gsub("%CONNECTION%", connection.crystal_type || raise("#{Qt::CONNECTION_HANDLE_TYPE} has no crystal_type"))

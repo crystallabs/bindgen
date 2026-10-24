@@ -148,6 +148,12 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   `QVariant` as `Qt::Variant` or `QChar` as `Char`, is a signal, slot or
   property type of a Crystal subclass (SPEC.md §Q.4): the `qt_meta_object`
   processor generates the conversions per type into the glue.
+* A container instantiation is a signal, slot or property type of a Crystal
+  subclass (SPEC.md §Q.4), declared as `Array(T)`, `Enumerable(T)`, `Set(T)`
+  or `Hash(K, V)`: the `qt_meta_object` processor registers the
+  instantiations with `QMetaType` under their C++ names.  `Processor::
+  InstantiateContainers` tags the container classes with their C++ type,
+  kind and element types (`Graph::Class::CONTAINER_TYPE_TAG`).
 * `builtin_out_arguments:` option: a non-const reference or pointer to a
   built-in type or an enum a method writes through, like `bool *ok` or
   `int &`, is an out argument in every method, returned with the result:

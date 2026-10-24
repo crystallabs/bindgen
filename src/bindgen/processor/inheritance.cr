@@ -722,8 +722,15 @@ module Bindgen
         def to_code(call : Call, platform : Graph::Platform) : String
           typer = Crystal::Typename.new(@db)
           pass = Crystal::Pass.new(@db)
-          type_name = typer.full(call.result)
-          fallback = call.result.apply_conversion("unwrap")
+          if @klass.tag?(Graph::Class::CONTAINER_TYPE_TAG)
+            # The type rules of a container exchange it as an `Enumerable`;
+            # the method wraps it in its class, like `Enumerable#to_a` would.
+            type_name = @klass.name
+            fallback = "#{@klass.name}.new(unwrap: unwrap)"
+          else
+            type_name = typer.full(call.result)
+            fallback = call.result.apply_conversion("unwrap")
+          end
 
           String.build do |b|
             b << "# Wraps the object at *unwrap*: in the Crystal object which constructed\n"
