@@ -95,6 +95,7 @@ module Bindgen
         Associative
         Pair     # `std::pair` and `QPair`, converted to a Crystal `Tuple`
         Optional # `std::optional`, converted to a Crystal `T?`
+        Set      # `std::set` and `QSet`, an `Enumerable` with `#includes?`, `#<<` and `#delete`
       end
       include YAML::Serializable
 
@@ -111,17 +112,17 @@ module Bindgen
       @[YAML::Field(key: "access_method")]
       property configured_access_method : String?
 
-      # Method to add an element at the end, or to set the value of an
-      # optional.
+      # Method to add an element at the end, to set the value of an optional,
+      # or to insert an element into a set.
       @[YAML::Field(key: "push_method")]
       property configured_push_method : String?
 
       # Method telling the current count of elements.
       property size_method : String = "size"
 
-      # Method telling if an associative container has a key, returning the
-      # count of entries of the key, or a `bool`; or if an optional has a
-      # value.
+      # Method telling if an associative container has a key, or a set an
+      # element, returning the count of entries of the key, or a `bool`; or if
+      # an optional has a value.
       @[YAML::Field(key: "count_method")]
       property configured_count_method : String?
 
@@ -131,10 +132,14 @@ module Bindgen
         @configured_access_method || (type.optional? ? "value" : "at")
       end
 
-      # See `#configured_push_method`.  Defaults to `push_back`, or to
-      # `emplace` for an optional.
+      # See `#configured_push_method`.  Defaults to `push_back`, to `emplace`
+      # for an optional, or to `insert` for a set.
       def push_method : String
-        @configured_push_method || (type.optional? ? "emplace" : "push_back")
+        @configured_push_method || case type
+        when .optional? then "emplace"
+        when .set?      then "insert"
+        else                 "push_back"
+        end
       end
 
       # See `#configured_count_method`.  Defaults to `count`, or to
@@ -143,7 +148,8 @@ module Bindgen
         @configured_count_method || (type.optional? ? "has_value" : "count")
       end
 
-      # Method removing the entry of a key from an associative container.
+      # Method removing the entry of a key from an associative container, or
+      # an element from a set.
       property erase_method : String = "erase"
 
       # Method adding an entry to an associative container, replacing the value

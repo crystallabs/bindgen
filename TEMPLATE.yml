@@ -365,18 +365,20 @@ member_functions: [qHash]
 containers:
   - class: Name of the C++ class
     # "Pair" is for `std::pair` and `QPair`, converted to and from a `Tuple`;
-    # "Optional" for `std::optional`, converted to and from a `T?`.
-    type: "Sequential", "Associative", "Pair" or "Optional"
+    # "Optional" for `std::optional`, converted to and from a `T?`; "Set" for
+    # `std::set` and `QSet`, an `Enumerable` with `#includes?`, `#<<` and
+    # `#delete`.
+    type: "Sequential", "Associative", "Pair", "Optional" or "Set"
     # access_method: C++ item access method.  Defaults to `at`, or to `value`
     #   for an optional.
     # size_method: C++ container size method.  Defaults to `size`.
-    # push_method: C++ item append method.  Defaults to `push_back`, or to
-    #   `emplace` for an optional.
-    # Associative containers (Keys mapping to values, like `std::map`):
-    # count_method: C++ method counting the entries of a key, or returning a
-    #   `bool` (Like Qt's `contains`).  Defaults to `count`, or to `has_value`
-    #   for an optional.
-    # erase_method: C++ method removing a key.  Defaults to `erase`.
+    # push_method: C++ item append method.  Defaults to `push_back`, to
+    #   `emplace` for an optional, or to `insert` for a set.
+    # Associative containers (Keys mapping to values, like `std::map`) and sets:
+    # count_method: C++ method counting the entries of a key or element, or
+    #   returning a `bool` (Like Qt's `contains`).  Defaults to `count`, or to
+    #   `has_value` for an optional.
+    # erase_method: C++ method removing a key or element.  Defaults to `erase`.
     # insert_method: C++ method `insert(key, value)` replacing the value of an
     #   existing key (Like Qt's `insert`).  If unset, `bindgen_map_store` from
     #   `bindgen_helper.hpp` is used, which assigns or calls `emplace`.

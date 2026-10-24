@@ -3,6 +3,7 @@
 #include <map>
 #include <unordered_map>
 #include <optional>
+#include <set>
 
 typedef std::vector<unsigned char> bytearray;
 typedef std::map<std::string, int> phonebook;
@@ -45,6 +46,23 @@ public:
 
   std::vector<couple<double, int>> aliased_weights() {
     return { { 2.5, 3 } };
+  }
+
+  // Sets are wrapped as an `Enumerable` with `#includes?`, `#<<` and `#delete`.
+  std::set<int> evens(int count) {
+    std::set<int> result;
+    for (int i = 0; i < count; i++) result.insert(i * 2);
+    return result;
+  }
+
+  int sumSet(const std::set<int> &values) {
+    int sum = 0;
+    for (int value : values) sum += value;
+    return sum;
+  }
+
+  std::set<std::string> names() {
+    return { "b", "a", "c" };
   }
 
   // Optionals are converted to and from a `T?`.
@@ -247,8 +265,33 @@ public:
   int remove(const K &key) { return static_cast<int>(data.erase(key)); }
 };
 
+// Mimics the API of Qt's `QSet`: `contains()` tests, `remove()` erases.
+template <typename T>
+class QtStyleSet {
+  std::set<T> data;
+
+public:
+  typedef T value_type;
+
+  typename std::set<T>::const_iterator begin() const { return data.begin(); }
+  typename std::set<T>::const_iterator end() const { return data.end(); }
+
+  int size() const { return static_cast<int>(data.size()); }
+  bool contains(const T &value) const { return data.count(value) > 0; }
+  void insert(const T &value) { data.insert(value); }
+  bool remove(const T &value) { return data.erase(value) > 0; }
+};
+
 class QtStyle {
 public:
+  QtStyleSet<int> primes() {
+    QtStyleSet<int> set;
+    set.insert(2);
+    set.insert(3);
+    set.insert(5);
+    return set;
+  }
+
   QtStyleMap<int, double> squareRoots() {
     QtStyleMap<int, double> map;
     map.insert(4, 2.0);

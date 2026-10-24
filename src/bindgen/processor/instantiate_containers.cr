@@ -20,6 +20,9 @@ module Bindgen
       # Module for optionals
       OPTIONAL_MODULE = "BindgenHelper::OptionalContainer"
 
+      # Module for sets
+      SET_MODULE = "BindgenHelper::SetContainer"
+
       # The parsed document, for container instantiations listed in `classes:`.
       @doc : Parser::Document?
 
@@ -85,6 +88,8 @@ module Bindgen
           add_pair_containers(container, root)
         when .optional?
           add_optional_containers(container, root)
+        when .set?
+          add_set_containers(container, root)
         else
           raise "BUG: Missing case for #{container.type.inspect}"
         end
@@ -112,6 +117,44 @@ module Bindgen
           check_associative_instance! container, instance
           add_pair_container(container, instance, root)
         end
+      end
+
+      # Adds all instances of the set *container* into *root*.
+      private def add_set_containers(container, root)
+        nested_first(container.instantiations).each do |instance|
+          check_sequential_instance! container, instance
+          add_set_container(container, instance, root)
+        end
+      end
+
+      # Instantiates a single set *container* *instance* into *root*.  Like an
+      # associative container's entries, the elements are copied for iteration
+      # into a `BindgenSetElements`, wrapped as the nested `Elements` class.
+      private def add_set_container(container, instance, root)
+        builder = Graph::Builder.new(@db)
+
+        templ_type = Parser::Type.parse(cpp_container_name(container, instance))
+        templ_args = templ_type.template_arguments
+        klass = build_set_class(container, templ_type)
+        elements = build_elements_class(klass, templ_type)
+        elements_type = Parser::Type.parse("BindgenSetElements<#{templ_type.full_name}>")
+
+        if parsed_class(templ_type)
+          raise "#{templ_type.full_name} is listed in `classes:`, but wrapping the methods of a set isn't supported"
+        end
+
+        add_cpp_typedef(root, templ_type, klass.name)
+        add_cpp_typedef(root, elements_type, elements.name)
+        set_container_type_rules(container, templ_type, klass.name, klass.name)
+
+        graph = builder.build_class(klass, klass.name, root)
+        graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
+        graph.included_modules << container_module(SET_MODULE, templ_args)
+        graph.included_modules << container_module(container.class, templ_args)
+        @db.get_or_add(templ_type.full_name).graph_node = graph
+
+        elements_graph = builder.build_class(elements, "Elements", graph)
+        elements_graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
       end
 
       # Adds all instances of the optional *container* into *root*.
@@ -489,6 +532,73 @@ module Bindgen
         end
 
         klass
+      end
+
+      # Builds a full `Parser::Class` for the set *container* in the specified
+      # *instantiation*: `size`, and the methods `BindgenHelper::SetContainer`
+      # uses to test, insert and erase an element.
+      private def build_set_class(container, templ_type : Parser::Type) : Parser::Class
+        var_type = templ_type.template_arguments.first
+        klass = container_class(container, templ_type)
+        value_arg = Parser::Argument.new("value", var_type)
+
+        klass.methods << default_constructor_method(klass)
+        klass.methods << size_method(container, klass.name)
+
+        klass.methods << Parser::Method.build(
+          name: container.count_method,
+          class_name: klass.name,
+          arguments: [value_arg],
+          return_type: Parser::Type.builtin_type(CPP_INTEGER_TYPE),
+          crystal_name: "unsafe_count", # Used by `SetContainer#includes?`
+        )
+
+        klass.methods << Parser::Method.build(
+          name: container.push_method,
+          class_name: klass.name,
+          arguments: [value_arg],
+          return_type: Parser::Type::VOID,
+          crystal_name: "unsafe_insert", # Used by `SetContainer#add`
+        )
+
+        klass.methods << Parser::Method.build(
+          name: container.erase_method,
+          class_name: klass.name,
+          arguments: [value_arg],
+          return_type: Parser::Type::VOID,
+          crystal_name: "unsafe_erase", # Used by `SetContainer#delete`
+        )
+
+        klass
+      end
+
+      # Builds the class of the `BindgenSetElements` of the set container
+      # *klass*, whose instantiated type is *templ_type*.
+      private def build_elements_class(klass, templ_type : Parser::Type) : Parser::Class
+        var_type = templ_type.template_arguments.first
+        elements = Parser::Class.new(name: "#{klass.name}_Elements")
+        set_type = Parser::Type.parse("const #{templ_type.full_name} &")
+        index_arg = Parser::Argument.new("index", Parser::Type.builtin_type(CPP_INTEGER_TYPE))
+
+        elements.methods << Parser::Method.build(
+          type: Parser::Method::Type::Constructor,
+          class_name: elements.name,
+          name: "",
+          return_type: elements.as_type,
+          arguments: [Parser::Argument.new("set", set_type)],
+        )
+
+        elements.methods << size_method_named("size", elements.name)
+
+        elements.methods << Parser::Method.build(
+          name: "at",
+          class_name: elements.name,
+          arguments: [index_arg],
+          return_type: var_type.never_nil,
+          crystal_name: "unsafe_at",
+        )
+
+        elements
       end
 
       # Builds a full `Parser::Class` for the pair *container* in the specified

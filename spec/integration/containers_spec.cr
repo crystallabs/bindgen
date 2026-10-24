@@ -11,6 +11,66 @@ describe "container instantiation feature" do
         end
       end
 
+      context "set container" do
+        it "wraps a result" do
+          evens = Test::Containers.new.evens(5)
+          evens.size.should eq(5)
+          evens.to_a.sort.should eq([0, 2, 4, 6, 8])
+          evens.includes?(4).should be_true
+          evens.includes?(3).should be_false
+          evens.empty?.should be_false
+          evens.is_a?(Enumerable(Int32)).should be_true
+
+          names = Test::Containers.new.names
+          names.to_a.sort.should eq(["a", "b", "c"])
+          names.includes?("b").should be_true
+        end
+
+        it "changes the container" do
+          evens = Test::Containers.new.evens(3)
+          (evens << 10).should be(evens)
+          evens.add(10) # Already there
+          evens.delete(2).should be_true
+          evens.delete(2).should be_false
+          evens.to_a.sort.should eq([0, 4, 10])
+          evens.to_set.should eq(Set{0, 4, 10})
+        end
+
+        it "allows changing the container while iterating" do
+          evens = Test::Containers.new.evens(3)
+          seen = [] of Int32
+          evens.each do |value|
+            evens << value + 1      # Not yielded
+            evens.delete(value + 2) # Still yielded
+            seen << value
+          end
+          seen.sort.should eq([0, 2, 4])
+        end
+
+        it "takes any Enumerable as argument" do
+          Test::Containers.new.sum_set([1, 2, 3, 3]).should eq(6)
+          Test::Containers.new.sum_set(Set{4, 5}).should eq(9)
+          Test::Containers.new.sum_set(Test::Containers.new.evens(3)).should eq(6)
+        end
+
+        it "builds a container directly" do
+          set = Test::Std::Set.of(Int32).from([1, 1, 2])
+          set.size.should eq(2)
+          set.to_a.sort.should eq([1, 2])
+          Test::Std::Set.of(Int32).from(set).should be(set)
+        end
+
+        it "works with configured method names" do
+          primes = Test::QtStyle.new.primes
+          primes.to_a.sort.should eq([2, 3, 5])
+          primes.includes?(3).should be_true
+          primes.delete(3).should be_true
+          primes.includes?(3).should be_false
+          primes << 7
+          primes.to_a.sort.should eq([2, 5, 7])
+        end
+      end
+
       context "optional" do
         it "converts to and from a nilable" do
           subject = Test::Containers.new

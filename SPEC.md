@@ -1057,7 +1057,27 @@ def display_font : Font? end
 def value_or(value : Int32?, fallback : Int32) : Int32 end
 ```
 
-### §2.6.4 Class template instantiations
+### §2.6.4 Sets
+
+A set, like `std::set<T>` or `QSet<T>`, is wrapped as an `Enumerable(T)`
+with `#includes?`, `#add`/`#<<`, `#delete`, `#concat`, `#size` and `#empty?`,
+a subset of `Set`, when listed in `containers` with the type `Set`.  A method
+taking a set accepts any `Enumerable` of the element type, as for a
+sequential container, and `Set.of(T).from(values)` builds one directly.
+There is no index access: `#each` copies the elements into a
+`BindgenSetElements` first, like §2.6.2's iteration, so changing the set
+during it is safe.  The container's `insert`, `count` and `erase` methods are
+named by `push_method`, `count_method` and `erase_method`: `contains` and
+`remove` for a `QSet`.
+
+```crystal
+tags = item.tags           # A QSet<QString>, an Enumerable(String)
+tags.includes?("new")      # => true
+tags << "seen"
+item.tags = ["a", "b"]     # Any Enumerable
+```
+
+### §2.6.5 Class template instantiations
 
 An instantiation of a class template listed in `classes:` is wrapped like any
 other class, with the template arguments substituted.  It's known by the

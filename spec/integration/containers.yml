@@ -46,6 +46,14 @@ containers:
     type: Optional
   - class: std::__1::optional
     type: Optional
+  - class: std::set
+    type: Set
+  - class: std::__1::set
+    type: Set
+  - class: QtStyleSet
+    type: Set
+    count_method: contains
+    erase_method: remove
   - class: QtStyleMap
     type: Associative
     count_method: contains

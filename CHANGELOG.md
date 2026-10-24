@@ -6,6 +6,13 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Added
 
+* `Set` container kind (SPEC.md §2.6.4): `std::set<T>` and `QSet<T>` are
+  wrapped as an `Enumerable(T)` with `#includes?`, `#add`/`#<<`, `#delete`,
+  `#concat`, `#size` and `#empty?`, taking any `Enumerable` as argument and
+  built by `Set.of(T).from(values)`.  `#each` copies the elements into a
+  `BindgenSetElements` first.  `push_method` defaults to `insert`;
+  `count_method` and `erase_method` name `contains` and `remove` for a
+  `QSet`.
 * `std::function<R (Args...)>` arguments, also through a typedef like
   `QTextDocument::ResourceProvider`, are taken as a block, or a `Proc` when
   not last or in a setter (SPEC.md §2.2.6).  The clang tool describes a function type

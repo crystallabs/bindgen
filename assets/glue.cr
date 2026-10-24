@@ -533,6 +533,85 @@ module BindgenHelper
     end
   end
 
+  # Wrapper for an instantiated set type, like `std::set` or `QSet`.
+  #
+  # An `Enumerable` of the elements with `#includes?`, `#<<` and `#delete`, a
+  # subset of `Set`.  Like a sequential container, it's meant for data
+  # transmission between the C++ and Crystal worlds, not for storage.
+  module SetContainer(T)
+    include Enumerable(T)
+
+    # `#size`, `#unsafe_count`, `#unsafe_insert` and `#unsafe_erase` will be
+    # implemented by the wrapper class.  The wrapper class also has an
+    # `Elements` class.
+
+    # Returns if *value* is an element.
+    def includes?(value : T) : Bool
+      unsafe_count(value) > 0
+    end
+
+    # Adds *value*.
+    def add(value : T) : self
+      unsafe_insert(value)
+      self
+    end
+
+    # :ditto:
+    def <<(value : T) : self
+      add(value)
+    end
+
+    # Adds all *values*.
+    def concat(values : Enumerable(T)) : self
+      values.each { |value| add(value) }
+      self
+    end
+
+    # Removes *value*, returning if it was an element.
+    def delete(value : T) : Bool
+      return false unless includes?(value)
+
+      unsafe_erase(value)
+      true
+    end
+
+    def empty? : Bool
+      size == 0
+    end
+
+    # Yields each element.  The elements are copied beforehand.
+    def each(& : T ->) : Nil
+      elements = {{ "#{@type}::Elements".id }}.new(self)
+      elements.size.times do |i|
+        yield elements.unsafe_at(i)
+      end
+    end
+
+    def to_s(io)
+      to_set.to_s(io)
+    end
+
+    def inspect(io)
+      io << "<Wrapped "
+      to_set.inspect(io)
+      io << ">"
+    end
+
+    # Note: Crystal has no dependent types, so this module must refer to its own
+    # type parameter `T`.
+    private module ClassMethods(T)
+      # Wraps the *values* into a container of this type, if it's not already
+      # one.
+      def from(values : Enumerable(T)) : self
+        BindgenHelper.wrap_container(self, values)
+      end
+    end
+
+    macro included
+      extend ClassMethods(T)
+    end
+  end
+
   # Wrapper for an instantiated pair type, like `std::pair` or `QPair`.
   #
   # Pairs convert to and from a `Tuple` of the two values, so wrapped methods
