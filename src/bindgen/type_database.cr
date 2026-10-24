@@ -297,7 +297,7 @@ module Bindgen
       property out_arguments = {} of MethodPattern => Bool | Array(Int32)
 
       # The `out_arguments` entry for the *method*, if any: the first matching.
-      def out_arguments_for(method : Parser::Method) : Bool | Array(Int32) | Nil
+      def out_arguments_for(method : Parser::Method) : Bool | Array(Int32)?
         @out_arguments.each { |pattern, value| return value if pattern.matches?(method) }
         nil
       end
@@ -789,7 +789,7 @@ module Bindgen
     # its class, or of the nearest base class with one, see
     # `TypeConfig#out_arguments_for`, so an override is wrapped like the method
     # it overrides.  `nil` without an entry.
-    def out_arguments_rule(method : Parser::Method) : Bool | Array(Int32) | Nil
+    def out_arguments_rule(method : Parser::Method) : Bool | Array(Int32)?
       seen = Set(String).new
       pending = [method.class_name]
 
@@ -821,7 +821,7 @@ module Bindgen
     # `out_arguments` entry says so, see `Parser::Method#out_arguments`.  A
     # reference to one, like `char &`, is a value.
     def buffer_argument?(type : Parser::Type) : Bool
-      return false unless type.pointer == 1 && !type.reference?
+      return false if type.pointer != 1 || type.reference?
       return true if type.void? || BUFFER_BASE_TYPES.includes?(type.base_name)
 
       try_or(type, false) { |rules| BYTE_BINDING_TYPES.includes?(rules.binding_type.to_s) }

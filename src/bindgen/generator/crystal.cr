@@ -257,7 +257,9 @@ module Bindgen
         suffix = "< #{klass.base_class}" if klass.base_class
         isstruct = @db.try_or(klass.origin.name, false, &.kind.struct?)
 
-        puts "@[BindgenWrapper]" # See the glue.  Before the doc comment, which precedes the class
+        # See the glue.  Before the doc comment, which precedes the class.  The
+        # argument is the C++ name, for the Qt meta-object macros.
+        puts "@[BindgenWrapper(#{klass.origin.name.inspect})]"
         write_doc klass.origin.doc
         code_block scope, prefix, isstruct ? "struct" : "class", klass.name, suffix do
           write_included_modules(klass.included_modules)

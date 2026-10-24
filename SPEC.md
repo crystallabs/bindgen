@@ -1436,3 +1436,67 @@ by `member_functions: [qHash]`, gets `#hash(hasher)` forwarding to it, so its
 instances are `Hash` keys and `Set` elements, equal by `operator==`.  A class
 with a `toString()` method taking no mandatory argument gets `#to_s(io)`
 writing it, and `#inspect(io)` writing `#<Qt::Date 2024-01-15>`.
+
+### §Q.4 Signals, slots and properties of Crystal subclasses
+
+With the `qt_meta_object` processor, a Crystal subclass of a class deriving
+from `QObject` declares signals, slots and properties, and gets a
+`QMetaObject` of its own describing them, with the C++ class's as its super
+class, so Qt treats them like those of a C++ class: `connect` by name,
+`QMetaObject::invokeMethod`, `QObject::property` and `setProperty`, and the
+reflection through `QMetaObject`, `QMetaMethod` and `QMetaProperty` see them.
+
+```crystal
+class Counter < Qt::Object
+  signal value_changed(value : Int32)
+  signal renamed(name : String, by : Qt::Object?)
+
+  @[Qt::Slot]
+  def increment : Nil
+    @value += 1
+    value_changed(@value)   # Emits
+  end
+
+  @[Qt::Slot]
+  def add(a : Int32, b : String) : Int32
+    a + b.size
+  end
+
+  qt_property value : Int32, write: :set_value, notify: :value_changed
+  qt_property label : String # Read-only, by `#label`
+end
+
+counter.on_value_changed { |value| }                             # §Q.1
+Qt::Object.connect(counter, "2valueChanged(int)", label, "1setNum(int)")
+Qt::MetaObject.invoke_method(counter, "increment")
+counter.property("value")                                       # A QVariant
+```
+
+`signal name(arg : Type, ...)` defines the emission method `name(args)`, which
+calls `QMetaObject::activate`, and the connection method `on_name`, taking
+the `Qt::ConnectionType` like the connection methods of §Q.1 and returning the
+connection object.  A `@[Qt::Slot]` method is a slot; its arguments and its
+result, if any, need type restrictions.  `qt_property name : Type` declares a
+property read by the method `name`, or the one `read:` names, written by the
+method `write:` names, if any, and notified by the signal `notify:` names, if
+any.  The C++ names are the camel-cased Crystal names: `value_changed` is
+`valueChanged(int)`, `set_value` is `setValue(int)`.
+
+The types of the arguments, results and properties are the built-in numbers
+(`int`, `uint`, `qlonglong`, `qulonglong`, `short`, `ushort`, `signed char`,
+`uchar`, `double`, `float`), `Bool`, `String` (`QString`), `Bytes`
+(`QByteArray`), `Nil` as a result (`void`), and the wrapper classes: a
+subclass of the `QObject` wrapper as a pointer, `QWidget *`, which may be
+nilable, and a `kind: Struct` wrapper by value.  The C++ name is the argument
+of the class's `BindgenWrapper` annotation.  Other wrapper classes, enums and
+containers aren't supported.
+
+The meta-object of a class is built once, on the first construction of an
+instance, from the methods the macros annotated (`Qt::Signal`, `Qt::Slot`,
+`Qt::Property`), by the `finished` macro the `QObject` wrapper's `inherited`
+macro installs in every subclass.  A Crystal class deriving from another
+Crystal class with meta members gets a meta-object chained to the parent's,
+like C++ classes, with the method and property indices following the
+parent's.  Slots and property accessors are called through the Crystal
+object the C++ object looks up, like the overrides of §2.3.4, in
+`BindgenHelper.rescued`.

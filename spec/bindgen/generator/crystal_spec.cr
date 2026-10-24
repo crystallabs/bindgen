@@ -36,14 +36,14 @@ describe Bindgen::Generator::Crystal do
       generate(root).should eq <<-CRYSTAL
         module Test
           module N
-            @[BindgenWrapper]
+            @[BindgenWrapper("A")]
             class A
             end
-            @[BindgenWrapper]
+            @[BindgenWrapper("C")]
             class C
             end
           end
-          @[BindgenWrapper]
+          @[BindgenWrapper("B")]
           class B < N::A
           end
         end
@@ -60,16 +60,16 @@ describe Bindgen::Generator::Crystal do
 
       generate(root).should eq <<-CRYSTAL
         module Test
-          @[BindgenWrapper]
+          @[BindgenWrapper("A")]
           class A
           end
-          @[BindgenWrapper]
+          @[BindgenWrapper("B")]
           class B < A
           end
-          @[BindgenWrapper]
+          @[BindgenWrapper("C")]
           class C < B
           end
-          @[BindgenWrapper]
+          @[BindgenWrapper("D")]
           class D
           end
         end
@@ -92,33 +92,33 @@ describe Bindgen::Generator::Crystal do
       generate(root).should eq <<-CRYSTAL
         module Test
           module N
-            @[BindgenWrapper]
+            @[BindgenWrapper("A")]
             class A
             end
             module M
             end
           end
-          @[BindgenWrapper]
+          @[BindgenWrapper("Outer")]
           class Outer
           end
-          @[BindgenWrapper]
+          @[BindgenWrapper("B")]
           class B < N::A
           end
           module N
-            @[BindgenWrapper]
+            @[BindgenWrapper("C")]
             class C < B
             end
             module M
-              @[BindgenWrapper]
+              @[BindgenWrapper("D")]
               class D < C
               end
             end
           end
-          @[BindgenWrapper]
+          @[BindgenWrapper("Later")]
           class Later < Outer
           end
           class Outer
-            @[BindgenWrapper]
+            @[BindgenWrapper("Inner")]
             class Inner < Later
             end
           end

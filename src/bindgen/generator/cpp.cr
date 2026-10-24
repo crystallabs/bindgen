@@ -76,7 +76,8 @@ module Bindgen
           end
 
           structure.fields.each do |name, type|
-            puts "#{type.type_name} #{name};"
+            default = structure.field_defaults[name]?
+            puts "#{type.type_name} #{name}#{" = #{default}" if default};"
           end
 
           super # Implement methods, if any

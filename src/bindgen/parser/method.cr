@@ -64,6 +64,13 @@ module Bindgen
       @[JSON::Field(key: "isVirtual")]
       getter? virtual : Bool
 
+      # Makes the method non-virtual for the wrappers, so a Crystal subclass
+      # can't override it, and the C++ subclass of `Processor::VirtualOverride`
+      # gets no forwarder for it: the `Qt` processor does this to the methods
+      # `Q_OBJECT` declares, which `Processor::QtMetaObject` overrides itself.
+      def virtual=(@virtual : Bool)
+      end
+
       # Is this a pure virtual function?
       @[JSON::Field(key: "isPure")]
       getter? pure : Bool

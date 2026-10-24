@@ -170,7 +170,7 @@ The following rules are automatically applied to all bindings:
 | Qt integration                                   |         |
 |  +- QObject signals                              | **YES** |
 |  +- QFlags types                                 | **YES** |
-|  +- QMetaObject generation (mimic `moc`)         |   TBD   |
+|  +- QMetaObject generation for Crystal subclasses |  **YES** |
 | `#define` macro support                          |         |
 |  +- Mapping as enumeration                       | **YES** |
 |  +- Mapping as constant (Including strings)      | **YES** |
@@ -1044,6 +1044,21 @@ Apart from that extra logic, the configuration file is still valid YAML.
 *mappings* (data structures equivalent to `Hash`es in Crystal).
 Any such syntax encountered in something other than a *mapping* will not
 trigger special behaviour.
+
+## `QtMetaObject`
+
+* **Kind**: Generation
+* **Run after**: `VirtualOverride`, and `Qt`
+* **Run before**: `CppWrapper` and `CrystalBinding`
+
+Gives a Crystal subclass of a `QObject` class a `QMetaObject` of its own, for
+the signals, slots and properties it declares with the `signal`, `@[Qt::Slot]`
+and `qt_property` macros, see SPEC.md §Q.4.  The C++ subclass of
+`VirtualOverride` gets a `bgMeta` pointer and overrides of `metaObject`,
+`qt_metacast` and `qt_metacall`, and the constructors a hook setting it.  The
+glue must include `assets/bindgen_qt_meta.hpp`, copied next to
+`bindgen_helper.hpp`, which builds the tables at runtime in the layout moc
+writes for Qt 5.12+ and Qt 6.2+.
 
 ## Conditions
 

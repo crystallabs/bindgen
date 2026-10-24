@@ -202,9 +202,9 @@ processors:
 
 `TEMPLATE.yml` adds `block_overloads` after `crystal_wrapper`, which is
 recommended but not in the default.  Further processors are
-`auto_container_instantiation` (before `instantiate_containers`), `qt` and
-`dump_graph`.  See [Processors](README.md#processors) for all of them and the
-order they need.
+`auto_container_instantiation` (before `instantiate_containers`), `qt`,
+`qt_meta_object` (after `virtual_override`) and `dump_graph`.  See
+[Processors](README.md#processors) for all of them and the order they need.
 
 ## `generators`
 

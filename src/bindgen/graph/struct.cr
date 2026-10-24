@@ -15,6 +15,10 @@ module Bindgen
       # Non-static fields in this structure.
       getter fields : Hash(String, Call::Result)
 
+      # Default member initializers of `fields`, by name, as C++ expressions:
+      # `nullptr`.  Only `Generator::Cpp` writes them.
+      getter field_defaults = {} of String => String
+
       # Name of the base-class, if any.  This is mainly useful for C++ to
       # generate the jump-table.
       property base_class : String?

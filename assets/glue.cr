@@ -91,7 +91,9 @@ end
 # dispatch ran the overrides of the subclass already, and calls the C++
 # implementation of a virtual method through `#superclass`, so `super` works.
 # Also marks these methods themselves: the compiler copies them into the
-# subclasses, and the constructors must not take a copy for an override.
+# subclasses, and the constructors must not take a copy for an override.  On a
+# class, its argument is the C++ name of the wrapped class, `"QWidget"`, which
+# the Qt meta-object macros need for the types of signals and properties.
 annotation BindgenWrapper
 end
 

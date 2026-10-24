@@ -121,6 +121,19 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   setters, signals and operators keep dropping such arguments.  See SPEC.md
   §2.2.5.
 
+* `qt_meta_object` processor (SPEC.md §Q.4): a Crystal subclass of a
+  `QObject` class declares signals, slots and properties with the `signal`,
+  `@[Qt::Slot]` and `qt_property` macros of the `QObject` wrapper class, and
+  gets a `QMetaObject` describing them, so `connect` by name,
+  `QMetaObject::invokeMethod`, `QObject::property` and the reflection see
+  them, and QML could.  The tables are built at runtime by
+  `assets/bindgen_qt_meta.hpp`, to copy next to `bindgen_helper.hpp` and
+  include from the glue, in the layout moc writes for Qt 5.12+ and Qt 6.2+;
+  `BgInherit_X` gets a `bgMeta` pointer and overrides of `metaObject`,
+  `qt_metacast` and `qt_metacall`.  The `Qt` processor makes those three
+  non-virtual for the wrappers, so they leave the jump tables.  The
+  `BindgenWrapper` annotation of a wrapper class names the C++ class:
+  `@[BindgenWrapper("QWidget")]`.
 * `builtin_out_arguments:` option: a non-const reference or pointer to a
   built-in type or an enum a method writes through, like `bool *ok` or
   `int &`, is an out argument in every method, returned with the result:
