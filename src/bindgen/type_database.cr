@@ -42,14 +42,24 @@ module Bindgen
       @signature : String?
       @regex : Regex?
 
+      # The name of the call operator, whose parentheses don't open a
+      # parameter list: `operator()` is a name, `operator()(int)` a signature.
+      CALL_OPERATOR = "operator()"
+
       def initialize(@source : String)
         if @source.size > 1 && @source.starts_with?('/') && @source.ends_with?('/')
           @regex = Regex.new(@source[1...-1])
-        elsif @source.includes?('(')
+        elsif MethodPattern.parameter_list_index(@source)
           @signature = MethodPattern.normalize(@source)
         else
           @name = @source
         end
+      end
+
+      # The index of the `(` opening the parameter list of *source*, or `nil`
+      # for a plain name.
+      def self.parameter_list_index(source : String) : Int32?
+        source.index('(', source.starts_with?(CALL_OPERATOR) ? CALL_OPERATOR.size : 0)
       end
 
       def self.new(ctx : YAML::ParseContext, node : YAML::Nodes::Node)
@@ -71,7 +81,10 @@ module Bindgen
       # before a run of `*` and `&`, none around parentheses, `, ` between the
       # arguments and ` const` after them.
       def self.normalize(signature : String) : String
-        name, _, arguments = signature.strip.partition('(')
+        signature = signature.strip
+        paren = parameter_list_index(signature) || signature.size
+        name = signature[0, paren]
+        arguments = signature[(paren + 1)..]
         arguments = arguments
           .gsub(/\s+/, " ")
           .gsub(/\s*([*&])\s*/, "\\1")

@@ -257,6 +257,7 @@ describe Bindgen::TypeDatabase::MethodPattern do
       norm.call("f( int * , int**& )const").should eq("f(int *, int **&) const")
       norm.call("operator*(const QVector3D &, const QMatrix4x4 &)").should eq("operator*(const QVector3D &, const QMatrix4x4 &)")
       norm.call("f()").should eq("f()")
+      norm.call("operator()(int,int) const").should eq("operator()(int, int) const")
     end
   end
 
@@ -266,6 +267,14 @@ describe Bindgen::TypeDatabase::MethodPattern do
       pattern.matches?(build_method("f", [int])).should be_true
       pattern.matches?(build_method("f", [int, ptr])).should be_true
       pattern.matches?(build_method("g", [int])).should be_false
+    end
+
+    it "matches the call operator by name or signature" do
+      Bindgen::TypeDatabase::MethodPattern.new("operator()").matches?(build_method("operator()", [int])).should be_true
+      Bindgen::TypeDatabase::MethodPattern.new("operator()").matches?(build_method("operator()", [] of Bindgen::Parser::Type)).should be_true
+      pattern = Bindgen::TypeDatabase::MethodPattern.new("operator()(int)")
+      pattern.matches?(build_method("operator()", [int])).should be_true
+      pattern.matches?(build_method("operator()", [int, int])).should be_false
     end
 
     it "matches one overload by signature" do
