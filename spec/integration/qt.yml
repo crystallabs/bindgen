@@ -26,6 +26,8 @@ classes:
   Label: Label
   QGraphicsItem: QGraphicsItem
   Unowned: Unowned
+  Tree: Tree
+  TreeItem: TreeItem
 
 enums:
   "Qt::ConnectionType": ConnectionType
@@ -33,6 +35,8 @@ enums:
 types:
   SomeObject:
     ignore_methods: [ignoredSignal]
+  TreeItem:
+    parent_arguments: [parent, tree]
   "QMetaObject::Connection":
     crystal_type: SignalConnection
     cpp_type: "QMetaObject::Connection"

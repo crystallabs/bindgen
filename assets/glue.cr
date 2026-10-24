@@ -73,8 +73,8 @@ lib Binding
   fun bindgen_add_destroyed_hook(hook : Void* -> Void) : Void
 
   # The key of a wrapped object in `BindgenHelper`'s table of kept objects:
-  # the start of its GC allocation, or the pointer itself off the GC heap.
-  # Defined in `bindgen_helper.hpp`.
+  # the start of its GC allocation, or null for an object C++ created.  Defined
+  # in `bindgen_helper.hpp`.
   fun bindgen_kept_key(object : Void*) : Void*
 
   ########## IF CPP ##########
@@ -235,10 +235,20 @@ module BindgenHelper
     {% end %}
   end
 
-  # Objects kept alive by `.keep_alive`, by the key of their C++ object, see
-  # `.kept_key`.  Getters return a new wrapper each time, so any wrapper of the
-  # C++ object finds it.  The GC scans the pointers stored in the hash.
-  @@kept_alive = {} of UInt64 => Void*
+  # Why an object is kept alive: passed to `.keep_alive`, given an owner by
+  # `.owned_by`, or both.  It's collectable again once neither holds: `.release`
+  # ends both, `.owned_by` with `nil` the owner's only.
+  @[Flags]
+  enum KeptBy
+    KeepAlive
+    Owner
+  end
+
+  # Objects kept alive, by the key of their C++ object, see `.kept_key`: the
+  # wrapper, and why it's kept.  Getters return a new wrapper each time, so any
+  # wrapper of the C++ object finds it.  The GC scans the pointers stored in
+  # the hash.
+  @@kept_alive = {} of UInt64 => {Void*, KeptBy}
 
   # Guards `@@kept_alive`.  Reentrant, as a GC finalizer may run C++ code
   # releasing an object while this fiber changes `@@kept_alive`.
@@ -248,18 +258,24 @@ module BindgenHelper
   # `@@pending_releases` and done afterwards.
   @@kept_alive_busy = false
 
-  # The addresses to release once `@@kept_alive` is free again.  In memory of
+  # A release queued while `@@kept_alive` was busy: the key, and the reasons to
+  # drop.
+  record PendingRelease, address : UInt64, by : KeptBy
+
+  # The releases to do once `@@kept_alive` is free again.  In memory of
   # `malloc`, which the GC doesn't manage: a release may run in a GC finalizer,
   # and queueing it must not run more finalizers.  Grown as needed.
-  @@pending_releases = Pointer(UInt64).null
+  @@pending_releases = Pointer(PendingRelease).null
   @@pending_release_capacity = 0
   @@pending_release_count = 0
 
   # The key of the C++ object at *pointer* in `@@kept_alive`: the start of its
   # GC allocation with C++ glue, so a wrapper of a secondary base of the object,
   # like `widget.as_paint_device`, and the hook of its destruction find the
-  # entry of the object; the address itself for an object off the GC heap, or
-  # without C++ glue.
+  # entry of the object.  `0` for an object C++ created, which Crystal only
+  # wraps, off the GC heap or allocated uncollectable by the `operator new` of
+  # libgccpp: it isn't kept, as its wrapper keeps nothing C++ uses, and nothing
+  # would release it when C++ deletes it.  Without C++ glue the address itself.
   private def self.kept_key(pointer : Pointer) : UInt64
     ########## IF CPP ##########
     pointer = Binding.bindgen_kept_key(pointer.as(Void*))
@@ -274,7 +290,8 @@ module BindgenHelper
     yield
     while @@pending_release_count > 0
       @@pending_release_count -= 1
-      @@kept_alive.delete(@@pending_releases[@@pending_release_count])
+      pending = @@pending_releases[@@pending_release_count]
+      drop_reasons(pending.address, pending.by)
     end
   ensure
     @@kept_alive_busy = false
@@ -282,31 +299,74 @@ module BindgenHelper
 
   # Queues the release of *address* until `@@kept_alive` is free again.  Call
   # with `@@kept_alive_mutex` locked.
-  private def self.queue_release(address : UInt64) : Nil
+  private def self.queue_release(address : UInt64, by : KeptBy) : Nil
     if @@pending_release_count == @@pending_release_capacity
       capacity = Math.max(64, @@pending_release_capacity * 2)
-      buffer = LibC.realloc(@@pending_releases.as(Void*), LibC::SizeT.new(capacity * sizeof(UInt64)))
+      buffer = LibC.realloc(@@pending_releases.as(Void*), LibC::SizeT.new(capacity * sizeof(PendingRelease)))
       return if buffer.null? # Out of memory: the object stays kept alive, which is safe
-      @@pending_releases = buffer.as(UInt64*)
+      @@pending_releases = buffer.as(PendingRelease*)
       @@pending_release_capacity = capacity
     end
-    @@pending_releases[@@pending_release_count] = address
+    @@pending_releases[@@pending_release_count] = PendingRelease.new(address, by)
     @@pending_release_count += 1
+  end
+
+  # Keeps *object* alive for the reason *by*, adding it to the reasons it's
+  # kept for.  An object C++ created isn't kept, see `.kept_key`.  If its
+  # C++ object is kept alive already, the wrapper kept first stays.
+  private def self.add_reason(object : Reference, by : KeptBy) : Nil
+    address = kept_key(object.to_unsafe)
+    return if address == 0
+
+    @@kept_alive_mutex.synchronize do
+      change_kept_alive do
+        if entry = @@kept_alive[address]?
+          @@kept_alive[address] = {entry[0], entry[1] | by}
+        else
+          @@kept_alive[address] = {object.as(Void*), by}
+        end
+      end
+    end
+  end
+
+  # Drops the reasons *by* the object with the key *address* is kept for,
+  # letting the GC collect it once none is left.  Call with
+  # `@@kept_alive_mutex` locked and `@@kept_alive` busy.
+  private def self.drop_reasons(address : UInt64, by : KeptBy) : Nil
+    return unless entry = @@kept_alive[address]?
+
+    left = entry[1] & ~by
+    if left.none?
+      @@kept_alive.delete(address)
+    else
+      @@kept_alive[address] = {entry[0], left}
+    end
+  end
+
+  # Drops the reasons *by* the object at *pointer* is kept for, queueing the
+  # release while `@@kept_alive` is busy.
+  private def self.remove_reason(pointer : Pointer, by : KeptBy) : Nil
+    address = kept_key(pointer)
+    return if address == 0
+
+    @@kept_alive_mutex.synchronize do
+      if @@kept_alive_busy
+        queue_release(address, by)
+      else
+        change_kept_alive { drop_reasons(address, by) }
+      end
+    end
   end
 
   # Keeps *object* alive until it's passed to `.release`, or C++ deletes it, if
   # it was constructed from Crystal.  Wrapper methods call this on arguments of
   # methods configured in `keep_alive:`, as C++ keeps a pointer to them in
   # memory the GC doesn't scan.  The wrapper references the C++ object, so
-  # neither is collected.  If its C++ object is kept alive already, the wrapper
-  # kept first stays.  Returns *object*.
+  # neither is collected.  An object C++ created, which Crystal only wraps,
+  # isn't kept: its wrapper keeps nothing C++ uses.  If its C++ object is kept
+  # alive already, the wrapper kept first stays.  Returns *object*.
   def self.keep_alive(object : Reference)
-    address = kept_key(object.to_unsafe)
-    @@kept_alive_mutex.synchronize do
-      change_kept_alive do
-        @@kept_alive[address] = object.as(Void*) unless @@kept_alive.has_key?(address)
-      end
-    end
+    add_reason(object, :keep_alive)
     object
   end
 
@@ -314,13 +374,32 @@ module BindgenHelper
   def self.keep_alive(nothing : Nil) : Nil
   end
 
-  # Lets the GC collect *object* again, once it's no longer referenced.  Call
-  # this when C++ no longer uses the object passed to `.keep_alive`, but didn't
-  # delete it, or deleted an object it created itself: C++ deleting an object
-  # constructed from Crystal releases it.  Any wrapper of the same C++ object
-  # releases it.  Returns *object*.
+  # Keeps *object* alive while it has an *owner*, which deletes it, like a Qt
+  # parent: the `Qt` processor calls this from the constructors and setters
+  # giving an object a parent.  Given no owner, `nil`, the object is collectable
+  # again, unless `.keep_alive` keeps it, like a model set on a view: having an
+  # owner is a reason of its own, and a new owner replaces the former.  `.release`
+  # and C++ deleting the object end both.  Returns *object*.
+  def self.owned_by(object : Reference, owner : Reference)
+    add_reason(object, :owner)
+    object
+  end
+
+  # `Nil` owner: Lets the GC collect *object* again, unless `.keep_alive` keeps
+  # it.  Returns *object*.
+  def self.owned_by(object : Reference, owner : Nil)
+    remove_reason(object.to_unsafe, :owner)
+    object
+  end
+
+  # Lets the GC collect *object* again, once it's no longer referenced, also if
+  # it was given an owner by `.owned_by`: a method handing an object back, like
+  # `QTreeWidget::takeTopLevelItem`, ends its ownership.  Call this when C++ no
+  # longer uses the object passed to `.keep_alive`, but didn't delete it: C++
+  # deleting an object constructed from Crystal releases it.  Any wrapper of the
+  # same C++ object releases it.  Returns *object*.
   def self.release(object : Reference)
-    release(object.to_unsafe)
+    remove_reason(object.to_unsafe, :all)
     object
   end
 
@@ -332,18 +411,11 @@ module BindgenHelper
   # which only has the pointer: C++ calls this as it destroys a wrapped object,
   # which may happen in a GC finalizer.
   def self.release(pointer : Pointer) : Nil
-    address = kept_key(pointer)
-    @@kept_alive_mutex.synchronize do
-      if @@kept_alive_busy
-        queue_release(address)
-      else
-        change_kept_alive { @@kept_alive.delete(address) }
-      end
-    end
+    remove_reason(pointer, :all)
   end
 
   # Returns if *object*, or another wrapper of its C++ object, is kept alive by
-  # `.keep_alive`.
+  # `.keep_alive` or `.owned_by`.
   def self.kept_alive?(object : Reference) : Bool
     @@kept_alive_mutex.synchronize { @@kept_alive.has_key?(kept_key(object.to_unsafe)) }
   end

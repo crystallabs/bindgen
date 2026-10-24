@@ -444,18 +444,20 @@ objects passed by pointer or reference, to `BindgenHelper.keep_alive`.  It
 stores the wrapper, which refers to the C++ object, until it's passed to
 `BindgenHelper.release`.  `BindgenHelper` is part of the generated module.
 
-Objects are kept by the GC allocation of their C++ object (its address off the
-GC heap), as getters return a new wrapper each time: any wrapper of it, also
-of a secondary base like `widget.as_paint_device`, or its pointer, releases
-it.  An object
+Objects are kept by the GC allocation of their C++ object, as getters return a
+new wrapper each time: any wrapper of it, also of a secondary base like
+`widget.as_paint_device`, or its pointer, releases it.  An object C++ created,
+which Crystal only wraps, isn't kept at all: its wrapper keeps nothing C++ uses,
+and nothing would release it when C++ deletes it.  It's told by its memory:
+off the GC heap, or allocated uncollectable by the `operator new` of libgccpp,
+which the GC never frees.  An object
 constructed from Crystal is released as C++ deletes it, like a Qt parent
 deletes its children, see [Objects destroyed by C++](#objects-destroyed-by-c).
 So `.release` is for an object C++ stops using without deleting it, like a
-widget taken out of a layout, and for an object C++ created, which Crystal only
-wraps.  Configure the methods handing an object back in `release:`, the
-counterpart of `keep_alive:`: their wrappers release the selected arguments,
-and the result when all arguments are selected.  The rules of a class apply to
-the methods of its subclasses too: an override of
+widget taken out of a layout.  Configure the methods handing an object back in
+`release:`, the counterpart of `keep_alive:`: their wrappers release the
+selected arguments, and the result when all arguments are selected.  The rules
+of a class apply to the methods of its subclasses too: an override of
 `QAbstractItemView::setModel` in `QTreeView` keeps its model like the base's
 does.  A pattern matching no method of the class is warned about, so a typo,
 or a method `ignore_methods` drops, isn't silent.
@@ -488,14 +490,26 @@ which the GC doesn't scan: `Qt::Label.new("Ready", window)` would be collected,
 and taken out of the window, once Crystal drops it.  The [`Qt`](#qt) processor
 keeps such an object alive itself, without configuration: constructors given a
 `parent`, and `#parent=`, `#parent_item=` and `#parent_layout_item=` given an
-object, keep `self` alive, and given `nil` the setters release it again.  As
-the parent deletes its children, which releases them, nothing leaks.  A child
-whose Crystal object refers to its parent, like in an instance variable, keeps
-the parent alive too, until either is deleted.
+object, pass `self` and the parent to `BindgenHelper.owned_by`, which keeps
+`self` alive, and given `nil` lets it go again.  As the parent deletes its
+children, which releases them, nothing leaks.  A child whose Crystal object
+refers to its parent, like in an instance variable, keeps the parent alive too,
+until either is deleted.  Classes owned by a parent which aren't `QObject`s,
+`QGraphicsItem`s or `QGraphicsLayoutItem`s name the constructor arguments
+giving the parent in `parent_arguments:`, like `QTreeWidgetItem`'s `parent`
+and `treeview`.
+
+Having a parent and being passed to `.keep_alive` are two reasons to keep an
+object, and it's collectable once neither holds.  `parent = nil` ends the
+parent's only: a model given a parent, then set on a view, stays alive for the
+view, and a graphics item in a scene stays in the scene.  `.release`, by hand
+or by a `release:` rule, ends both, as a method handing an object back, like
+`QTreeWidget::takeTopLevelItem` of an item constructed with the tree, ends its
+ownership as well; so does C++ deleting the object.
 
 ```crystal
 label = Qt::Label.new("Ready", window) # Kept alive, as the window owns it
-label.parent = nil                     # Released: Nothing owns it anymore
+label.parent = nil                     # Let go: Nothing owns it anymore
 ```
 
 ### Objects destroyed before others
@@ -854,17 +868,20 @@ Adds Qt specific behaviour:
 5. Keeps objects given a parent alive, as the parent owns and deletes them, see
    [Objects kept alive for C++](#objects-kept-alive-for-c).  This applies to
    the classes deriving from `QObject`, `QGraphicsItem` or
-   `QGraphicsLayoutItem`, and is hardcoded, not configured by `keep_alive:`:
-   * A constructor with an argument named `parent`, a pointer to a wrapped
-     class, keeps the new object alive if given a parent.
+   `QGraphicsLayoutItem`, and to those naming the arguments giving the parent
+   in `parent_arguments:`, like `QTreeWidgetItem` or `QUndoCommand`; it isn't
+   configured by `keep_alive:`:
+   * A constructor with an argument named `parent`, or by `parent_arguments:`,
+     a pointer to a wrapped class, keeps the new object alive if given a
+     parent.
    * `setParent`, `setParentItem` and `setParentLayoutItem`, taking one
-     pointer to a wrapped class, keep `self` alive if given an object, and
-     release it if given `nil`.  Their argument becomes nilable.
+     pointer to a wrapped class, keep `self` alive if given an object, and let
+     it go if given `nil`.  Their argument becomes nilable.
 
    The processor tags these methods with `OWNED_BY_ARGUMENT_TAG`, and
-   `CrystalWrapper` adds the hook after the wrapped call, as the object is kept
-   by the address of its C++ object.  So it has to run before
-   `CrystalWrapper`.
+   `CrystalWrapper` adds the hook calling `BindgenHelper.owned_by` after the
+   wrapped call, as the object is kept by the address of its C++ object.  So it
+   has to run before `CrystalWrapper`.
 
 ```crystal
 btn = Qt::PushButton.new

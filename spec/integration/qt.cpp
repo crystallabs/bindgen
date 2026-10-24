@@ -23,6 +23,7 @@ namespace Qt {
 }
 
 #include <cstdlib>
+#include <vector>
 
 // Owns its children like Qt's: The parent deletes them as it's destroyed.  The
 // parent and the children refer to each other through memory of `malloc`, which
@@ -76,6 +77,9 @@ struct QObject {
   int callKind() const { return kind(); }
 
   static void deleteObject(QObject *object) { delete object; }
+
+  // Creates an object off the GC heap, like Qt creates the objects it owns.
+  static QObject *newUnmanaged() { return new QObject; }
   static int destroyed() { return destroyed_; }
 
   // Like Qt's functor overload with a context object: records the context and
@@ -145,6 +149,41 @@ struct Unowned {
   Unowned(QObject *parent) { }
   void setParent(QObject *parent) { }
 };
+
+// Like a `QTreeWidgetItem`: Owned by the tree or the parent item given to its
+// constructor, neither of which is a `QObject`.  `parent_arguments:` of the
+// configuration names the arguments.  The owners refer to the items from
+// memory the GC doesn't scan, and delete them as they're destroyed.
+struct TreeItem;
+
+struct Tree {
+  ~Tree();
+  int itemCount() const { return static_cast<int>(items_->size()); }
+
+  std::vector<TreeItem *> *items_ = new std::vector<TreeItem *>;
+};
+
+struct TreeItem {
+  TreeItem() { }
+  TreeItem(Tree *tree) { tree->items_->push_back(this); }
+  TreeItem(Tree *tree, TreeItem *after) { tree->items_->push_back(this); }
+  TreeItem(TreeItem *parent) { parent->children_->push_back(this); }
+  TreeItem(const TreeItem &) = delete;
+  TreeItem &operator=(const TreeItem &) = delete;
+  virtual ~TreeItem() {
+    for (TreeItem *child : *children_) delete child;
+    delete children_;
+  }
+
+  int childCount() const { return static_cast<int>(children_->size()); }
+
+  std::vector<TreeItem *> *children_ = new std::vector<TreeItem *>;
+};
+
+Tree::~Tree() {
+  for (TreeItem *item : *items_) delete item;
+  delete items_;
+}
 
 // Test object conversion at Proc boundaries
 struct Conv {

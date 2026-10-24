@@ -33,13 +33,16 @@ module Bindgen
         /^metaObject$/, /^qt_metacast$/, /^qt_metacall$/)
 
       # Classes whose instances belong to their parent, which deletes them.
+      # `parent_arguments:` of the type rules adds others, like
+      # `QTreeWidgetItem`.
       PARENT_OWNED_CLASSES = {"QObject", "QGraphicsItem", "QGraphicsLayoutItem"}
 
       # Methods giving the object a new parent, or none with `nullptr`.
       SET_PARENT_METHODS = {"setParent", "setParentItem", "setParentLayoutItem"}
 
-      # Name of the constructor argument giving the object a parent.
-      PARENT_ARGUMENT = "parent"
+      # Names of the constructor argument giving the object a parent, in the
+      # `PARENT_OWNED_CLASSES`.
+      PARENT_ARGUMENTS = ["parent"]
 
       # The hash function of a value type, bound as a method by
       # `member_functions: [qHash]`, forwarded to `#hash`.
@@ -80,7 +83,10 @@ module Bindgen
           handle_signal(klass, method)
         end
 
-        mark_parent_owned(klass) if parent_owned?(klass.origin.name)
+        if names = parent_arguments(klass.origin.name)
+          mark_parent_owned(klass, names)
+          warn_unmatched_parent_arguments(klass)
+        end
         add_hash_method(klass)
         add_to_s_methods(klass)
 
@@ -167,29 +173,51 @@ module Bindgen
         end
       end
 
-      # Is the class *name*, or a base of it, one of `PARENT_OWNED_CLASSES`?
-      private def parent_owned?(name : String) : Bool
+      # Returns the names of the constructor arguments giving an object of the
+      # class *name* a parent, which owns it, or `nil` if nothing owns it:
+      # `PARENT_ARGUMENTS` if the class, or a base of it, is one of
+      # `PARENT_OWNED_CLASSES`, and the `parent_arguments:` of its type rules
+      # and those of its bases.
+      private def parent_arguments(name : String) : Array(String)?
+        names = [] of String
         seen = Set(String).new
         pending = [name]
 
         while name = pending.shift?
           next unless seen.add?(name)
-          return true if PARENT_OWNED_CLASSES.includes?(name)
+          names.concat(PARENT_ARGUMENTS) if PARENT_OWNED_CLASSES.includes?(name)
+          @db[name]?.try { |rules| names.concat(rules.parent_arguments) }
           @doc.try(&.classes[name]?).try(&.bases.each { |base| pending << base.name })
         end
 
-        false
+        names.empty? ? nil : names.uniq!
       end
 
-      # Tags the methods of *klass* giving the object a parent, so the parent
-      # owning the object keeps it alive: `CrystalWrapper` adds the hooks.
-      private def mark_parent_owned(klass)
+      # Tags the methods of *klass* giving the object a parent, by a
+      # constructor argument of one of *names*, so the parent owning the object
+      # keeps it alive: `CrystalWrapper` adds the hooks.
+      private def mark_parent_owned(klass, names : Array(String))
         klass.nodes.each do |node|
           next unless node.is_a?(Graph::Method)
           next if node.tag?(Graph::Method::OWNED_BY_ARGUMENT_TAG)
-          next unless index = parent_argument(node.origin)
+          next unless index = parent_argument(node.origin, names)
           node.set_tag(Graph::Method::OWNED_BY_ARGUMENT_TAG, index.to_s)
           make_parent_nilable(node.origin, index) unless node.origin.any_constructor?
+        end
+      end
+
+      # Warns about the `parent_arguments:` of *klass* naming no pointer
+      # argument of its constructors.
+      private def warn_unmatched_parent_arguments(klass)
+        return unless rules = @db[klass.origin.name]?
+
+        constructors = klass.nodes.compact_map do |node|
+          node.as?(Graph::Method).try(&.origin).try { |m| m if m.any_constructor? && !m.copy_constructor? }
+        end
+
+        rules.parent_arguments.each do |name|
+          next if constructors.any? { |m| m.arguments.any? { |arg| arg.name == name && @db.object_argument?(arg) } }
+          Log.warn { "parent_arguments: of #{klass.origin.name} names no object argument of a constructor: #{name}.  Is it misspelt, or the constructor ignored?" }
         end
       end
 
@@ -206,13 +234,13 @@ module Bindgen
       end
 
       # Returns the index of the argument of *method* giving the object a
-      # parent, if any: The argument named `parent` of a constructor, or the
-      # one object argument of `SET_PARENT_METHODS`, if it's a pointer to a
-      # wrapped class.
-      private def parent_argument(method : Parser::Method) : Int32?
+      # parent, if any: The first argument of a constructor named by *names*,
+      # or the one object argument of `SET_PARENT_METHODS`, if it's a pointer
+      # to a wrapped class.
+      private def parent_argument(method : Parser::Method, names : Array(String)) : Int32?
         if method.any_constructor?
           return if method.copy_constructor?
-          index = method.arguments.index(&.name.== PARENT_ARGUMENT)
+          index = method.arguments.index { |arg| names.includes?(arg.name) }
         elsif SET_PARENT_METHODS.includes?(method.name) && !method.static?
           indices = method.arguments.each_index.select { |i| @db.object_argument?(method.arguments[i]) }.to_a
           index = indices.first if indices.size == 1

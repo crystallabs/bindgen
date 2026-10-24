@@ -335,12 +335,11 @@ describe "keeping objects passed to C++ alive" do
           Test::BindgenHelper.kept_alive?(second).should be_false
         end
 
-        it "keys an object off the GC heap by its address" do
-          outer = Test::Outer.new_no_gc
-          Test::BindgenHelper.keep_alive(outer)
-          Test::BindgenHelper.kept_alive?(outer).should be_true
-          Test::BindgenHelper.release(outer.to_unsafe)
+        it "doesn't keep an object C++ created" do
+          outer = Test::Outer.new_no_gc # Uncollectable memory of libgccpp's operator new
+          Test::BindgenHelper.keep_alive(outer).should be(outer)
           Test::BindgenHelper.kept_alive?(outer).should be_false
+          Test::BindgenHelper.release(outer.to_unsafe) # Does nothing either
         end
       end
 

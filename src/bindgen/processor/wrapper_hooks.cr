@@ -82,27 +82,18 @@ module Bindgen
 
         body = call.body.as(Call::HookableBody)
         owner = wrapper_arguments(call, [index.to_i]).first
-        body.add_post_hook(OwnerHook.new(owner, method.origin.any_constructor?))
+        body.add_post_hook(OwnerHook.new(owner))
       end
 
-      # Post-hook of a wrapper method keeping `self` alive while its *owner*
-      # argument isn't `nil`.  Unless in a *constructor*, `nil` releases
-      # `self`, which nothing owns then.
+      # Post-hook of a wrapper method passing `self` and its *owner* argument to
+      # `BindgenHelper.owned_by`, which keeps `self` alive while the owner isn't
+      # `nil`, and lets it go given `nil`.
       class OwnerHook < Call::Body
-        def initialize(@owner : Call::Argument, @constructor : Bool)
+        def initialize(@owner : Call::Argument)
         end
 
         def to_code(call : Call, platform : Graph::Platform) : String
-          arg = @owner
-          keep = "BindgenHelper.keep_alive(self)"
-
-          if !arg.nilable?
-            keep
-          elsif @constructor
-            "#{keep} if #{arg.name}"
-          else
-            "if #{arg.name}\n  #{keep}\nelse\n  BindgenHelper.release(self)\nend"
-          end
+          "BindgenHelper.owned_by(self, #{@owner.name})"
         end
       end
 

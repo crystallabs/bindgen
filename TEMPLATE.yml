@@ -636,6 +636,15 @@ types:
       ^removeWidget$: true # The argument
       ^replaceWidget$: [0] # The first argument only
 
+    # Names of the constructor arguments giving the object a parent, which
+    # owns and deletes it, in a class which isn't a `QObject`, `QGraphicsItem`
+    # or `QGraphicsLayoutItem`, where `parent` is built in.  The `Qt`
+    # processor keeps the object alive while it has a parent, like a child of
+    # a `QObject`, and lets it go as the parent deletes it.  Applies to the
+    # subclasses too.  A name matching no object argument of a constructor is
+    # warned about.  Defaults to none.
+    parent_arguments: [parent, treeview]
+
     # Constructors and member methods whose object refers to some of their
     # arguments from memory the GC doesn't scan, like through a d-pointer, and
     # uses them when destroyed, like an iterator unregistering from its

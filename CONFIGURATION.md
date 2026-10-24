@@ -910,6 +910,26 @@ types:
       ^replaceWidget$: [0] # The first argument only
 ```
 
+### `parent_arguments`
+
+Names of the constructor arguments giving the object a parent, which owns and
+deletes it, in a class the [`Qt`](README.md#qt) processor doesn't know to be
+owned by its parent: the classes deriving from `QObject`, `QGraphicsItem` and
+`QGraphicsLayoutItem` have `parent` built in.  The processor keeps the object
+alive while it has a parent, like a child of a `QObject`, and lets it go as the
+parent deletes it.  The rule applies to the subclasses too.  A name matching no
+object argument of a constructor is warned about.  Defaults to none.
+
+```yaml
+types:
+  QTreeWidgetItem:
+    parent_arguments: [parent, treeview] # QTreeWidgetItem(QTreeWidgetItem *parent, ...), QTreeWidgetItem(QTreeWidget *treeview, ...)
+  QListWidgetItem:
+    parent_arguments: [listview]
+```
+
+See [Objects kept alive for C++](README.md#objects-kept-alive-for-c).
+
 ### `depends_on`
 
 Constructors and member methods whose object refers to some of their

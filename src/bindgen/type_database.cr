@@ -312,6 +312,12 @@ module Bindgen
       @[YAML::Field(converter: Bindgen::TypeDatabase::KeepAliveConverter)]
       property depends_on = Bindgen::TypeDatabase::KeepAlive.new
 
+      # Names of the constructor arguments giving the object a parent, which
+      # owns and deletes it, like `QTreeWidgetItem(QTreeWidget *treeview)`.
+      # The `Qt` processor keeps the object alive while it has one, like the
+      # children of a `QObject`.  Applies to the subclasses too.
+      property parent_arguments = [] of String
+
       # Instance variable configuration.  Each hash key is a regex used to
       # match instance variable names.
       @[YAML::Field(converter: Bindgen::Configuration::InstanceVariablesConverter)]
@@ -341,7 +347,7 @@ module Bindgen
         @nilable = {} of MethodPattern => Bool | Array(Int32),
         @superclass_ignore_methods = Util::FAIL_RX, @keep_alive = KeepAlive.new,
         @release = KeepAlive.new, @depends_on = KeepAlive.new,
-        @instance_variables = InstanceVariableConfig::Collection.new,
+        @parent_arguments = [] of String, @instance_variables = InstanceVariableConfig::Collection.new,
         @graph_node = nil, @container_type = nil, @kind_present = false,
       )
       end

@@ -6,6 +6,16 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Added
 
+* `parent_arguments:` type rule: the names of the constructor arguments giving
+  the object a parent, which owns and deletes it, in classes the `Qt`
+  processor doesn't know to be parent-owned, like `QTreeWidgetItem`
+  (`[parent, treeview]`), `QListWidgetItem` (`[listview]`) or `QUndoCommand`.
+  The processor keeps such an object alive while it has a parent, like a
+  `QObject`'s child, also in the subclasses; a name matching no object argument
+  of a constructor is warned about.
+* `BindgenHelper.owned_by(object, owner)` keeps an object alive while it has
+  an owner, and lets it go given `nil`; the `Qt` processor's hooks call it.
+
 * A top-level `ignore_methods:` drops methods in every class, and functions,
   by name, signature or regular expression like the type rule.
 * A method declared `[[deprecated]]` is wrapped under `@[Deprecated]` unless
@@ -142,6 +152,21 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
 ### Changed
 
+* Having a parent and being passed to `BindgenHelper.keep_alive` are two
+  reasons to keep an object alive, and it's collectable once neither holds:
+  `parent = nil` ends the parent's reason only, so an object a `keep_alive:`
+  rule keeps, like a model set on a view or a graphics item in a scene, stays
+  kept.  Before, the table of kept objects held one entry per object, and
+  `parent = nil` let it go, which deleted the model under the view once
+  Crystal dropped it.  `release`, by hand or by a `release:` rule, still ends
+  both: a method handing an object back, like `takeTopLevelItem`, ends its
+  ownership too.
+* `BindgenHelper.keep_alive` and `owned_by` don't keep an object C++ created,
+  which Crystal only wraps: its wrapper keeps nothing C++ uses, and as nothing
+  told of its deletion, the stale entry kept a wrapper of freed memory, and
+  blocked keeping a new object at the same address.  `bindgen_kept_key`
+  returns null for such an object, off the GC heap or allocated uncollectable
+  by the `operator new` of libgccpp.
 * Of two methods taking the same Crystal arguments, the one with more C++
   arguments stays, instead of the one with fewer: the variant of a method
   split at a default argument whose further arguments have exposed defaults,

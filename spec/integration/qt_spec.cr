@@ -147,6 +147,77 @@ describe "Qt-specific wrapper features" do
           unowned.parent = window
           Test::BindgenHelper.kept_alive?(unowned).should be_false
         end
+
+        it "keeps an object by the parent_arguments: of its class" do
+          tree = Test::Tree.new
+          root = Test::TreeItem.new(tree)
+          child = Test::TreeItem.new(root)
+          other = Test::TreeItem.new(tree, root)
+          Test::BindgenHelper.kept_alive?(root).should be_true
+          Test::BindgenHelper.kept_alive?(child).should be_true
+          Test::BindgenHelper.kept_alive?(other).should be_true
+          Test::BindgenHelper.kept_alive?(Test::TreeItem.new).should be_false
+          Test::BindgenHelper.kept_alive?(tree).should be_false
+          tree.item_count.should eq(2)
+          root.child_count.should eq(1)
+        end
+
+        it "keeps an item alive while its tree owns it" do
+          tree = Test::Tree.new
+          leaving { Test::TreeItem.new(Test::TreeItem.new(tree)); nil }
+
+          collect_garbage
+          tree.item_count.should eq(1)
+        end
+
+        it "releases the items of a tree the GC finalized" do
+          root = Test::TreeItem.new
+          leaving { root = Test::TreeItem.new(Test::Tree.new); nil }
+          Test::BindgenHelper.kept_alive?(root).should be_true
+
+          collect_garbage_until { !Test::BindgenHelper.kept_alive?(root) }
+        end
+
+        it "keeps an object kept alive after its parent is taken" do
+          window = Test::QObject.new
+          label = Test::Label.new("child".to_unsafe, window)
+          Test::BindgenHelper.keep_alive(label)
+
+          label.parent = nil
+          Test::BindgenHelper.kept_alive?(label).should be_true # Kept alive still
+          Test::BindgenHelper.release(label)
+          Test::BindgenHelper.kept_alive?(label).should be_false
+        end
+
+        it "lets an object given a parent go when released" do
+          window = Test::QObject.new
+          label = Test::Label.new("child".to_unsafe, window)
+          Test::BindgenHelper.keep_alive(label)
+
+          Test::BindgenHelper.release(label) # Handed back: Its ownership ended too
+          Test::BindgenHelper.kept_alive?(label).should be_false
+        end
+
+        it "releases an object kept alive and parented when it's deleted" do
+          window = Test::QObject.new
+          label = Test::Label.new("child".to_unsafe, window)
+          Test::BindgenHelper.keep_alive(label)
+
+          Test::QObject.delete_object(window)
+          Test::BindgenHelper.kept_alive?(label).should be_false
+        end
+
+        it "doesn't keep an object C++ created" do
+          window = Test::QObject.new
+          object = Test::QObject.new_unmanaged
+          Test::BindgenHelper.keep_alive(object)
+          Test::BindgenHelper.kept_alive?(object).should be_false
+
+          object.parent = window
+          Test::BindgenHelper.kept_alive?(object).should be_false
+          window.child_count.should eq(1)
+          Test::QObject.delete_object(object)
+        end
       end
 
       context "signal behaviour" do
