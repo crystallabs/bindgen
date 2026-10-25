@@ -2,6 +2,19 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## 0.16.1 (2026-10-25)
+
+### Fixed
+
+* The GC finalizer of an object constructed from Crystal destroys it in the
+  main thread only.  The GC runs a finalizer in whichever thread's allocation
+  triggered the collection, and Crystal 1.22's monitor thread allocates while
+  it sleeps, so Qt objects were destroyed in a thread they didn't live in
+  ("Timers cannot be stopped from another thread", crashes in `QObject`'s
+  destructor, hanging specs).  A finalizer in another thread now queues its
+  object, kept reachable, for the main thread, where the next finalizer
+  destroys it, or `BindgenHelper.destroy_pending` on request.
+
 ## 0.16.0 (2026-10-25)
 
 ### Added
