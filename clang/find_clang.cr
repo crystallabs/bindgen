@@ -195,7 +195,7 @@ spec_base_content = {
   generators: {
     cpp: {
       output: "tmp/{SPEC_NAME}.cpp",
-      build:  "#{clang} #{clang_flags} #{llvm_cxx_flags} #{system_include_dirs.map { |x| "-I#{File.expand_path(x)}" }.join(' ')}" \
+      build:  "#{clang} #{clang_flags} #{spec_cxx_flags} #{system_include_dirs.map { |x| "-I#{File.expand_path(x)}" }.join(' ')}" \
              " -c -o {SPEC_NAME}.o {SPEC_NAME}.cpp -I.. -Wall -Werror -Wno-unused-function" \
              "#{dynamic ? "" : " -fPIC"}",
       preamble: <<-PREAMBLE
@@ -214,7 +214,7 @@ spec_base_content = {
       "%",
     ].concat(system_include_dirs),
     # Parse in the C++ standard the specs are built in.
-    flags: ["-x", "c++", llvm_cxx_flags.split.find(&.starts_with?("-std=")) || "-std=c++17"],
+    flags: ["-x", "c++", spec_cxx_standard],
   },
 }.to_yaml
 write_if_changed(spec_base, "#{generated_header("#")}\n#{spec_base_content}")
@@ -484,6 +484,25 @@ end
 
 def llvm_cxx_flags
   OPTIONS[:llvm_cxx_flags].as String
+end
+
+# The C++ standard the specs are built and parsed in: the one of
+# `llvm_cxx_flags`, but at least C++17, which the specs use, like
+# `std::optional`.  The `--cxxflags` of LLVM up to 15 say C++14, the default of
+# its clang.
+def spec_cxx_standard
+  standard = llvm_cxx_flags.split.find(&.starts_with?("-std="))
+  if standard.nil? || standard =~ /^-std=(gnu|c)\+\+(98|03|0x|11|1y|14)$/
+    "-std=c++17"
+  else
+    standard
+  end
+end
+
+# `llvm_cxx_flags`, in the standard of `spec_cxx_standard`.
+def spec_cxx_flags
+  flags = llvm_cxx_flags.split.reject(&.starts_with?("-std="))
+  (flags << spec_cxx_standard).join(" ")
 end
 
 def llvm_ld_flags
