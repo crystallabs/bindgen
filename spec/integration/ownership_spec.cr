@@ -453,6 +453,25 @@ describe "keeping objects passed to C++ alive" do
           Test::BindgenHelper.kept_alive?(inner).should be_false
         end
 
+        it "destroys an object finalized in another thread in the main thread" do
+          # The GC runs a finalizer on the thread allocating, and the objects of
+          # a library like Qt must be destroyed in the thread they live in: a
+          # finalizer in another thread queues its object for the main thread,
+          # which destroys it with the next finalizer it runs, or on request.
+          alive = Test::Counted.alive
+          leaving { Test::Counted.new }
+
+          finalized_elsewhere = false
+          50.times do
+            Thread.new { collect_garbage }.join
+            finalized_elsewhere = Test::Counted.alive == alive + 1
+            Test::BindgenHelper.destroy_pending
+            break if Test::Counted.alive == alive
+          end
+          Test::Counted.alive.should eq(alive)
+          finalized_elsewhere.should be_true
+        end
+
         it "ignores nil" do
           Test::BindgenHelper.keep_alive(nil).should be_nil
         end
