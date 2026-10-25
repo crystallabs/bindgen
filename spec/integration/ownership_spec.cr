@@ -62,9 +62,15 @@ describe "keeping objects passed to C++ alive" do
       # deleting them in a GC finalizer run meanwhile would.  The releases are
       # queued, and done once the change is over.
       def Test::BindgenHelper.release_while_busy(objects)
-        @@kept_alive_mutex.synchronize do
+        kept_alive_synchronize do
           change_kept_alive { objects.each { |object| release(object.to_unsafe) } }
         end
+      end
+
+      # Runs the block holding the lock of the kept objects, as a change of the
+      # table does.
+      def Test::BindgenHelper.holding_kept_alive(&)
+        kept_alive_synchronize { yield }
       end
 
       # Hands *counted* to a new `Owner`, which keeps it alive, and leaves the
@@ -426,6 +432,24 @@ describe "keeping objects passed to C++ alive" do
           inner = Test::Inner.new(7)
           Test::BindgenHelper.keep_alive(inner)
           Test::BindgenHelper.release(inner.to_unsafe)
+          Test::BindgenHelper.kept_alive?(inner).should be_false
+        end
+
+        it "releases from a thread without a scheduler while the table is locked" do
+          # The GC runs a finalizer on the thread allocating, which may run no
+          # scheduler, like the monitor thread of the execution contexts: the
+          # release there must wait for the lock, not suspend a fiber.
+          inner = Test::Inner.new(9)
+          Test::BindgenHelper.keep_alive(inner)
+
+          thread = nil
+          Test::BindgenHelper.holding_kept_alive do
+            thread = Thread.new { Test::BindgenHelper.release(inner) }
+            deadline = Time.monotonic + 20.milliseconds
+            while Time.monotonic < deadline
+            end
+          end
+          thread.as(Thread).join # Raises what the thread raised
           Test::BindgenHelper.kept_alive?(inner).should be_false
         end
 
