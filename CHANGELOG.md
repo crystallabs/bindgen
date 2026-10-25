@@ -2,6 +2,23 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## 0.16.2 (2026-10-25)
+
+### Changed
+
+* `bindgen_helper.hpp` defines the program's `operator new` and `operator
+  delete`, so `-lgccpp` isn't needed any more (linking it does no harm).  In a
+  thread the GC knows, one Crystal created, `new` allocates on the GC heap,
+  uncollectable, as libgccpp's did: the Crystal objects C++ stores there, like
+  the `Proc` of a signal connection, live on with the memory.  In a thread the
+  GC doesn't know, one the library created, `new` allocates with `malloc`.
+  libgccpp's replacement reached the library's own `new` on macOS only, where
+  Qt's worker threads then allocated from the GC, which can't collect from a
+  thread it doesn't know and ran finalizers there (crashes in a signal
+  handler after a `QFileSystemModel` listed a directory); on Linux it reached
+  neither Qt's nor the binding's `new`, leaving the connected `Proc`s
+  collectable.
+
 ## 0.16.1 (2026-10-25)
 
 ### Fixed
