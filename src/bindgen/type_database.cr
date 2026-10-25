@@ -73,7 +73,7 @@ module Bindgen
         elsif signature = @signature
           method.signature == signature
         else
-          @regex.not_nil!.matches?(method.signature)
+          (@regex || raise "Method matcher has no name, signature or regex").matches?(method.signature)
         end
       end
 
@@ -848,7 +848,7 @@ module Bindgen
     # of a `kind: Struct` wrapper, taken by pointer (`stream >>
     # pointerof(point)`).  A pointer may be null: `nil`.
     def storage_reference?(type : Parser::Type) : Bool
-      return false unless type.pointer == 1 && type.extents.empty? && !type.move? && !type.void? && !type.const?
+      return false if type.pointer != 1 || !type.extents.empty? || type.move? || type.void? || type.const?
 
       try_or(type, false) do |rules|
         rules.pass_by.value? && rules.copy_structure? && rules.generate_wrapper? &&

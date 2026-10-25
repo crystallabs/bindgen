@@ -259,12 +259,22 @@ module Bindgen
           superclass_method.calls[Graph::Platform::Crystal] =
             build_superclass_forwarder(node, method_clone, klass.origin, superclass.origin)
 
-          # The wrapper method forwards to it on an instance of a Crystal
-          # subclass, so `super` works.  Not for a block argument, which the
-          # forwarding can't pass on.
-          if (call = node.calls[Graph::Platform::Crystal]?) && (body = call.body).is_a?(CallBuilder::CrystalWrapper::Body)
-            body.super_forwarder = call.arguments.none? { |arg| arg.is_a?(Call::ProcArgument) || arg.is_a?(Call::VariadicArgument) }
-          end
+          mark_super_forwarder(node)
+        end
+      end
+
+      # The wrapper method of *node* forwards to the superclass wrapper on an
+      # instance of a Crystal subclass, so `super` works.  Not for a block
+      # argument, which the forwarding can't pass on.
+      private def mark_super_forwarder(node : Graph::Method) : Nil
+        call = node.calls[Graph::Platform::Crystal]?
+        return unless call
+
+        body = call.body
+        return unless body.is_a?(CallBuilder::CrystalWrapper::Body)
+
+        body.super_forwarder = call.arguments.none? do |arg|
+          arg.is_a?(Call::ProcArgument) || arg.is_a?(Call::VariadicArgument)
         end
       end
 

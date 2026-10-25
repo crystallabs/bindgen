@@ -140,7 +140,7 @@ module Bindgen
       # Can *type*, a single pointer to a wrapped class or to a copied
       # structure its wrapper hosts, be `nil`?
       private def nilable_pointer?(type : Parser::Type) : Bool
-        return false unless type.pointer == 1 && !type.reference? && !type.move? && !type.c_array?
+        return false if type.pointer != 1 || type.reference? || type.move? || type.c_array?
 
         @db.storage_reference?(type) ||
           @db.try_or(type, false) { |rules| rules.kind.class? && !rules.copy_structure? }

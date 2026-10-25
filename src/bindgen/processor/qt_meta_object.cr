@@ -43,7 +43,7 @@ module Bindgen
       # *mangled* name in the conversion functions.
       record Converted, name : String, rules : TypeDatabase::TypeConfig, mangled : String do
         def crystal_type : String
-          rules.crystal_type.not_nil!
+          rules.crystal_type || raise "Converted type #{name} has no Crystal type"
         end
 
         # The C type the value crosses the boundary as, in C++ and in Crystal.
@@ -109,8 +109,8 @@ module Bindgen
         code = String.build do |b|
           b << "// Registers the container instantiations with QMetaType, for the meta-objects of Crystal classes.\n"
           b << "extern \"C\" void bg_qt_meta_register_types() {\n"
-          @containers.each do |c|
-            b << "  qRegisterMetaType<#{c.name}>(#{c.name.inspect});\n"
+          @containers.each do |container|
+            b << "  qRegisterMetaType<#{container.name}>(#{container.name.inspect});\n"
           end
           b << "}\n"
         end
@@ -121,7 +121,7 @@ module Bindgen
       # The macro condition matching the declared type *var*, a `TypeNode`,
       # with the container *c*: the generic and the element types.
       private def container_condition(c : Container, var : String) : String
-        generic = c.generics.map { |g| %[#{var}.name(generic_args: false).stringify == #{g.inspect}] }.join(" || ")
+        generic = c.generics.map { |generic_name| %[#{var}.name(generic_args: false).stringify == #{generic_name.inspect}] }.join(" || ")
         elements = c.elements.map_with_index { |e, i| name_condition(e, "#{var}.type_vars[#{i}]") }.join(" && ")
         "(#{generic}) && #{var}.type_vars.size == #{c.elements.size} && #{elements}"
       end
@@ -129,8 +129,8 @@ module Bindgen
       # The `cpp_type_name` branches of the containers.
       private def container_names : String
         String.build do |b|
-          @containers.each do |c|
-            b << "    {% elsif #{container_condition(c, "t")} %}#{c.name.inspect}\n"
+          @containers.each do |container|
+            b << "    {% elsif #{container_condition(container, "t")} %}#{container.name.inspect}\n"
           end
         end
       end
@@ -139,12 +139,12 @@ module Bindgen
       # the declared generic.
       private def container_args : String
         String.build do |b|
-          @containers.each do |c|
-            b << "    {% elsif #{container_condition(c, "T")} %}\n"
-            b << "      bg_pointer = Binding.bindgen_qt_copy_value(#{c.name.inspect}.to_unsafe, slot)\n"
-            b << "      raise \"Qt can't copy a #{c.name}: the type isn't registered with QMetaType\" if bg_pointer.null?\n"
-            b << "      bg_container = ::#{@config.module}::BindgenMeta.discover(#{c.wrapper}, bg_pointer)\n"
-            case c.kind
+          @containers.each do |container|
+            b << "    {% elsif #{container_condition(container, "T")} %}\n"
+            b << "      bg_pointer = Binding.bindgen_qt_copy_value(#{container.name.inspect}.to_unsafe, slot)\n"
+            b << "      raise \"Qt can't copy a #{container.name}: the type isn't registered with QMetaType\" if bg_pointer.null?\n"
+            b << "      bg_container = ::#{@config.module}::BindgenMeta.discover(#{container.wrapper}, bg_pointer)\n"
+            case container.kind
             when "set"         then b << "      bg_container.to_set\n"
             when "associative" then b << "      bg_container.to_h\n"
             else                    b << "      {% if T.name(generic_args: false).stringify == \"Array\" %}bg_container.to_a{% else %}bg_container{% end %}\n"
@@ -156,11 +156,11 @@ module Bindgen
       # The `result` branches: the container built from the value, assigned.
       private def container_results : String
         String.build do |b|
-          @containers.each do |c|
-            b << "    {% elsif #{container_condition(c, "T")} %}\n"
-            b << "      bg_container = ::#{@config.module}::BindgenHelper.wrap_container(#{c.wrapper}, value)\n"
-            b << "      unless Binding.bindgen_qt_set_value(slot, #{c.name.inspect}.to_unsafe, bg_container.to_unsafe.as(Void*))\n"
-            b << "        raise \"Qt can't copy a #{c.name}: the type isn't registered with QMetaType\"\n"
+          @containers.each do |container|
+            b << "    {% elsif #{container_condition(container, "T")} %}\n"
+            b << "      bg_container = ::#{@config.module}::BindgenHelper.wrap_container(#{container.wrapper}, value)\n"
+            b << "      unless Binding.bindgen_qt_set_value(slot, #{container.name.inspect}.to_unsafe, bg_container.to_unsafe.as(Void*))\n"
+            b << "        raise \"Qt can't copy a #{container.name}: the type isn't registered with QMetaType\"\n"
             b << "      end\n"
           end
         end
@@ -170,9 +170,9 @@ module Bindgen
       # by pointer while it lives.
       private def container_signal_args : String
         String.build do |b|
-          @containers.each do |c|
-            b << "            {% elsif #{container_condition(c, "t")} %}\n"
-            b << "              bg_value{{ i }} = ::#{@config.module}::BindgenHelper.wrap_container(#{c.wrapper}, {{ a.var }})\n"
+          @containers.each do |container|
+            b << "            {% elsif #{container_condition(container, "t")} %}\n"
+            b << "              bg_value{{ i }} = ::#{@config.module}::BindgenHelper.wrap_container(#{container.wrapper}, {{ a.var }})\n"
             b << "              bg_args[{{ i }}] = ::#{@config.module}::Binding::BindgenQtArg.new(kind: 0, pointer: bg_value{{ i }}.to_unsafe.as(Void*))\n"
           end
         end
@@ -207,16 +207,16 @@ module Bindgen
 
         code = String.build do |b|
           b << "// Meta-object conversions of the converted value types, see BindgenMeta of the Crystal glue.\n"
-          converted.each do |c|
-            value = "(*static_cast<const #{c.name} *>(bg_slot))"
-            b << "extern \"C\" #{c.cpp_type} #{CONVERTED_PREFIX}_from_#{c.mangled}(void *bg_slot) {\n"
-            b << "  return #{c.rules.from_cpp.template(value)};\n"
+          converted.each do |conversion|
+            value = "(*static_cast<const #{conversion.name} *>(bg_slot))"
+            b << "extern \"C\" #{conversion.cpp_type} #{CONVERTED_PREFIX}_from_#{conversion.mangled}(void *bg_slot) {\n"
+            b << "  return #{conversion.rules.from_cpp.template(value)};\n"
             b << "}\n"
-            b << "extern \"C\" void #{CONVERTED_PREFIX}_to_#{c.mangled}(void *bg_slot, #{c.cpp_type} bg_value) {\n"
-            b << "  *static_cast<#{c.name} *>(bg_slot) = #{c.rules.to_cpp.template("bg_value")};\n"
+            b << "extern \"C\" void #{CONVERTED_PREFIX}_to_#{conversion.mangled}(void *bg_slot, #{conversion.cpp_type} bg_value) {\n"
+            b << "  *static_cast<#{conversion.name} *>(bg_slot) = #{conversion.rules.to_cpp.template("bg_value")};\n"
             b << "}\n"
-            b << "extern \"C\" void *#{CONVERTED_PREFIX}_pack_#{c.mangled}(#{c.cpp_type} bg_value) {\n"
-            b << "  return new (UseGC, bindgen_gc_finalizer<#{c.name}>()) #{c.name}(#{c.rules.to_cpp.template("bg_value")});\n"
+            b << "extern \"C\" void *#{CONVERTED_PREFIX}_pack_#{conversion.mangled}(#{conversion.cpp_type} bg_value) {\n"
+            b << "  return new (UseGC, bindgen_gc_finalizer<#{conversion.name}>()) #{conversion.name}(#{conversion.rules.to_cpp.template("bg_value")});\n"
             b << "}\n"
           end
         end
@@ -227,10 +227,10 @@ module Bindgen
       # The `fun` declarations of the conversion functions.
       private def converted_funs(converted : Array(Converted)) : String
         String.build do |b|
-          converted.each do |c|
-            b << "  fun #{CONVERTED_PREFIX}_from_#{c.mangled}(slot : Void*) : #{c.binding_type}\n"
-            b << "  fun #{CONVERTED_PREFIX}_to_#{c.mangled}(slot : Void*, value : #{c.binding_type}) : Void\n"
-            b << "  fun #{CONVERTED_PREFIX}_pack_#{c.mangled}(value : #{c.binding_type}) : Void*\n"
+          converted.each do |conversion|
+            b << "  fun #{CONVERTED_PREFIX}_from_#{conversion.mangled}(slot : Void*) : #{conversion.binding_type}\n"
+            b << "  fun #{CONVERTED_PREFIX}_to_#{conversion.mangled}(slot : Void*, value : #{conversion.binding_type}) : Void\n"
+            b << "  fun #{CONVERTED_PREFIX}_pack_#{conversion.mangled}(value : #{conversion.binding_type}) : Void*\n"
           end
         end
       end
@@ -254,8 +254,8 @@ module Bindgen
       # The `cpp_type_name` branches of the *converted* types.
       private def converted_names(converted : Array(Converted)) : String
         String.build do |b|
-          converted.each do |c|
-            b << "    {% elsif #{converted_condition(c, "t")} %}#{c.name.inspect}\n"
+          converted.each do |conversion|
+            b << "    {% elsif #{converted_condition(conversion, "t")} %}#{conversion.name.inspect}\n"
           end
         end
       end
@@ -263,9 +263,9 @@ module Bindgen
       # The `arg` branches: the value read out of the slot, converted.
       private def converted_args(converted : Array(Converted)) : String
         String.build do |b|
-          converted.each do |c|
-            b << "    {% elsif #{converted_condition(c, "T")} %}\n"
-            b << "      #{c.rules.to_crystal.template("::#{@config.module}::Binding.#{CONVERTED_PREFIX}_from_#{c.mangled}(slot)")}\n"
+          converted.each do |conversion|
+            b << "    {% elsif #{converted_condition(conversion, "T")} %}\n"
+            b << "      #{conversion.rules.to_crystal.template("::#{@config.module}::Binding.#{CONVERTED_PREFIX}_from_#{conversion.mangled}(slot)")}\n"
           end
         end
       end
@@ -273,9 +273,9 @@ module Bindgen
       # The `result` branches: the value assigned to the slot.
       private def converted_results(converted : Array(Converted)) : String
         String.build do |b|
-          converted.each do |c|
-            b << "    {% elsif #{converted_condition(c, "T")} %}\n"
-            b << "      ::#{@config.module}::Binding.#{CONVERTED_PREFIX}_to_#{c.mangled}(slot, #{c.rules.from_crystal.template("value")})\n"
+          converted.each do |conversion|
+            b << "    {% elsif #{converted_condition(conversion, "T")} %}\n"
+            b << "      ::#{@config.module}::Binding.#{CONVERTED_PREFIX}_to_#{conversion.mangled}(slot, #{conversion.rules.from_crystal.template("value")})\n"
           end
         end
       end
@@ -283,9 +283,9 @@ module Bindgen
       # The `signal` branches: the argument copied into GC memory.
       private def converted_signal_args(converted : Array(Converted)) : String
         String.build do |b|
-          converted.each do |c|
-            b << "            {% elsif #{converted_condition(c, "t")} %}\n"
-            b << "              bg_args[{{ i }}] = ::#{@config.module}::Binding::BindgenQtArg.new(kind: 0, pointer: ::#{@config.module}::Binding.#{CONVERTED_PREFIX}_pack_#{c.mangled}(#{c.rules.from_crystal.template("{{ a.var }}")}))\n"
+          converted.each do |conversion|
+            b << "            {% elsif #{converted_condition(conversion, "t")} %}\n"
+            b << "              bg_args[{{ i }}] = ::#{@config.module}::Binding::BindgenQtArg.new(kind: 0, pointer: ::#{@config.module}::Binding.#{CONVERTED_PREFIX}_pack_#{conversion.mangled}(#{conversion.rules.from_crystal.template("{{ a.var }}")}))\n"
           end
         end
       end

@@ -143,7 +143,7 @@ module Bindgen
         klass.nodes.each do |node|
           next unless node.is_a?(Graph::Method)
           method = node.origin
-          next unless method.name == name && method.member_method? && !method.static?
+          next if method.name != name || !method.member_method? || method.static?
           return method if yield method
         end
       end

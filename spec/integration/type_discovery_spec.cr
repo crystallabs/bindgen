@@ -140,7 +140,7 @@ describe "type discovery feature" do
           mine = MyTriangle.new
           mine.note = "kept"
           subject.keep(mine)
-          kept = subject.last.not_nil!
+          kept = subject.last.as(Test::Shape)
           kept.should be(mine)
           kept.as(MyTriangle).note.should eq("kept")
           typeof(kept).should eq(Test::Shape)
@@ -148,7 +148,7 @@ describe "type discovery feature" do
           plain = Test::Triangle.new
           subject.keep(plain)
           subject.last.should be(plain)
-          subject.last.not_nil!.to?(Test::Polygon).should be(plain)
+          subject.last.as(Test::Shape).to?(Test::Polygon).should be(plain)
 
           secret = PrivateTriangle.new
           subject.keep(secret)
@@ -159,7 +159,7 @@ describe "type discovery feature" do
           point = Test::Point3.new
           subject.keep_point(point)
           subject.last_point.should be(point)
-          typeof(subject.last_point.not_nil!).should eq(Test::Point)
+          typeof(subject.last_point.as(Test::Point)).should eq(Test::Point)
 
           other = Test::Point.new
           subject.keep_point(other)
@@ -171,7 +171,7 @@ describe "type discovery feature" do
           subject.keep(labelled)
           subject.last.should be(labelled)
 
-          named = subject.last_named.not_nil!
+          named = subject.last_named.as(Test::Named)
           named.class.should eq(Test::Named)
           named.label.should eq("labelled")
           named.should_not be(labelled)

@@ -114,9 +114,9 @@ describe "Qt-specific wrapper features" do
         it "releases the children of a parent the GC finalized" do
           label = nil
           leaving { label = Test::Label.new("child".to_unsafe, Test::QObject.new); nil }
-          Test::BindgenHelper.kept_alive?(label.not_nil!).should be_true
+          Test::BindgenHelper.kept_alive?(label.as(Test::Label)).should be_true
 
-          collect_garbage_until { !Test::BindgenHelper.kept_alive?(label.not_nil!) }
+          collect_garbage_until { !Test::BindgenHelper.kept_alive?(label.as(Test::Label)) }
         end
 
         it "keeps a subclass overriding a virtual method alive" do

@@ -327,7 +327,7 @@ describe "a basic C++ wrapper" do
           other = Test::Declared.new
           subject.other = other
           subject.ready?.should be_true
-          subject.other.not_nil!.to_unsafe.should eq(other.to_unsafe)
+          subject.other.as(Test::Declared).to_unsafe.should eq(other.to_unsafe)
           subject.scaled(1.5).should eq(3.0)
           subject.scaled(1.5, 4).should eq(6.0)
           Test::Declared.twice(21).should eq(42)

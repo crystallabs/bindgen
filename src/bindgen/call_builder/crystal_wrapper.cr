@@ -38,12 +38,12 @@ module Bindgen
         # Crystal's dispatch ran its overrides already.  Calling the C++
         # implementation under the shadow class then, instead of the virtual
         # method, doesn't re-enter the override: `super` works.
-        property super_forwarder = false
+        property? super_forwarder = false
 
         def initialize(@db : TypeDatabase, @target : Call)
         end
 
-        # The forwarding to `#superclass`, see `#super_forwarder`.  Only a
+        # The forwarding to `#superclass`, see `#super_forwarder?`.  Only a
         # subclass of a class with a `Superclass` wrapper, whose wrapper has
         # the method (`superclass_ignore_methods` may leave it out), forwards.
         private def superclass_forwarding(call) : String

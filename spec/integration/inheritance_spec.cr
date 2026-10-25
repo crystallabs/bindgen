@@ -80,7 +80,7 @@ describe "single and multiple inheritance feature" do
         middle = made.to?(Test::AbstractScalerMiddle)
         middle.should be_a(Test::ConcreteScaler) # Discovered
         middle.try(&.extra).should eq(7)
-        Test::AbstractScalerMiddleImpl.new(unwrap: middle.not_nil!.to_unsafe).extra.should eq(7)
+        Test::AbstractScalerMiddleImpl.new(unwrap: middle.as(Test::AbstractScalerMiddle).to_unsafe).extra.should eq(7)
       end
 
       it "reaches a privately overridden method through its base" do
