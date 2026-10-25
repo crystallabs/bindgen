@@ -427,9 +427,13 @@ module BindgenHelper
   # C++ releases the objects it destroys: `CrystalGCCleanupWrapper` in
   # `bindgen_helper.hpp` calls the hook from its destructor, so an object its
   # owner deleted, like the child of a Qt parent, doesn't stay kept alive.  Not
-  # a closure, as C++ calls it without a context.  Only with C++ glue, which
-  # defines the hook list; a C library has neither.
-  Binding.bindgen_add_destroyed_hook(->(pointer : Void*) { BindgenHelper.release(pointer) })
+  # a closure, as C++ calls it without a context.  Rescued, like a callback: the
+  # caller is a destructor, which no exception may leave, so a Crystal exception
+  # unwinding into it would terminate the program without a word.  Only with
+  # C++ glue, which defines the hook list; a C library has neither.
+  Binding.bindgen_add_destroyed_hook(->(pointer : Void*) {
+    BindgenHelper.rescued(nil) { BindgenHelper.release(pointer) }
+  })
 
   ########## END IF ##########
 

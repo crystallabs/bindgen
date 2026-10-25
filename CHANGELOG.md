@@ -275,6 +275,10 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   other arguments too, so the connection methods above still get their type
   arguments; and the Crystal formatter exposes the default of an optional
   argument before a block: `def f(x = 1, &)`.
+* A Crystal exception raised while releasing an object C++ destroys, in the
+  hook the destructor of the wrapper calls, terminated the program without a
+  message: no exception may leave a destructor.  The hook rescues it like a
+  callback from C++, handing it to `BindgenHelper.on_exception`.
 
 ## 0.15.0 (2026-10-23)
 
