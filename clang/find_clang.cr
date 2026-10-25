@@ -207,7 +207,7 @@ spec_base_content = {
       output: "tmp/{SPEC_NAME}.cr",
     },
   },
-  library: "%/tmp/{SPEC_NAME}.o #{cxx_stdlib_link_flags} -lgccpp",
+  library: "%/tmp/{SPEC_NAME}.o #{cxx_stdlib_link_flags}",
   parser:  {
     files:    ["{SPEC_NAME}.cpp"],
     includes: [

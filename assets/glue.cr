@@ -315,8 +315,9 @@ module BindgenHelper
   # like `widget.as_paint_device`, and the hook of its destruction find the
   # entry of the object.  `0` for an object C++ created, which Crystal only
   # wraps, off the GC heap or allocated uncollectable by the `operator new` of
-  # libgccpp: it isn't kept, as its wrapper keeps nothing C++ uses, and nothing
-  # would release it when C++ deletes it.  Without C++ glue the address itself.
+  # `bindgen_helper.hpp`: it isn't kept, as its wrapper keeps nothing C++ uses,
+  # and nothing would release it when C++ deletes it.  Without C++ glue the
+  # address itself.
   private def self.kept_key(pointer : Pointer) : UInt64
     ########## IF CPP ##########
     pointer = Binding.bindgen_kept_key(pointer.as(Void*))

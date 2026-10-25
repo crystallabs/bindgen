@@ -449,8 +449,8 @@ new wrapper each time: any wrapper of it, also of a secondary base like
 `widget.as_paint_device`, or its pointer, releases it.  An object C++ created,
 which Crystal only wraps, isn't kept at all: its wrapper keeps nothing C++ uses,
 and nothing would release it when C++ deletes it.  It's told by its memory:
-off the GC heap, or allocated uncollectable by the `operator new` of libgccpp,
-which the GC never frees.  An object
+off the GC heap, or allocated uncollectable by the `operator new` of
+`bindgen_helper.hpp`, which the GC never frees.  An object
 constructed from Crystal is released as C++ deletes it, like a Qt parent
 deletes its children, see [Objects destroyed by C++](#objects-destroyed-by-c).
 So `.release` is for an object C++ stops using without deleting it, like a
@@ -538,7 +538,7 @@ as.  It is its primary base, at the start of the allocation also for a dynamic
 `T` and for the shadow subclass of [`VirtualOverride`](#virtualoverride), so
 the glue of a method finds it from the `T *` by `GC_base`.  A check value
 stored in it tells it from other memory of the GC: an object C++ created, also
-with the `operator new` of `libgccpp`, isn't one, and the method leaves its
+with the `operator new` of `bindgen_helper.hpp`, isn't one, and the method leaves its
 dependencies alone.  The constructors of copied, aggregate, union and `final`
 classes don't allocate the object the GC scans, and are ignored with a
 warning, as are the methods of these classes, static methods, and a pattern

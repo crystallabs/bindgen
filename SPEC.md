@@ -1410,8 +1410,11 @@ thread, whichever it is.
 Connecting a signal passes the sender to `BindgenHelper.keep_alive`, like a
 method configured in `keep_alive:` does with its argument: Qt refers to the
 sender from the connection, and as Qt allocates through the `operator new` of
-libgccpp, in memory the GC scans but doesn't collect, the C++ object lives on
-until it is deleted anyway.  Keeping the Crystal object with it keeps the
+`bindgen_helper.hpp`, in memory the GC scans but doesn't collect, the C++
+object lives on until it is deleted anyway.  That `operator new` allocates on
+the GC heap only in a thread the GC knows, one Crystal created: a thread the
+library created, like a Qt worker thread, allocates with `malloc`, as the GC
+can't collect from a thread it doesn't know, and would run finalizers there.  Keeping the Crystal object with it keeps the
 overrides of a Crystal subclass (§2.3.4) working.  C++ deleting the object, or
 `BindgenHelper.release`, lets the GC collect it.
 

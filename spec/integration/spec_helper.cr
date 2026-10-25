@@ -107,7 +107,7 @@ def build_and_run_impl(name, source_start, source_end, source_file)
   tool = Bindgen::Tool.new(__DIR__, config, show_stats: false)
 
   status = nil
-  command = %<crystal run --link-flags "-lgccpp" #{test_file} -- --verbose>
+  command = %<crystal run #{test_file} -- --verbose>
   output = IO::Memory.new
 
   # Run the tool and then the test program

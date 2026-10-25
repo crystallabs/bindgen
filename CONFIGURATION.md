@@ -99,7 +99,8 @@ to `boehmgc-cpp`.
 | `bare-cpp` | `bare-cxx`, `bare-c++` | C++ with plain `new`.  Nothing is ever freed. |
 | `bare-c` | | C with plain `malloc`.  Nothing is ever freed. |
 
-With `boehmgc-cpp`, add `-lgccpp` to [`library`](#library).
+With `boehmgc-cpp`, `bindgen_helper.hpp` defines the program's `operator new`
+and `operator delete`: see SPEC.md §2.3.
 
 ## `library`
 
@@ -107,12 +108,11 @@ The `ldflags` of the `@[Link]` annotation of the generated `lib Binding`.
 Templated: `%` is the project root, relative to the generated Crystal file.
 
 ```yaml
-library: "%/ext/binding.a -lstdc++ -lgccpp -lMyLib"
+library: "%/ext/binding.a -lstdc++ -lMyLib"
 ```
 
-`-lgccpp` is required when wrapping C++ classes with the `boehmgc-cpp`
-cookbook.  Without it, linking fails with an undefined reference to
-`GC_throw_bad_alloc()`.
+`-lgccpp` isn't needed since bindgen 0.16.2, which defines `operator new` in
+`bindgen_helper.hpp`; linking it does no harm.
 
 ## `ignore_deprecated`
 

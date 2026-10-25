@@ -476,6 +476,16 @@ describe "keeping objects passed to C++ alive" do
           Test::BindgenHelper.keep_alive(nil).should be_nil
         end
       end
+
+      describe "the operator new of the helper" do
+        it "allocates on the GC heap in a thread the GC knows" do
+          Test::Allocation.gc_heap_here.should be_true
+        end
+
+        it "allocates outside the GC heap in a thread the GC doesn't know" do
+          Test::Allocation.gc_heap_in_foreign_thread.should be_false
+        end
+      end
     end
 
     # Static methods have no object to store dependencies in.

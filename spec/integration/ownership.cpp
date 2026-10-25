@@ -2,6 +2,8 @@
 // See Papierkorb/bindgen#75.
 
 #include <cstdlib>
+#include <thread>
+#include <gc/gc.h>
 
 struct Inner {
   Inner(int x) : x(x) { }
@@ -282,4 +284,21 @@ struct Picky {
   }
 
   void setNone(Outer *outer, Inner *in) { outer->inside = in; }
+};
+
+// Where `new` allocates, see `bindgen_helper.hpp`: on the GC heap in a thread
+// the GC knows, outside it in a thread it doesn't, like one a library creates.
+struct Allocation {
+  static bool gcHeapHere() {
+    int *object = new int(1);
+    bool gc = GC_is_heap_ptr(object);
+    delete object;
+    return gc;
+  }
+
+  static bool gcHeapInForeignThread() {
+    bool gc = true;
+    std::thread([&gc] { gc = gcHeapHere(); }).join();
+    return gc;
+  }
 };

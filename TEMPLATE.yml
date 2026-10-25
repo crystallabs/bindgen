@@ -21,16 +21,12 @@ module: MyStuff
 # or `boehmgc-c` for pure C.
 #
 # Don't worry too much about this setting at first.
-# NOTE: if you wrap C++ classes, you probably have to add `-lgccpp` to
-# `library` below.
 cookbook: boehmgc-cpp # Default!
 
 # Defines the `ld_flags` value for the `@[Link]` directive of the generated `lib`.
 # `%` will be replaced by the path to the base-directory of your project,
 # relative to the path of the generated `.cr` file.
-# The `-lgccpp` flag is necessary if you wrap C++ classes and use the
-# boehmgc-cpp cookbook.
-library: "%/ext/binding.a -lgccpp"
+library: "%/ext/binding.a"
 
 # Drop the methods and functions declared `[[deprecated]]`, overload by
 # overload.  Defaults to `false`.

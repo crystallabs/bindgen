@@ -26,6 +26,7 @@ classes:
   First: First
   Second: Second
   Dual: Dual
+  Allocation: Allocation
 
 types:
   Inner:
