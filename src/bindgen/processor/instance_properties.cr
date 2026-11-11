@@ -32,6 +32,9 @@ module Bindgen
           # Ignore all reference fields for now.
           next if field.reference? || field.move?
 
+          # A copied structure has these as `Proc`s.
+          next if unconfigured_function_pointer?(field)
+
           next if (field.c_array? || field.pointer_to_c_array?) && !@db.c_array_supported?(field)
 
           pattern, config = lookup_member_config(var_config, field.name)

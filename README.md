@@ -318,11 +318,64 @@ end
 Copies structures of those types, that have `copy_structure: true` set in the
 configuration, into `lib Binding`.  Such a type is passed by value.  It has to
 be layout-compatible to a C structure: Its members may only be built-in types,
-enumerations, other copied structures and pointers.  A pointer to a type which
-is converted, like `std::string *`, becomes a `Void*`.  bindgen refuses to copy
-a structure with a member it can't represent, like a `std::string`, a container
-or a class which isn't copied itself, and one whose C++ type isn't trivially
-copyable and standard-layout.
+enumerations, other copied structures, pointers and function pointers.  A
+pointer to a type which is converted, like `std::string *`, becomes a `Void*`.
+bindgen refuses to copy a structure with a member it can't represent, like a
+`std::string`, a container or a class which isn't copied itself, and one whose
+C++ type isn't trivially copyable and standard-layout.
+
+A structure named by a typedef, like `typedef struct { ... } T;` or
+`typedef struct T_ { ... } T;`, is configured by the typedef name `T`.  Members
+referring to the structure as `struct T_` are of type `T` too, unless `T_` is
+configured as well.
+
+A function pointer member becomes a `Proc`, which Crystal stores as a plain
+function pointer in a `lib struct`.  Crystal code can call it, and set it to a
+`Proc` which isn't a closure for C++ to call:
+
+```c++
+typedef int (*BinaryOp)(int, int);
+
+struct Ops {
+  BinaryOp add;
+  void (*clear)(Point *point);
+};
+```
+
+```crystal
+lib Binding
+  struct Ops
+    add : Proc(Int32, Int32, Int32)
+    clear : Proc(Point*, Void)
+  end
+end
+
+ops.add.call(3, 4) # => 7
+ops.add = ->(a : Int32, b : Int32) { a * b }
+```
+
+The types in its signature follow the rules of members, except for a function
+pointer in it, which is a `Void*`: Crystal passes a `Proc` argument as closure,
+not as a function pointer.  Pass `proc.pointer` for it.  These function pointer
+members become a `Void*`, or `Void*[N]` for a C array of them:
+
+* A variadic one, like `int (*)(const char *, ...)`.
+* One with another calling convention than the target's, like `ms_abi` on
+  Linux.  Bindings for UEFI, whose functions use the `ms_abi` convention on
+  x86_64, are generated for a Windows target, like with
+  `-target x86_64-unknown-windows` in the parser `flags`, where it is the
+  default.
+* One with a type in its signature which can't be a member, like `std::string`.
+* A C array of function pointers, as Crystal stores a `Proc` in a
+  `StaticArray` as closure.
+
+A pointer to a function pointer is a `Void**`.  A function pointer member whose
+type is configured, like through `types:` for its typedef, is handled as
+before.
+
+Methods can't pass function pointers yet.  A wrapper class has no property
+methods for function pointer members, and no aggregate constructor if it has
+any: Use the members of its hosted structure, through `#to_unsafe`.
 
 A structure packed by `__attribute__((packed))` or `#pragma pack(1)` becomes a
 `@[Packed]` `lib struct`.  Other packing is refused, as Crystal can't express
@@ -734,6 +787,9 @@ As C++ code can't name the anonymous type, it is declared as
 `typedef decltype(Wrapped::z) Wrapped_Unnamed0;`.  Static, `const` and pointer
 members of anonymous type are skipped, and so are members of anonymous type
 nested inside an unnamed member.
+
+Function pointer members are skipped, unless their type is configured.  A
+copied structure has them as `Proc`s, see [CopyStructs](#copystructs).
 
 ## `InstantiateContainers`
 

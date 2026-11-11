@@ -22,7 +22,8 @@ static JsonStream &writeTypeJson(JsonStream &s, const Type &value) {
 	if (value.isFunction) {
 		s << std::make_pair("isFunction", value.isFunction) << c;
 	}
-	s << std::make_pair("template", value.templ);
+	s << std::make_pair("template", value.templ) << c
+		<< std::make_pair("prototype", value.prototype.get());
 	return s;
 }
 
@@ -31,6 +32,17 @@ JsonStream &operator<<(JsonStream &s, const Type &value) {
 	s << JsonStream::ObjectBegin;
 	writeTypeJson(s, value);
 	s << JsonStream::ObjectEnd;
+	return s;
+}
+
+JsonStream &operator<<(JsonStream &s, const Prototype &value) {
+	auto c = JsonStream::Comma;
+	s << JsonStream::ObjectBegin
+	  << std::make_pair("returnType", value.returnType) << c
+	  << std::make_pair("arguments", value.arguments) << c
+	  << std::make_pair("isVariadic", value.isVariadic) << c
+	  << std::make_pair("isDefaultCallingConvention", value.isDefaultCallingConvention)
+	  << JsonStream::ObjectEnd;
 	return s;
 }
 

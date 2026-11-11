@@ -465,40 +465,91 @@ module Bindgen
       # Makes sure that the *field* of *klass* has the same layout in C++ as its
       # *result* has in the `lib struct`.  Returns the result to use, raises if
       # there is none.
+      private def lib_struct_field(klass, field, result) : Call::Result
+        if unconfigured_function_pointer?(field)
+          return proc_result(field) || void_pointer(field)
+        end
+
+        result = lib_struct_result(field, result)
+        return result if result.is_a?(Call::Result)
+
+        raise "Can't copy structure of class #{klass.name.inspect}: " \
+              "The field #{field.name.inspect} can't be part of a lib struct, #{result}"
+      end
+
+      # Returns the result to use for *type* in a `lib struct`, given its
+      # binding *result*, or the reason why it can't be part of one.
       #
       # Only built-in types, enumerations, other copied structures and
-      # pointers have.  Anything else is either passed as pointer, or as another
-      # type than it really is (like `std::string` as `CrystalString`), which
-      # is fine for a method argument, but not for a structure member.  A
-      # pointer to such a type becomes a `Void` pointer instead.
-      private def lib_struct_field(klass, field, result) : Call::Result
-        type_name = field.full_name
+      # pointers have the same layout.  Anything else is either passed as
+      # pointer, or as another type than it really is (like `std::string` as
+      # `CrystalString`), which is fine for a method argument, but not for a
+      # structure member.  A pointer to such a type becomes a `Void` pointer
+      # instead.  Function pointers are left to the caller.
+      private def lib_struct_result(type, result) : Call::Result | String
+        type_name = type.full_name
         binding_pointer = result.pointer + (result.reference ? 1 : 0)
-        converted = @db.try_or(field, false) { |rules| converted_type?(field, rules) }
+        converted = @db.try_or(type, false) { |rules| converted_type?(type, rules) }
 
-        reason = if field.reference? || field.move?
+        reason = if type.reference? || type.move?
                    "it is a reference"
-                 elsif field.builtin_array_pointer?
+                 elsif type.builtin_array_pointer?
                    nil # A pointer to a `StaticArray`.
-                 elsif field.pointer_to_c_array?
+                 elsif type.pointer_to_c_array?
                    "pointers to C arrays are only supported for complete arrays of built-in types"
-                 elsif !converted && binding_pointer == type_pointer_depth(field)
+                 elsif !converted && binding_pointer == type_pointer_depth(type)
                    nil # Same layout.
-                 elsif field.pointer > 0
-                   void = Parser::Type.builtin_type("void", pointer: field.pointer)
-                   return Crystal::Pass.new(@db).to_binding(void)
+                 elsif type.pointer > 0
+                   return void_pointer(type)
                  elsif converted
                    "its type #{type_name} is converted when passed to Crystal"
                  else
                    "its type #{type_name} is neither built-in, an enumeration nor a copied structure"
                  end
 
-        if reason
-          raise "Can't copy structure of class #{klass.name.inspect}: " \
-                "The field #{field.name.inspect} can't be part of a lib struct, #{reason}"
+        reason || result
+      end
+
+      # Returns the `Proc` of the function pointer *type* in a `lib`, or `nil`
+      # if Crystal can't call the function through it: It is variadic, has
+      # another calling convention than Crystal, or a type in its signature
+      # can't be part of a `lib struct`.
+      #
+      # A `Proc` in a `lib struct` is a plain function pointer, but in a
+      # `StaticArray` or the signature of a `Proc` it's a closure.  Thus a C
+      # array of function pointers isn't one, and a function pointer in the
+      # signature is a `Void` pointer.
+      private def proc_result(type) : Call::FunctionPointerResult?
+        prototype = type.prototype
+        return unless prototype && type.function_pointer?
+        return if prototype.variadic? || !prototype.default_calling_convention?
+
+        pass = Crystal::Pass.new(@db)
+        signature = (prototype.arguments + [prototype.return_type]).map do |part|
+          next void_pointer(part) if unconfigured_function_pointer?(part)
+
+          result = lib_struct_result(part, pass.to_binding(part))
+          return unless result.is_a?(Call::Result)
+          result
         end
 
-        result
+        typename = Crystal::Typename.new(@db)
+        type_name = "Proc(#{signature.join(", ") { |result| typename.full(result) }})"
+        Call::FunctionPointerResult.new(
+          type: type, type_name: type_name, reference: false, pointer: 0, signature: signature,
+        )
+      end
+
+      # Returns a `Void` pointer in place of the pointer *type*, keeping its C
+      # array extents.
+      private def void_pointer(type) : Call::Result
+        void = Parser::Type.new(
+          base_name: "void", full_name: "void", const: false, reference: false,
+          pointer: type.pointer, builtin: true, void: true, extents: type.extents,
+          array_pointer: type.array_pointer,
+        )
+
+        Crystal::Pass.new(@db).to_binding(void)
       end
 
       # Do the *rules* of *type* pass it as another type to Crystal?

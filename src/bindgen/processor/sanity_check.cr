@@ -261,6 +261,8 @@ module Bindgen
         if expr.is_a?(Call::TupleResult) # The out values and the result
           inner = expr.inner
           (inner.nil? || type_reachable?(inner, base)) && expr.values.all? { |value| type_reachable?(value, base) }
+        elsif expr.is_a?(Call::FunctionPointerResult)
+          expr.signature.all? { |part| type_reachable?(part, base) }
         elsif expr.type.builtin? # Built-ins are always reachable
           true
         elsif @db.try_or(expr.type, false, &.builtin?)

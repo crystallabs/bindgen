@@ -382,6 +382,16 @@ A typedef naming an instantiation is configured by the typedef's name, which
 the wrapped methods then show.  An instantiation of a member class template
 is configured by its qualified name.
 
+A class named by a typedef, like `typedef struct { ... } T;` or
+`typedef struct T_ { ... } T;`, is configured by the typedef name `T`.  Types
+referring to it by another name, like `struct T_`, refer to `T` then, unless
+that name is configured too.
+
+```yaml
+classes:
+  EFI_GUID: Guid
+```
+
 Containers like `std::vector` are configured in [`containers`](#containers)
 instead.
 

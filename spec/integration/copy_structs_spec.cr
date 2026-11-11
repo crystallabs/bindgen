@@ -50,6 +50,7 @@ describe "copied structure functionality" do
           subject = Test::Binding::StringPointer.new
           subject.name.should be_a(Pointer(Void))
           subject.point.should be_a(Pointer(Test::Binding::Point))
+          subject.names.should be_a(StaticArray(Pointer(Void), 2))
         end
 
         it "supports unions" do

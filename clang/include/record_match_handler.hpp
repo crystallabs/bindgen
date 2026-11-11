@@ -1,6 +1,8 @@
 #ifndef RECORD_MATCH_HANDLER_HPP
 #define RECORD_MATCH_HANDLER_HPP
 
+#include <set>
+
 class RecordMatchHandler : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
 	RecordMatchHandler(Document &doc, const std::string &name);
@@ -45,6 +47,7 @@ private:
 	bool m_found = false; // Was a record of this name exported?
 	bool m_instantiated = false; // Was it exported through `runOnInstantiation`?
 	bool m_foundTemplate = false; // Was a class template of this name seen?
+	std::set<const clang::CXXRecordDecl *> m_definitions; // Exported definitions
 
 	// first = record definition, second = qualified type name
 	std::vector<std::pair<const clang::CXXRecordDecl *, std::string>> m_classesToRun;

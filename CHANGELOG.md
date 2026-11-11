@@ -2,6 +2,27 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## Unreleased
+
+### Added
+
+* Function pointer members of copied structures become `Proc`s, which Crystal
+  can call and set.  Variadic ones, those of another calling convention than
+  the target's, and C arrays of them become `Void` pointers.  The clang tool's
+  output format changed, rebuild it.
+* A class can be configured by the name of a typedef, like
+  `typedef struct { ... } T;`.  Types naming it otherwise refer to the typedef
+  name.
+
+### Fixed
+
+* Property methods and aggregate constructors are no longer generated for
+  function pointer members, which methods can't pass.  Generating the wrapper
+  failed.
+* A C array of pointers to converted types in a copied structure, like
+  `std::string *names[2]`, keeps its extents as `Void*[2]`.  It became a
+  single `Void**`.
+
 ## 0.16.2 (2026-10-25)
 
 ### Changed

@@ -145,6 +145,125 @@ describe "clang tool classes feature" do
     )
   end
 
+  it "exports the signatures of function pointers" do
+    clang_tool(
+      <<-CPP,
+        typedef int (*Callback)(const char *, ...);
+        struct Ops {
+          Callback callback;
+          void (*clear)(int values[4]);
+          int plain;
+        };
+        CPP
+      "-c Ops",
+      classes: {
+        Ops: {
+          fields: [
+            {
+              name: "callback", pointer: 1, prototype: {
+                returnType:                 {baseName: "int", pointer: 0},
+                arguments:                  [{baseName: "char", isConst: true, pointer: 1}],
+                isVariadic:                 true,
+                isDefaultCallingConvention: true,
+              },
+            },
+            {
+              name: "clear", pointer: 1, prototype: {
+                returnType: {isVoid: true, pointer: 0},
+                arguments:  [{baseName: "int", pointer: 1, extents: [] of Int64}],
+                isVariadic: false,
+              },
+            },
+            {name: "plain", prototype: nil},
+          ],
+        },
+      },
+    )
+  end
+
+  it "exports if function pointers use the default calling convention" do
+    code = <<-CPP
+      struct Ops {
+        void (*plain)();
+        void (__attribute__((ms_abi)) *ms)();
+        void (__attribute__((sysv_abi)) *sysv)();
+      };
+      CPP
+
+    {
+      "x86_64-unknown-linux-gnu" => {true, false, true},
+      "x86_64-unknown-windows"   => {true, true, false},
+    }.each do |target, (plain, ms, sysv)|
+      clang_tool(code, "-c Ops", flags: "-target #{target}",
+        classes: {
+          Ops: {
+            fields: [
+              {name: "plain", prototype: {isDefaultCallingConvention: plain}},
+              {name: "ms", prototype: {isDefaultCallingConvention: ms}},
+              {name: "sysv", prototype: {isDefaultCallingConvention: sysv}},
+            ],
+          },
+        },
+      )
+    end
+  end
+
+  it "exports structures configured by their typedef" do
+    clang_tool(
+      <<-CPP,
+        typedef struct { int x; } Anonymous;
+        typedef struct Tagged_ { int y; } Tagged;
+        typedef struct Forward_ Forward;
+        struct Forward_ { int z; };
+        struct User {
+          Anonymous anonymous;
+          struct Tagged_ tagged;
+          Forward *forward;
+        };
+        CPP
+      "-c Anonymous -c Tagged -c Forward -c User",
+      classes: {
+        Anonymous: {name: "Anonymous", isAnonymous: false, fields: [{name: "x"}]},
+        Tagged:    {name: "Tagged", fields: [{name: "y"}]},
+        Forward:   {name: "Forward", fields: [{name: "z"}]},
+        User:      {
+          fields: [
+            {name: "anonymous", baseName: "Anonymous"},
+            {name: "tagged", baseName: "Tagged", fullName: "Tagged_"},
+            {name: "forward", baseName: "Forward", pointer: 1},
+          ],
+        },
+      },
+    )
+  end
+
+  it "exports a structure configured by its typedef and its own name" do
+    clang_tool(
+      <<-CPP,
+        typedef struct Same { int x; } Same;
+        typedef struct Tag { int y; } Alias;
+        struct User {
+          Same same;
+          Alias alias;
+          struct Tag tag;
+        };
+        CPP
+      "-c Same -c Tag -c Alias -c User",
+      classes: {
+        Same:  {fields: [{name: "x"}]},
+        Tag:   {fields: [{name: "y"}]},
+        Alias: {fields: [{name: "y"}]},
+        User:  {
+          fields: [
+            {name: "same", baseName: "Same"},
+            {name: "alias", baseName: "Alias"},
+            {name: "tag", baseName: "Tag"},
+          ],
+        },
+      },
+    )
+  end
+
   it "ignores a class template of the same name in another scope" do
     clang_tool(
       <<-CPP,

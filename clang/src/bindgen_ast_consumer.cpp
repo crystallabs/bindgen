@@ -131,11 +131,16 @@ clang::ast_matchers::MatchFinder BindgenASTConsumer::makeDependentMatchFinder() 
 void BindgenASTConsumer::HandleTranslationUnit(clang::ASTContext &ctx) {
 	TypeHelper::clearTypeNames();
 	std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> instantiations = this->gatherInstantiations(ctx);
+	std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> typedefRecords = this->gatherTypedefRecords(ctx);
 	this->gatherTypeInfo(ctx);
 
 	// Before matching, as the operators are added to the classes.
 	for (const auto &instantiation : instantiations) {
 		this->m_classHandlers[instantiation.first]->runOnInstantiation(instantiation.second);
+	}
+
+	for (const auto &typedefRecord : typedefRecords) {
+		this->m_classHandlers[typedefRecord.first]->runOnDefinition(typedefRecord.second);
 	}
 
 	for (auto &finder : this->m_matchFinders) {
@@ -255,6 +260,52 @@ std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> BindgenASTConsumer:
 			TypeHelper::registerTypeName(TypeHelper::recordType(record), ClassList[index]);
 			registerArgumentNames(record->getDefinition(), ClassList[index]);
 			result.push_back(std::make_pair(index, record->getDefinition()));
+		}
+	}
+
+	return result;
+}
+
+// Is the *record* inspected under its own name, like `struct T` in
+// `typedef struct T { ... } U;` when `T` is in the class list?
+static bool isListedByOwnName(const clang::CXXRecordDecl *record) {
+	if (!record->getIdentifier()) return false;
+
+	std::string name = record->getNameAsString();
+	std::string qualifiedName = record->getQualifiedNameAsString();
+
+	for (const std::string &className : ClassList) {
+		if (className == name || className == qualifiedName) return true;
+	}
+
+	return false;
+}
+
+std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> BindgenASTConsumer::gatherTypedefRecords(clang::ASTContext &ctx) {
+	using namespace clang::ast_matchers;
+	std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> result;
+
+	for (size_t index = 0; index < ClassList.size(); index++) {
+		const std::string &className = ClassList[index];
+		if (RecordMatchHandler::isInstantiation(className)) continue;
+
+		auto matches = match(typedefNameDecl(hasName(className)).bind("typedef"), ctx);
+		for (const auto &node : matches) {
+			const auto *decl = node.getNodeAs<clang::TypedefNameDecl>("typedef");
+			const clang::CXXRecordDecl *record = decl->getUnderlyingType()->getAsCXXRecordDecl();
+
+			// Instantiations need `BindgenInstantiation` to be complete.
+			if (!record || llvm::isa<clang::ClassTemplateSpecializationDecl>(record)) continue;
+
+			record = record->getDefinition();
+			if (!record || record->isDependentType() || record->isInvalidDecl()) continue;
+
+			// A record listed by its own name too keeps it where it's written
+			// so, like `struct T` in `typedef struct T { ... } U;`.
+			if (!isListedByOwnName(record))
+				TypeHelper::registerTypeName(TypeHelper::recordType(record), className);
+
+			result.push_back(std::make_pair(index, record));
 		}
 	}
 

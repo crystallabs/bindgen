@@ -132,6 +132,10 @@ module Bindgen
 
       protected setter nilable
 
+      # Signature of the base type, if it is a function type.  E.g., the
+      # prototype of `int (*)(char)` is `int (char)`.
+      getter prototype : Prototype?
+
       # Returns the template arguments of this type.  Only valid for template
       # types, like container instantiations or `CrystalProc`s.
       def template_arguments : Array(Type)
@@ -280,6 +284,7 @@ module Bindgen
           base_name: @base_name,
           full_name: typer.full(@base_name, is_const, type_ptr, is_ref, extents, array_ptr),
           template: @template,
+          prototype: @prototype,
           nilable: @nilable,
           desugared: @desugared,
           typedefs: @typedefs,
@@ -330,6 +335,7 @@ module Bindgen
             base_name: @base_name,
             full_name: @full_name,
             template: @template,
+            prototype: @prototype,
             nilable: true,
             desugared: @desugared,
             typedefs: @typedefs,
@@ -410,6 +416,7 @@ module Bindgen
           base_name: template_full,
           full_name: typer.full(template_full, @const, type_ptr, @reference, @extents, @array_pointer),
           template: subst_template,
+          prototype: @prototype,
           nilable: @nilable,
         )
       end
@@ -448,6 +455,7 @@ module Bindgen
           base_name: type.base_name,
           full_name: typer.full(type.base_name, const, type_ptr, reference, extents, array_pointer),
           template: type.template,
+          prototype: type.prototype,
           nilable: type.nilable?,
         )
       end
@@ -465,23 +473,29 @@ module Bindgen
 
       def_equals_and_hash @base_name, @full_name, @const, @reference, @move,
         @builtin, @void, @pointer, @kind, @nilable, @template, @extents,
-        @array_pointer
+        @array_pointer, @prototype
 
       def initialize(
         @base_name, @full_name, @const, @reference, @pointer, @move = false,
         @builtin = false, @void = false, @kind = Kind::Class, @template = nil,
         @nilable = false, @extents = Array(UInt64).new, @array_pointer = 0,
         @desugared = nil, @typedefs = nil, @never_nil = false,
+        @prototype = nil,
       )
       end
 
       # Checks if this type equals the *other* type, except for nil-ability.
       def equals_except_nil?(other : Type)
-        {% for i in %i[base_name full_name const reference move builtin void pointer kind template extents array_pointer] %}
+        {% for i in %i[base_name full_name const reference move builtin void pointer kind template extents array_pointer prototype] %}
           return false if @{{ i.id }} != other.@{{ i.id }}
         {% end %}
 
         true
+      end
+
+      # Is this a pointer to a function, like `int (*)(char)`?
+      def function_pointer? : Bool
+        !@prototype.nil? && @pointer == 1 && !@reference && !@move && @extents.empty?
       end
 
       # Returns `true` if this type is `void`, and nothing else.
@@ -548,6 +562,7 @@ module Bindgen
           base_name: @base_name,
           full_name: typer.full(@base_name, @const, type_ptr, false, extents),
           template: @template,
+          prototype: @prototype,
           nilable: false,
           desugared: @desugared,
           typedefs: @typedefs,
@@ -576,6 +591,7 @@ module Bindgen
           base_name: @base_name,
           full_name: typer.full(@base_name, @const, type_ptr, @reference, extents),
           template: @template,
+          prototype: @prototype,
           nilable: @nilable,
           desugared: @desugared,
           typedefs: @typedefs,

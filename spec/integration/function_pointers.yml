@@ -1,0 +1,16 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.
+
+classes:
+  Point: Point
+  Ops: Ops
+  Callbacks: Callbacks
+
+functions:
+  "ops_(.*)": { destination: "Funcs", name: "\\1" }
+
+types:
+  Point: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  Ops: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  Callbacks: { copy_structure: true }

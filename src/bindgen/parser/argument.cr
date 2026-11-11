@@ -27,7 +27,7 @@ module Bindgen
         @void, @pointer, @template, @kind = Type::Kind::Class,
         @has_default = false, @value = nil, @nilable = false, @variadic = false,
         @extents = Array(UInt64).new, @array_pointer = 0, @desugared = nil,
-        @never_nil = false, @typedefs = nil,
+        @never_nil = false, @typedefs = nil, @prototype = nil,
       )
       end
 
@@ -68,12 +68,13 @@ module Bindgen
         @array_pointer = type.array_pointer
         @kind = type.kind
         @template = type.template
+        @prototype = type.prototype
         @nilable = type.nilable?
       end
 
       def_equals_and_hash @base_name, @full_name, @const, @reference, @move,
         @builtin, @void, @pointer, @has_default, @name, @value, @nilable,
-        @template, @extents, @array_pointer
+        @template, @extents, @array_pointer, @prototype
 
       # Does this argument have an exposed default value?
       def has_exposed_default?
@@ -110,6 +111,7 @@ module Bindgen
           extents: extents,
           array_pointer: @array_pointer,
           template: @template,
+          prototype: @prototype,
           kind: @kind,
           has_default: false,
           value: nil,
@@ -139,6 +141,7 @@ module Bindgen
           extents: extents,
           array_pointer: @array_pointer,
           template: @template,
+          prototype: @prototype,
           kind: @kind,
           has_default: @has_default || other.has_default?,
           value: @value || other.value,

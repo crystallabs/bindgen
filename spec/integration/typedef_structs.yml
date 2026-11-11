@@ -1,0 +1,22 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.
+
+classes:
+  Anonymous: Anonymous
+  Tagged: Tagged
+  Same: Same
+  Forward: Forward
+  User: User
+  Wrapped: Wrapped
+
+functions:
+  "anonymous_(.*)": { destination: "Funcs", name: "\\1" }
+
+types:
+  Anonymous: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  Tagged: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  Same: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  Forward: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  User: { copy_structure: true, generate_binding: false, generate_wrapper: false }
+  Wrapped: { copy_structure: true }

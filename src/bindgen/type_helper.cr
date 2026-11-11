@@ -24,6 +24,13 @@ module Bindgen
       )
     end
 
+    # Is *type* a function pointer, or a C array of them, whose type isn't
+    # configured?  Methods can't pass these, but a `lib struct` stores them,
+    # see `Processor::CopyStructs`.
+    def unconfigured_function_pointer?(type : Parser::Type) : Bool
+      !type.prototype.nil? && !type.reference? && !type.move? && @db[type]?.nil?
+    end
+
     # Returns the pointer-depth without a reference of *type*.
     def type_pointer_depth(type : Parser::Type) : Int32
       depth = type.pointer

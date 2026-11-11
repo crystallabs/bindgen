@@ -25,6 +25,10 @@ void RecordMatchHandler::run(const clang::ast_matchers::MatchFinder::MatchResult
 }
 
 void RecordMatchHandler::runOnDefinition(const clang::CXXRecordDecl *definition) {
+	// Found by its typedef and by its own name, like `struct T` in
+	// `typedef struct T { ... } T;`.
+	if (!this->m_definitions.insert(definition).second) return;
+
 	this->m_found = true;
 	m_classesToRun.push_back(std::make_pair(definition, this->m_className));
 

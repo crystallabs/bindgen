@@ -3,6 +3,8 @@ module Bindgen
     # Checks that all default-constructible classes have a default constructor
     # defined.
     class DefaultConstructor < Base
+      include TypeHelper
+
       def visit_class(klass : Graph::Class)
         return unless klass.wrapped_class.nil? # Skip `Impl` classes
 
@@ -71,6 +73,7 @@ module Bindgen
       # 6. The class has no bases.
       # 7. The class has no user-declared constructors.
       # 8. The class is not a C++ union.
+      # 9. None of the fields are function pointers methods can't pass.
       #
       # These are the rules of an aggregate common to C++11 through C++20, so
       # that the constructor compiles no matter which standard the wrapper is
@@ -81,9 +84,10 @@ module Bindgen
 
         allowed = !fields.empty? # 1.
         allowed &&= fields.all? do |field|
-          field.public? &&                 # 2.
-            !field.has_default? &&         # 3.
-            !@db[field]?.try(&.anonymous?) # 4.
+          field.public? &&                         # 2.
+            !field.has_default? &&                 # 3.
+            !@db[field]?.try(&.anonymous?) &&      # 4.
+            !unconfigured_function_pointer?(field) # 9.
         end
 
         allowed &&= !klass.has_virtual_methods? # 5.

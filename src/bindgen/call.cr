@@ -101,6 +101,20 @@ module Bindgen
       end
     end
 
+    # A result specifying a C function pointer in a `lib`, like a `Proc` member
+    # of a `lib struct`.
+    class FunctionPointerResult < Result
+      # The results of the argument types, followed by the return type.  This
+      # is the order of the type arguments of the `Proc`.
+      getter signature : Array(Result)
+
+      # Keeps the arguments of `Result#initialize`, as `Result+.class` may
+      # create an instance.
+      def initialize(@type, @type_name, @reference, @pointer, @conversion = Template::None.new,
+                     @nilable = false, @signature = [] of Result)
+      end
+    end
+
     # A `Call` argument.
     class Argument < Expression
       # The variable name.

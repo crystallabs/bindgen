@@ -25,6 +25,11 @@ private:
 	// Returns their indices in the class list, and their definitions.
 	std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> gatherInstantiations(clang::ASTContext &ctx);
 
+	// Finds the records to inspect which are named by a typedef, like `T` in
+	// `typedef struct { ... } T;`, and registers their names.  Returns their
+	// indices in the class list, and their definitions.
+	std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> gatherTypedefRecords(clang::ASTContext &ctx);
+
 	std::vector<std::unique_ptr<RecordMatchHandler>> m_classHandlers;
 	std::vector<std::unique_ptr<OperatorMatchHandler>> m_operatorHandlers;
 	std::vector<std::unique_ptr<EnumMatchHandler>> m_enumHandlers;

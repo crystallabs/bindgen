@@ -4,10 +4,12 @@
 #include "json_stream.hpp"
 #include "clang/AST/DeclCXX.h"
 #include "clang/Basic/Version.h"
+#include <memory>
 #include <optional>
 
 // Forward declare for `Template::arguments`
 struct Type;
+struct Prototype;
 
 struct Template {
 	std::string fullName; // The template class, e.g. `std::vector<_Tp, _Alloc>` in `std::vector<std::string>`
@@ -33,9 +35,20 @@ struct Type {
 	bool isFunction = false; // A function type, like the `void (int)` of `std::function<void (int)>`; `templ` holds its return and parameter types
 
 	std::optional<Template> templ; // Set if this is a template type
+	std::shared_ptr<Prototype> prototype; // Set if the base type is a function, e.g. `int (*)(char)`
 };
 
 JsonStream &operator<<(JsonStream &s, const Type &value);
+
+// The signature of a function type, e.g. `int (char)` of `int (*)(char)`.
+struct Prototype {
+	Type returnType; // Return type
+	std::vector<Type> arguments; // Parameter types
+	bool isVariadic = false; // Does it end in `...`?
+	bool isDefaultCallingConvention = true; // Is it called like other functions of the target?
+};
+
+JsonStream &operator<<(JsonStream &s, const Prototype &value);
 
 struct LiteralData {
 	enum Kind {

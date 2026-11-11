@@ -24,6 +24,7 @@ struct PolyLine {
 struct StringPointer {
   std::string *name;
   Point *point;
+  std::string *names[2];
 };
 
 struct Nested {

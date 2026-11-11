@@ -4,6 +4,15 @@ private def parse(*args)
   Bindgen::Parser::Type.parse(*args)
 end
 
+# A function pointer type `int (*)(char)`, as the clang tool reports it.
+private def function_pointer(pointer = 1, extents = [] of UInt64)
+  prototype = Bindgen::Parser::Prototype.new(parse("int"), [parse("char")])
+  Bindgen::Parser::Type.new(
+    base_name: "int (char)", full_name: "int (*)(char)", const: false,
+    reference: false, pointer: pointer, extents: extents, prototype: prototype,
+  )
+end
+
 describe Bindgen::Parser::Type do
   describe "#decayed" do
     it "returns nil for base type" do # Rule 6
@@ -39,6 +48,35 @@ describe Bindgen::Parser::Type do
       parse("int (*)[4]").decayed.should eq(parse("int [4]"))
       parse("const int *(*)[4][3]").decayed.should eq(parse("const int *[4][3]"))
       parse("int (*&)[4]").decayed.should eq(parse("int (**)[4]"))
+    end
+  end
+
+  describe "#prototype" do
+    it "is kept by derived types" do
+      type = function_pointer(pointer: 2, extents: [2u64])
+      prototype = type.prototype
+      prototype.should_not be_nil
+      type.decayed.try(&.prototype).should eq(prototype)
+      type.remove_all_extents.prototype.should eq(prototype)
+      type.make_pointer_nilable.try(&.prototype).should eq(prototype)
+      parse("T *").substitute("T", function_pointer).prototype.should eq(prototype)
+      Bindgen::Parser::Argument.new("a", type).prototype.should eq(prototype)
+    end
+
+    it "tells function types apart" do
+      function_pointer.should_not eq(parse("int (char)", 1))
+    end
+  end
+
+  describe "#function_pointer?" do
+    it "is true for a pointer to a function" do
+      function_pointer.function_pointer?.should be_true
+    end
+
+    it "is false for anything else" do
+      function_pointer(pointer: 2).function_pointer?.should be_false
+      function_pointer(pointer: 2, extents: [2u64]).function_pointer?.should be_false
+      parse("int *").function_pointer?.should be_false
     end
   end
 

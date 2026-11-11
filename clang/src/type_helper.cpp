@@ -14,6 +14,7 @@
 static std::optional<Template> handleTemplate(const clang::TemplateSpecializationType *tmpl, clang::ASTContext &ctx);
 static std::optional<Type> handleValueArgument(const clang::TemplateArgument &argument, clang::ASTContext &ctx);
 static bool tryReadStringConstructor(LiteralData &literal, const clang::CXXConstructExpr *expr);
+static Prototype functionPrototype(const clang::FunctionProtoType *proto, clang::ASTContext &ctx);
 
 // Names of the types registered through `TypeHelper::registerTypeName`, by
 // their canonical type.
@@ -361,6 +362,26 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clan
 		target.isFunction = true;
 		target.templ = t;
 	}
+
+	if (const auto *proto = qt->getAs<clang::FunctionProtoType>()) {
+		target.prototype = std::make_shared<Prototype>(functionPrototype(proto, ctx));
+	}
+}
+
+// Describes the signature of the function type *proto*.  The parameter types
+// are adjusted already, like an array parameter to a pointer.
+static Prototype functionPrototype(const clang::FunctionProtoType *proto, clang::ASTContext &ctx) {
+	Prototype p;
+	p.returnType = TypeHelper::qualTypeToType(proto->getReturnType(), ctx);
+
+	for (const clang::QualType &param : proto->getParamTypes()) {
+		p.arguments.push_back(TypeHelper::qualTypeToType(param, ctx));
+	}
+
+	p.isVariadic = proto->isVariadic();
+	p.isDefaultCallingConvention =
+		proto->getCallConv() == ctx.getDefaultCallingConvention(proto->isVariadic(), false);
+	return p;
 }
 
 static std::optional<Template> handleTemplate(const clang::TemplateSpecializationType *tmpl, clang::ASTContext &ctx) {
