@@ -917,6 +917,10 @@ are kept.  Defaults to keeping nothing.
   indices of the arguments to keep, `true` for all of them, or `false` for
   none.
 
+A rule keeping all arguments skips those passed by `const` reference, which
+C++ copies, like the `QPixmap` of `QIcon(const QPixmap &)`.  List the index
+of such an argument to keep it.
+
 The expressions are matched against the C++ method name, the name of the data
 member for its setter, and an empty string for constructors.  Copy
 constructors never keep their argument.  An expression matching no method of
