@@ -10,7 +10,7 @@ describe "multi-file C++ output" do
       end
 
       it "writes a file per class, and one of the shared declarations" do
-        files = Dir.glob("tmp/multi_file.*.cpp").map { |path| File.basename(path) }.sort
+        files = Dir.glob("tmp/multi_file.*.cpp").map { |path| File.basename(path) }.sort!
         files.should eq(%w[
           multi_file.bindgen_declarations.cpp
           multi_file.bindgen_functions.cpp
