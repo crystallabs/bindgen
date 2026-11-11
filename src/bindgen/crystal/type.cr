@@ -18,6 +18,8 @@ module Bindgen
         when "LibC::Long" then "Int64" # Not Windows
         when "LibC::ULong" then "UInt64"
         {% end %}
+        when "LibC::SizeT" then {{ flag?(:bits32) ? "UInt32" : "UInt64" }}
+        when "LibC::SSizeT" then {{ flag?(:bits32) ? "Int32" : "Int64" }}
         when "LibC::LongLong" then "Int64"
         when "LibC::ULongLong" then "UInt64"
         else

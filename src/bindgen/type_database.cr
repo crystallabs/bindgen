@@ -528,7 +528,8 @@ module Bindgen
       while type
         decayed_type = type.decayed
         if found = @types[resolve_aliases(type).full_name]? || @types[type.base_name]?
-          if decayed_type && (parent = @types[decayed_type.full_name]?)
+          # A plain `T *` finds the rules of `T` twice: nothing to merge.
+          if decayed_type && (parent = @types[decayed_type.full_name]?) && !parent.same?(found)
             found = parent.merge(found)
           end
 
@@ -712,15 +713,20 @@ module Bindgen
     # matching the method name, narrowed down to instances of wrapped classes
     # passed by pointer or reference.  Wrappers of `kind: Struct` are skipped,
     # as they are Crystal structs and their pointer arguments stay pointers.
+    # A rule selecting all arguments skips those passed by `const` reference,
+    # which C++ copies; one listing indices selects them.
     def selected_object_arguments(method : Parser::Method, rules : KeepAlive) : Array(Int32)
       indices = [] of Int32
+      explicit = Set(Int32).new
       rules.each do |pattern, selected|
         next unless pattern.matches?(method.name)
+        explicit.concat(selected) if selected
         indices.concat(selected || (0...method.arguments.size))
       end
 
       indices.uniq.sort!.select do |index|
         next false unless arg = method.arguments[index]?
+        next false if arg.reference? && arg.const? && !explicit.includes?(index)
         object_argument?(arg)
       end
     end

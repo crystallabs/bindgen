@@ -22,6 +22,44 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 * A C array of pointers to converted types in a copied structure, like
   `std::string *names[2]`, keeps its extents as `Void*[2]`.  It became a
   single `Void**`.
+* The clang tool writes floating-point values with 17 significant digits
+  instead of 6, and `null` for an infinite or NaN one, which made its output
+  invalid JSON.
+* A deduced `auto &`, `auto *` or `const auto &` keeps its reference, pointer
+  and `const`.  It was reported as the deduced type by value.
+* The clang tool no longer frees the string of a default argument twice when
+  an argument list is changed, like for a `member_functions:` function with a
+  string default.
+* `functions:` no longer matches out-of-line definitions of member functions,
+  function templates and deduction guides.
+* `bindgen_helper.hpp` compiles for a wrapped polymorphic class whose bases
+  are all in a namespace: `bindgen_crystal_object` was declared after its use
+  and only found for classes with a base in the global namespace.
+* A renamed pure virtual method keeps its Crystal name in the `Impl` class and
+  the subclasses, and a `member_functions:` function inherited from a second
+  base class is still called as a free function.
+* A `static const` member of type `size_t` or `ssize_t` becomes a constant;
+  generating the wrapper failed.  So does a `static const bool` which is
+  `false`, which became a getter.
+* A pointer argument defaulting to a constant other than `nullptr`, like
+  `&Foo::instance`, has no default in Crystal.  It defaulted to `nil`.
+* `keep_alive:` rules selecting all arguments of a method skip those passed by
+  `const` reference, which C++ copies: wrappers like the `QPixmap` of a `QIcon`
+  constructor were kept forever.  A rule listing argument indices still
+  selects them.
+* `qt_meta_object`: a Crystal subclass without signals, slots or properties
+  shares the meta-object of its Crystal parent instead of building a second
+  one, which emitted the wrong signals.  The topmost Crystal class of a chain
+  gets the meta-object of the C++ class also when only a subclass is
+  instantiated.  On Qt 6 a property without `notify:` no longer names the
+  class's first signal as its notifier.
+
+### Changed
+
+* The clang tool looks up the typedefs naming configured classes in one
+  traversal of the AST instead of one per class, and converts a function type
+  once instead of twice.
+* Looking up the rules of a plain `T *` no longer copies them.
 
 ## 0.16.2 (2026-10-25)
 

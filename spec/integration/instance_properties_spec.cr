@@ -160,6 +160,8 @@ describe "C++ instance properties" do
           Test::Props::C_F32.should be_a(Float32)
           Test::Props::C_B.should be_true
           Test::Props::C_B.should be_a(Bool)
+          Test::Props::C_FALSE.should be_false
+          Test::Props::C_SIZE.should eq(16)
         end
       end
 

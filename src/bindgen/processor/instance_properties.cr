@@ -55,7 +55,7 @@ module Bindgen
             next unless field_klass = add_anonymous_typedef(klass, field)
             add_getter(klass, access, field_klass.as_type, field, static, method_name, AddressGetterBody.new)
             add_setter(klass, access, field_type, field, static, method_name)
-          elsif static && field.const? && field.has_default? && (init = field.value)
+          elsif static && field.const? && field.has_default? && !(init = field.value).nil?
             add_static_constant(klass, field, init)
           else
             # Methods win over property methods with the same Crystal name.

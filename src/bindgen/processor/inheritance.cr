@@ -518,12 +518,17 @@ module Bindgen
           const: method.const?,
           virtual: method.virtual?,
           pure: false,
+          final: method.final?,
           class_name: method.class_name, # Keep original class!
           arguments: method.arguments,
           first_default_argument: method.first_default_argument,
           return_type: method.return_type,
           deprecated: method.deprecated?,
           origin: method.origin, # A variant of its origin stays one
+          crystal_name: method.explicit_crystal_name? ? method.crystal_name : nil,
+          free_function: method.free_function?,
+          builtin: method.builtin?,
+          doc: method.doc,
         )
       end
 
@@ -543,6 +548,10 @@ module Bindgen
           return_type: method.return_type,
           deprecated: method.deprecated?,
           origin: method.origin, # A variant of its origin stays one
+          crystal_name: method.explicit_crystal_name? ? method.crystal_name : nil,
+          free_function: method.free_function?,
+          builtin: method.builtin?,
+          doc: method.doc,
         )
       end
 

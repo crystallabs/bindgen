@@ -29,6 +29,10 @@ module Bindgen
         value = arg.default_value
         return if value.nil?
 
+        # A pointer default of `false` is a constant other than `nullptr`, like
+        # `&Foo::instance`, which Crystal can't name.
+        return if arg.pointer > 0 && value == false
+
         # The parser reports a `nullptr` default as `true`: a pointer
         # argument of any type, like `bool *flag = nullptr`, defaults to nil.
         stringified = arg.pointer > 0 && value == true ? "nil" : literal(arg.type_name, value)

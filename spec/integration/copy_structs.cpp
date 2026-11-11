@@ -204,6 +204,8 @@ public:
   static const Point origin;
   static constexpr float c_f32 = 1.2;
   static const bool c_b = true;
+  static const bool c_false = false;
+  static const size_t c_size = 16;
 
 protected:
   int x_prot;
