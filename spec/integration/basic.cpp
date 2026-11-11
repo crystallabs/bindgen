@@ -286,6 +286,11 @@ struct Deduced {
   struct Inner { int v; };
   auto inner() { return Inner { 4 }; }
   auto number() { return 9; }
+
+  // `auto &` and `auto *` keep the reference and pointer.
+  Inner m_inner { 6 };
+  auto &innerRef() { return m_inner; }
+  const auto *innerPtr() const { return &m_inner; }
 };
 
 // An operator Crystal can't name is dropped instead of aborting.

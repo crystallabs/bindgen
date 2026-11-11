@@ -218,8 +218,9 @@ static clang::QualType desugarAliasTemplates(clang::QualType qt, clang::ASTConte
 void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clang::ASTContext &ctx) {
 	clang::QualType qt = desugarAliasTemplates(desugarInstantiationTypedefs(given, ctx), ctx);
 
-	// A deduced `auto` is named by the deduced type, fully qualified.
-	if (const auto *autoType = qt->getContainedAutoType()) {
+	// A deduced `auto` is named by the deduced type, fully qualified.  The
+	// pointee of an `auto *` or `auto &` gets here on its own, below.
+	if (const auto *autoType = llvm::dyn_cast<clang::AutoType>(qt.getTypePtr())) {
 		if (autoType->isDeduced()) {
 			qt = ctx.getQualifiedType(autoType->getDeducedType(), qt.getLocalQualifiers());
 		}
@@ -351,20 +352,17 @@ void TypeHelper::qualTypeToType(Type &target, const clang::QualType &given, clan
 	// order, as the arguments of a template named like the function type, so
 	// bindgen can build a `Proc` from it.
 	if (const auto *function = qt->getAs<clang::FunctionProtoType>()) {
+		target.prototype = std::make_shared<Prototype>(functionPrototype(function, ctx));
+
 		Template t;
 		t.baseName = target.baseName;
 		t.fullName = target.baseName;
-		t.arguments.push_back(qualTypeToType(function->getReturnType(), ctx));
-		for (clang::QualType param : function->param_types()) {
-			t.arguments.push_back(qualTypeToType(param, ctx));
-		}
+		t.arguments.push_back(target.prototype->returnType);
+		t.arguments.insert(t.arguments.end(),
+			target.prototype->arguments.begin(), target.prototype->arguments.end());
 
 		target.isFunction = true;
 		target.templ = t;
-	}
-
-	if (const auto *proto = qt->getAs<clang::FunctionProtoType>()) {
-		target.prototype = std::make_shared<Prototype>(functionPrototype(proto, ctx));
 	}
 }
 

@@ -23,6 +23,8 @@ describe "clang tool macros feature" do
         #define EVALUATE_TRUE true
         #define EVALUATE_FALSE false
         #define EVALUATE_FLOAT 3.5
+        #define EVALUATE_PRECISE 3.14159265358979
+        #define EVALUATE_INFINITY __builtin_inf()
         CPP
       "-m 'THING_.*|ANOTHER|ADD_.*|EVALUATE_.*'",
       macros: [
@@ -144,6 +146,14 @@ describe "clang tool macros feature" do
           value:      "3.5",
           type:       {fullName: "double"},
           evaluated:  3.5,
+        },
+        {
+          name:      "EVALUATE_PRECISE",
+          evaluated: 3.14159265358979,
+        },
+        {
+          name:      "EVALUATE_INFINITY",
+          evaluated: nil,
         },
       ]
     )

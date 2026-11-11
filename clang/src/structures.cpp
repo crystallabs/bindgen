@@ -64,6 +64,16 @@ LiteralData::LiteralData(const LiteralData &other)
 		this->container.string_value = new std::string(*other.container.string_value);
 }
 
+LiteralData &LiteralData::operator=(const LiteralData &other) {
+	if (this != &other) {
+		LiteralData copy(other);
+		std::swap(this->kind, copy.kind);
+		std::swap(this->container, copy.container);
+	}
+
+	return *this;
+}
+
 LiteralData::~LiteralData() {
 	if (kind == StringKind)
 		delete this->container.string_value;
@@ -73,12 +83,18 @@ bool LiteralData::hasValue() const {
 	return (this->kind != None);
 }
 
-void LiteralData::clear() { this->kind = None; }
-void LiteralData::set(bool v) { this->kind = BoolKind; this->container.bool_value = v; }
-void LiteralData::set(int64_t v) { this->kind = IntKind; this->container.int_value = v; }
-void LiteralData::set(uint64_t v) { this->kind = UIntKind; this->container.uint_value = v; }
-void LiteralData::set(double v) { this->kind = DoubleKind; this->container.double_value = v; }
+void LiteralData::clear() {
+	if (kind == StringKind)
+		delete this->container.string_value;
+	this->kind = None;
+}
+
+void LiteralData::set(bool v) { clear(); this->kind = BoolKind; this->container.bool_value = v; }
+void LiteralData::set(int64_t v) { clear(); this->kind = IntKind; this->container.int_value = v; }
+void LiteralData::set(uint64_t v) { clear(); this->kind = UIntKind; this->container.uint_value = v; }
+void LiteralData::set(double v) { clear(); this->kind = DoubleKind; this->container.double_value = v; }
 void LiteralData::set(const std::string &v) {
+	clear();
 	this->kind = StringKind;
 	this->container.string_value = new std::string(v);
 }

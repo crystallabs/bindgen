@@ -79,7 +79,7 @@ OPTIONS[:llvm_version] = output_of(OPTIONS[:llvm_config], "--version")
 
 OPTIONS[:llvm_cxx_flags] = output_of(OPTIONS[:llvm_config], "--cxxflags")
   .gsub(/-fno-exceptions/, "")
-  .gsub(/-W[^alp].+\s/, "")
+  .gsub(/-W[^alp]\S*\s?/, "")
   .gsub(/\s+/, " ")
 
 OPTIONS[:llvm_ld_flags] = output_of(OPTIONS[:llvm_config], "--ldflags")

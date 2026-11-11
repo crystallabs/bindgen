@@ -72,6 +72,7 @@ struct LiteralData {
 
 	LiteralData();
 	LiteralData(const LiteralData &other);
+	LiteralData &operator=(const LiteralData &other);
 
 	~LiteralData();
 

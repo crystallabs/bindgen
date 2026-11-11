@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "common.hpp"
 #include "bindgen_ast_consumer.hpp"
 
@@ -59,7 +60,7 @@ clang::ast_matchers::MatchFinder BindgenASTConsumer::makeBasicMatchFinder() {
 	}
 
 	if (FunctionMatchHandler::isActive()) {
-		DeclarationMatcher funcMatcher = functionDecl(unless(hasParent(cxxRecordDecl()))).bind("functionDecl");
+		DeclarationMatcher funcMatcher = functionDecl(unless(cxxMethodDecl()), unless(cxxDeductionGuideDecl()), unless(hasParent(cxxRecordDecl()))).bind("functionDecl");
 
 		auto handler = std::make_unique<FunctionMatchHandler>(m_document);
 
@@ -160,7 +161,8 @@ static void runTypeInfoResult(TypeInfoResult &info, const clang::ClassTemplateSp
 			if (var_decl->getName() == "isDefaultConstructible") {
 				LiteralData data;
 				TypeHelper::readValue(data, var_decl->getType(), ctx, var_decl->getInit());
-				info.isDefaultConstructible = data.container.bool_value;
+				info.isDefaultConstructible =
+					data.kind == LiteralData::BoolKind && data.container.bool_value;
 			}
 		}
 	}
@@ -285,20 +287,37 @@ std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> BindgenASTConsumer:
 	using namespace clang::ast_matchers;
 	std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> result;
 
+	// One traversal for all classes: each `match` walks the whole AST.
+	std::vector<size_t> indexes;
+	std::vector<llvm::StringRef> names;
 	for (size_t index = 0; index < ClassList.size(); index++) {
-		const std::string &className = ClassList[index];
-		if (RecordMatchHandler::isInstantiation(className)) continue;
+		if (RecordMatchHandler::isInstantiation(ClassList[index])) continue;
+		indexes.push_back(index);
+		names.push_back(ClassList[index]);
+	}
 
-		auto matches = match(typedefNameDecl(hasName(className)).bind("typedef"), ctx);
-		for (const auto &node : matches) {
-			const auto *decl = node.getNodeAs<clang::TypedefNameDecl>("typedef");
-			const clang::CXXRecordDecl *record = decl->getUnderlyingType()->getAsCXXRecordDecl();
+	if (names.empty()) return result;
 
-			// Instantiations need `BindgenInstantiation` to be complete.
-			if (!record || llvm::isa<clang::ClassTemplateSpecializationDecl>(record)) continue;
+	auto matches = match(typedefNameDecl(hasAnyName(names)).bind("typedef"), ctx);
+	for (const auto &node : matches) {
+		const auto *decl = node.getNodeAs<clang::TypedefNameDecl>("typedef");
+		const clang::CXXRecordDecl *record = decl->getUnderlyingType()->getAsCXXRecordDecl();
 
-			record = record->getDefinition();
-			if (!record || record->isDependentType() || record->isInvalidDecl()) continue;
+		// Instantiations need `BindgenInstantiation` to be complete.
+		if (!record || llvm::isa<clang::ClassTemplateSpecializationDecl>(record)) continue;
+
+		record = record->getDefinition();
+		if (!record || record->isDependentType() || record->isInvalidDecl()) continue;
+
+		// The classes naming this typedef, as `hasName` matches them: by the
+		// qualified name, or a suffix of it starting at a `::`.
+		std::string qualified = "::" + decl->getQualifiedNameAsString();
+		for (size_t index : indexes) {
+			const std::string &className = ClassList[index];
+			std::string anchored = (className.rfind("::", 0) == 0) ? className : "::" + className;
+			if (anchored.size() > qualified.size()) continue;
+			if (qualified.compare(qualified.size() - anchored.size(), anchored.size(), anchored) != 0) continue;
+			if (className.rfind("::", 0) == 0 && anchored.size() != qualified.size()) continue;
 
 			// A record listed by its own name too keeps it where it's written
 			// so, like `struct T` in `typedef struct T { ... } U;`.
@@ -308,6 +327,10 @@ std::vector<std::pair<size_t, const clang::CXXRecordDecl *>> BindgenASTConsumer:
 			result.push_back(std::make_pair(index, record));
 		}
 	}
+
+	// In the order of the classes, as they're handled.
+	std::stable_sort(result.begin(), result.end(),
+		[](const auto &a, const auto &b) { return a.first < b.first; });
 
 	return result;
 }

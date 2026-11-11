@@ -47,6 +47,8 @@ describe "a basic C++ wrapper" do
         it "names a deduced auto return type" do
           Test::Deduced.new.number.should eq(9)
           Test::Deduced.new.inner.v.should eq(4)
+          Test::Deduced.new.inner_ref.v.should eq(6)
+          Test::Deduced.new.inner_ptr.v.should eq(6)
         end
 
         it "drops an operator Crystal can't name" do

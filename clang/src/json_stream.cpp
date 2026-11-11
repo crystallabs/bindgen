@@ -1,5 +1,6 @@
 #include "json_stream.hpp"
 
+#include <cmath>
 #include <cstdio>
 
 /* Simple stream writer for JSON data. */
@@ -10,7 +11,12 @@ JsonStream::JsonStream(std::ostream &out)
 }
 
 JsonStream &JsonStream::operator<<(double value) {
-	this->m_out << value;
+	// JSON has no `inf` and `nan`.  17 digits round-trip a double.
+	if (!std::isfinite(value)) return *this << Null;
+
+	char buffer[32];
+	snprintf(buffer, sizeof(buffer), "%.17g", value);
+	this->m_out << buffer;
 	return *this;
 }
 

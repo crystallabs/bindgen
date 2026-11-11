@@ -52,6 +52,8 @@ static Method buildMethod(const clang::FunctionDecl *func, const std::string &fu
 }
 
 void FunctionMatchHandler::runOnFunction(const clang::FunctionDecl *func) {
+	if (func->isTemplated()) return; // A template, not a function.
+
 	std::string fullName = func->getQualifiedNameAsString();
 
 	if (isFunctionInteresting(fullName)) {
