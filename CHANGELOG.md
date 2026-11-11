@@ -2,6 +2,31 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## 0.17.1 (2026-11-11)
+
+### Fixed
+
+* Containers are instantiated with the less nested ones first across all
+  containers, not only among those of the same template.  A
+  `std::pair<int, std::vector<int>>`, or a `std::vector` of a map configured
+  after it, was instantiated before the container it holds, which failed.
+* The multi-file output of the C++ generator, an `output:` with a `%`, builds.
+  The type aliases, structures and constants are written to a
+  `bindgen_declarations` file, which the file of each class includes; they
+  were lost, or ended up in the file of an unrelated class.  Every file
+  includes the parsed headers.  A file is named by the path of its class, so
+  nested classes of the same name, like the `Entries` of two maps, no longer
+  overwrite each other.  Functions outside of a class go to a
+  `bindgen_functions` file.
+* The weak reference to the Crystal object of a C++ object is read holding
+  the GC's allocator lock.  A collection in another thread could free the
+  Crystal object between the read and its use.
+
+### Changed
+
+* `shard.yml` and the README ask for Crystal 1.15 or newer, the oldest
+  version which compiles bindgen.  They claimed 1.8.
+
 ## 0.17.0 (2026-11-11)
 
 ### Added
