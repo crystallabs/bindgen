@@ -526,12 +526,23 @@ extern "C" __attribute__((weak)) void bindgen_set_crystal_object(void *object, v
   GC_general_register_disappearing_link(&gc_object->bindgen_crystal, crystal);
 }
 
-extern "C" __attribute__((weak)) void *bindgen_crystal_object(void *object) {
-  BindgenGCObject *gc_object = bindgen_gc_object(object);
-  if (gc_object == nullptr || gc_object->bindgen_crystal == nullptr) return nullptr;
-  if (gc_object->bindgen_crystal_wrapped != object) return nullptr;
+// Reads the weak reference of the `BindgenGCObject` at *data*.
+static void *bindgen_reveal_crystal_object(void *data) {
+  auto *gc_object = static_cast<BindgenGCObject *>(data);
+  if (gc_object->bindgen_crystal == nullptr) return nullptr;
 
   return GC_REVEAL_POINTER(reinterpret_cast<GC_hidden_pointer>(gc_object->bindgen_crystal));
+}
+
+extern "C" __attribute__((weak)) void *bindgen_crystal_object(void *object) {
+  BindgenGCObject *gc_object = bindgen_gc_object(object);
+  if (gc_object == nullptr || gc_object->bindgen_crystal_wrapped != object) return nullptr;
+
+  /* Holding the allocator lock: a collection in another thread, between
+   * reading the hidden pointer and revealing it, could clear the link and
+   * free the Crystal object.  Once revealed, the GC sees the pointer.
+   */
+  return GC_call_with_alloc_lock(bindgen_reveal_crystal_object, gc_object);
 }
 
 /* The thread which destroys the objects the GC finalizes: the main thread,
