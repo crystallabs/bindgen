@@ -1270,7 +1270,7 @@ An exception will be raised if any of the following occur:
 | x86_64 | Ubuntu 24.04  | GitHub Actions | 14, 16, 18, 20, 22, 23 |
 |        | Other systems | Help wanted    | ?                      |
 
-LLVM and Clang 14 or newer and Crystal 1.8 or newer are required.
+LLVM and Clang 14 or newer and Crystal 1.15 or newer are required.
 
 You require the LLVM and Clang development libraries and headers.  If you don't
 have them already installed, bindgen will tell you. These packages are usually
