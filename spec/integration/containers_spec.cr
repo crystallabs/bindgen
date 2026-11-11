@@ -11,6 +11,24 @@ describe "container instantiation feature" do
         end
       end
 
+      context "container nested in another kind of container" do
+        it "wraps a pair of a list" do
+          count, list = Test::Containers.new.numbered(3)
+          count.should eq(3)
+          list.to_a.should eq([0, 1, 2])
+        end
+
+        it "wraps a list of maps" do
+          books = Test::Containers.new.phonebooks
+          books.map(&.to_h).should eq([{"Alice" => 123}, {"Bob" => 456, "Carol" => 789}])
+        end
+
+        it "wraps an optional list" do
+          Test::Containers.new.maybe_list(true).try(&.to_a).should eq([1, 2, 3])
+          Test::Containers.new.maybe_list(false).should be_nil
+        end
+      end
+
       context "set container" do
         it "wraps a result" do
           evens = Test::Containers.new.evens(5)

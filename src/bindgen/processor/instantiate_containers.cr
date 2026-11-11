@@ -39,10 +39,19 @@ module Bindgen
           build_container_module(containers, root)
         end
 
-        # Pairs first: Their type rules are needed by the containers of them.
+        # The less nested instantiations first, across all containers, so the
+        # rules of a nested container exist when the one of it is
+        # instantiated: the `std::vector<int>` of a
+        # `std::pair<int, std::vector<int>>`, and the pair of a list of them.
+        # Pairs first among those nested alike, then in configuration order.
         pairs, others = @config.containers.partition(&.type.pair?)
-        (pairs + others).each do |container|
-          instantiate_container(container, root)
+        instances = (pairs + others).flat_map do |container|
+          container.instantiations.map { |instance| {container, instance} }
+        end
+
+        instances.sort_by! { |(_, instance)| instance.sum(&.count('<')) }
+        instances.each do |(container, instance)|
+          instantiate_container(container, instance, root)
         end
       end
 
@@ -74,56 +83,28 @@ module Bindgen
         macro_node.calls[Graph::Platform::Crystal] = call.build(macro_method, containers)
       end
 
-      # Instantiates the *container* (Of any type), placing the built classes
-      # into *root*.
-      private def instantiate_container(container, root)
-        Log.trace { "instantiate container #{container.class}" }
+      # Instantiates the *instance* of the *container* into *root*.
+      private def instantiate_container(container, instance, root)
+        Log.trace { "instantiate container #{container.class}<#{instance.join(", ")}>" }
 
         case container.type
         when .sequential?
-          add_sequential_containers(container, root)
-        when .associative?
-          add_associative_containers(container, root)
-        when .pair?
-          add_pair_containers(container, root)
-        when .optional?
-          add_optional_containers(container, root)
-        when .set?
-          add_set_containers(container, root)
-        else
-          raise "BUG: Missing case for #{container.type.inspect}"
-        end
-      end
-
-      # Adds all instances of the sequential *container* into *root*.
-      private def add_sequential_containers(container, root)
-        nested_first(container.instantiations).each do |instance|
           check_sequential_instance! container, instance
           add_sequential_container(container, instance, root)
-        end
-      end
-
-      # Adds all instances of the associative *container* into *root*.
-      private def add_associative_containers(container, root)
-        nested_first(container.instantiations).each do |instance|
+        when .associative?
           check_associative_instance! container, instance
           add_associative_container(container, instance, root)
-        end
-      end
-
-      # Adds all instances of the *container* pair type into *root*.
-      private def add_pair_containers(container, root)
-        nested_first(container.instantiations).each do |instance|
+        when .pair?
           check_associative_instance! container, instance
           add_pair_container(container, instance, root)
-        end
-      end
-
-      # Adds all instances of the set *container* into *root*.
-      private def add_set_containers(container, root)
-        nested_first(container.instantiations).each do |instance|
+        when .optional?
+          check_sequential_instance! container, instance
+          add_optional_container(container, instance, root)
+        when .set?
           check_sequential_instance! container, instance
           add_set_container(container, instance, root)
+        else
+          raise "BUG: Missing case for #{container.type.inspect}"
         end
       end
 
@@ -156,14 +137,6 @@ module Bindgen
 
         elements_graph = builder.build_class(elements, "Elements", graph)
         elements_graph.set_tag(Graph::Class::FORCE_UNWRAP_VARIABLE_TAG)
-      end
-
-      # Adds all instances of the optional *container* into *root*.
-      private def add_optional_containers(container, root)
-        nested_first(container.instantiations).each do |instance|
-          check_sequential_instance! container, instance
-          add_optional_container(container, instance, root)
-        end
       end
 
       # Instantiates a single optional *container* *instance* into *root*.
@@ -212,12 +185,6 @@ module Bindgen
         graph.included_modules << container_module(PAIR_MODULE, templ_args)
         graph.included_modules << container_module(container.class, templ_args)
         @db.get_or_add(templ_type.full_name).graph_node = graph
-      end
-
-      # The *instantiations* with the less nested ones first, so the rules of
-      # a nested container exist when the one of it is instantiated.
-      private def nested_first(instantiations)
-        instantiations.to_a.sort_by { |instance| instance.sum(&.count('<')) }
       end
 
       # Instantiates the containers nested in the arguments of the configured

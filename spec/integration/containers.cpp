@@ -39,6 +39,22 @@ public:
     return { { 0.5, 1 }, { 1.5, 2 } };
   }
 
+  // Containers nested in a container of another kind.
+  std::pair<int, std::vector<int>> numbered(int count) {
+    std::vector<int> list;
+    for (int i = 0; i < count; i++) list.push_back(i);
+    return { count, list };
+  }
+
+  std::vector<std::map<std::string, int>> phonebooks() {
+    return { { { "Alice", 123 } }, { { "Bob", 456 }, { "Carol", 789 } } };
+  }
+
+  std::optional<std::vector<int>> maybeList(bool some) {
+    if (some) return std::vector<int>{ 1, 2, 3 };
+    return std::nullopt;
+  }
+
   // Pairs spelled by the alias template, on their own and inside a list.
   couple<std::string, int> aliased_entry() {
     return { "two", 2 };
