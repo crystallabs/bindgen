@@ -2,7 +2,7 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
-## Unreleased
+## 0.17.0 (2026-11-11)
 
 ### Added
 
@@ -60,6 +60,7 @@ Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
   traversal of the AST instead of one per class, and converts a function type
   once instead of twice.
 * Looking up the rules of a plain `T *` no longer copies them.
+* `Bindgen::VERSION` is the version of the shard again; it was left at 0.13.0.
 
 ## 0.16.2 (2026-10-25)
 
