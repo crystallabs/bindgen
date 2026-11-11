@@ -74,6 +74,12 @@ generators:
   # C++ generator
   cpp:
     # Output file path  (Mandatory)
+    # With a `%` in it, like `ext/my_bindings_%.cpp`, a file is written per
+    # class, the `%` replaced by its name: `ext/my_bindings_my_class.cpp`.
+    # The type aliases, structures and constants they share are written to
+    # `ext/my_bindings_bindgen_declarations.cpp`, which the other files
+    # include, and functions outside of a class to
+    # `ext/my_bindings_bindgen_functions.cpp`.  Build and link all of them.
     output: ext/my_bindings.cpp
     # Output file preamble  (Optional)
     preamble: |-

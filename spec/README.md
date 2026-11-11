@@ -42,6 +42,11 @@ running an integration test:
 * `tmp/NAME.cr` the generated Crystal wrapper code
 * `tmp/NAME_test.cr` the Crystal test code for those bindings
 
+Set `BINDGEN_SPEC_MULTI_FILE=1` to generate the C++ wrapper of every
+integration test as a file per class, `tmp/NAME.CLASS.cpp`, like the
+`multi_file` test does.  A test whose `NAME.cpp` defines a `static` variable
+outside of a class may fail then, as each file gets its own.
+
 ## Clang tool tests
 
 Tests for behaviour of the clang tool are stored in `clang/`.  These mostly

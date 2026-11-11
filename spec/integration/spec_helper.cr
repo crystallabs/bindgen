@@ -17,8 +17,24 @@ end
 # small test skeleton.  Write normal `spec` it-tests in it.
 #
 # This is magic.  Have a look at the `*_spec.cr` files as sample code.
-macro build_and_run(name, start = __LINE__, stop = __END_LINE__, source = __FILE__)
-  build_and_run_impl({{ name }}, {{ start }}, {{ stop }} - 1, {{ source }})
+#
+# With *multi_file*, or `BINDGEN_SPEC_MULTI_FILE` set in the environment, the
+# C++ code is generated as a file per class, `tmp/NAME.CLASS.cpp`, which are
+# built and linked into `tmp/NAME.o`.
+macro build_and_run(name, multi_file = false, start = __LINE__, stop = __END_LINE__, source = __FILE__)
+  build_and_run_impl({{ name }}, {{ start }}, {{ stop }} - 1, {{ source }}, {{ multi_file }})
+end
+
+# Changes the C++ generator of *config* to write a file per class.  Each of
+# them includes the spec's C++ file, so a function defined in it out-of-line
+# is in every object: the linker is told to keep one.
+private def use_multi_file_output(config)
+  cpp = config.generators["cpp"]? || return # A C-only spec
+  build = cpp.build || raise "BUG: The C++ generator has no build command"
+
+  compile = build.sub("{SPEC_NAME}.o", %["$(basename "$f" .cpp).o"]).sub("{SPEC_NAME}.cpp", %["$f"])
+  cpp.output = cpp.output.sub(/\.cpp$/, ".%.cpp")
+  cpp.build = "for f in {SPEC_NAME}.*.cpp; do #{compile} || exit 1; done && ld -r -z muldefs -o {SPEC_NAME}.o {SPEC_NAME}.*.o"
 end
 
 # Injects a `describe` block just before the first test-case.  This way, we can
@@ -90,7 +106,7 @@ def run_tool(tool, name) : Int32
 end
 
 # Implementation helper for `.build_and_run`.
-def build_and_run_impl(name, source_start, source_end, source_file)
+def build_and_run_impl(name, source_start, source_end, source_file, multi_file = false)
   config_file = "#{__DIR__}/#{name}.yml"
   test_file = "#{__DIR__}/tmp/#{name}_test.cr"
 
@@ -104,6 +120,7 @@ def build_and_run_impl(name, source_start, source_end, source_file)
 
   # Run bindgen tool
   config = Bindgen::ConfigReader.from_file Bindgen::Configuration, config_file
+  use_multi_file_output(config) if multi_file || ENV["BINDGEN_SPEC_MULTI_FILE"]?.presence
   tool = Bindgen::Tool.new(__DIR__, config, show_stats: false)
 
   status = nil

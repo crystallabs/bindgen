@@ -1,0 +1,19 @@
+<<: spec_base.yml
+
+# Uses the default processor pipeline.  The spec writes a C++ file per class.
+
+classes:
+  Shape: Shape
+  Canvas: Canvas
+  Canvas::Brush: Canvas::Brush
+
+functions:
+  "multi_(.*)": Funcs
+
+containers:
+  - class: std::vector
+    type: Sequential
+    instantiations:
+      - [ "int" ]
+  - class: std::__1::vector
+    type: Sequential

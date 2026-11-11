@@ -24,6 +24,10 @@ module Bindgen
       # Name of the current output section
       @current_section : String?
 
+      # The files written so far in a multi-file setup.  A section entered
+      # again is appended to its file.
+      @written_paths = Set(String).new
+
       def initialize(@user_config : Configuration, @config : Configuration::Generator, @db : TypeDatabase)
         @io = IO::Memory.new # Dummy IO
       end
@@ -43,7 +47,7 @@ module Bindgen
           @io = io
           @depth = depth
           single_file_config = true
-        elsif !@config.output.includes?('%') # Single-file configuration
+        elsif !multi_file? # Single-file configuration
           open_output Util.template(@config.output, replacement: nil)
           single_file_config = true
         end
@@ -69,20 +73,20 @@ module Bindgen
       # `#begin_section` before writing any data.
       abstract def write(node : Graph::Container)
 
-      # Called by `#begin_section` to enter *section*.  Override if the target
-      # language requires special treatment.  If the user configured a
-      # single-file output, *section* will be the empty string (`""`).  In this
-      # case, the method will only be called once during the life-time of the
-      # output.
+      # Called by `#begin_section` to enter *section* for the first time, at the
+      # start of its file.  Override if the target language requires special
+      # treatment.  If the user configured a single-file output, *section* will
+      # be the empty string (`""`).  In this case, the method will only be
+      # called once during the life-time of the output.
       protected def enter_section(section)
         nil # Does nothing by default.
       end
 
-      # Called by `#begin_section` to leave *section*.  Override if the target
-      # language requires special treatment.  If the user configured a
-      # single-file output, *section* will be the empty string (`""`).  In this
-      # case, the method will only be called once during the life-time of the
-      # output.
+      # Called by `#begin_section` to leave *section*, which may be entered
+      # again later.  Override if the target language requires special
+      # treatment.  If the user configured a single-file output, *section* will
+      # be the empty string (`""`).  In this case, the method will only be
+      # called once during the life-time of the output.
       protected def leave_section(section)
         nil # Does nothing by default.
       end
@@ -90,8 +94,7 @@ module Bindgen
       # Leaves the current section, and enters section *name*.  The output file
       # is changed if configured.
       protected def begin_section(name : String)
-        # Check if the user configured a multi-file setup.
-        return unless @config.output.includes?('%')
+        return unless multi_file?
         return if @current_section == name
 
         # Leave current section
@@ -101,9 +104,26 @@ module Bindgen
 
         # And open the next output with a file-system-safe name.
         @current_section = name
+        full_path = section_path(name)
+
+        if @written_paths.add?(full_path)
+          open_output full_path
+          enter_section name
+        else # Continue a section left earlier
+          @io.close
+          @io = File.open(full_path, "a")
+        end
+      end
+
+      # The path of the output file of section *name* in a multi-file setup.
+      protected def section_path(name : String) : String
         partial_name = name.underscore.gsub(/[^a-z0-9_]/i, "_")
-        full_path = Util.template(@config.output, partial_name)
-        open_output full_path
+        Util.template(@config.output, partial_name)
+      end
+
+      # Did the user configure a multi-file setup, a file per section?
+      protected def multi_file? : Bool
+        @config.output.includes?('%')
       end
 
       # Closes the old `@io`, and opens a new one at *full_path*.  Do not use

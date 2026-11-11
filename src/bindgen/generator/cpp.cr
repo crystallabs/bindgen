@@ -21,12 +21,47 @@ module Bindgen
         Float64 => "double",
       }
 
+      # Section of the declarations shared by the files of a multi-file setup:
+      # the type aliases, structures and constants.
+      DECLARATIONS_SECTION = "bindgen_declarations"
+
+      # Section of the functions outside of a class in a multi-file setup.
+      FUNCTIONS_SECTION = "bindgen_functions"
+
+      # What a multi-file setup is writing: the shared declarations first, then
+      # the functions, a file per class.  `nil` in a single-file setup, which
+      # writes both as they come.
+      @pass : Symbol?
+
+      # The sections of the classes being visited, innermost last.
+      @class_sections = [] of String
+
+      # Depth of the structures being visited.
+      @struct_depth = 0
+
       def write(node : Graph::Container)
+        unless multi_file?
+          visit_children(node)
+          return
+        end
+
+        @pass = :declarations
+        begin_section DECLARATIONS_SECTION
+        visit_children(node)
+
+        @pass = :functions
         visit_children(node)
       end
 
       # Add additional includes
       protected def enter_section(section)
+        unless section.in?(SINGLE_FILE_SECTION, DECLARATIONS_SECTION)
+          # Which includes the parsed files itself.
+          puts %[#include "#{File.basename(section_path(DECLARATIONS_SECTION))}"]
+          puts ""
+          return
+        end
+
         @user_config.parser.files.each do |path|
           templated = Util.template(path, replacement: nil)
           puts "#include <#{templated}>"
@@ -45,22 +80,30 @@ module Bindgen
 
       def visit_class(klass)
         return unless @db.try_or(klass.origin.name, true, &.generate_wrapper?)
-        begin_section klass.name
+
+        # Named by the path below the module: nested classes share names.
+        @class_sections << klass.full_path[1..].join("::", &.name)
         super
+        @class_sections.pop
       end
 
       def visit_constant(constant)
+        return if @pass == :functions
         type_name = CONSTANT_TYPES[constant.value.class]
         puts "static #{type_name} #{constant.name} = #{constant.value.inspect};"
       end
 
       def visit_alias(alias_name)
+        return if @pass == :functions
         typer = Bindgen::Cpp::Typename.new
         type_name = typer.full(alias_name.origin)
         puts "typedef #{type_name} #{alias_name.name};"
       end
 
       def visit_struct(structure)
+        return if @pass == :functions
+        @struct_depth += 1
+
         prototype = type_prototype :struct, structure.name, structure.base_class
         puts "#{prototype} {"
         indented do
@@ -83,12 +126,20 @@ module Bindgen
           super # Implement methods, if any
         end
         puts "};"
+        @struct_depth -= 1
       end
 
+      # The methods of a structure are part of its declaration.
       def visit_method(method)
-        if call = method.calls[PLATFORM]?
-          puts call.body.to_code(call, PLATFORM)
+        call = method.calls[PLATFORM]?
+        return unless call
+
+        if @struct_depth == 0
+          return if @pass == :declarations
+          begin_section(@class_sections.last? || FUNCTIONS_SECTION)
         end
+
+        puts call.body.to_code(call, PLATFORM)
       end
 
       private def type_prototype(kind, name, base) : String
