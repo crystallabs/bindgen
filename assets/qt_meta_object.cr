@@ -285,6 +285,9 @@ end
 
           # The meta-object of this class, built on first use.
           def self.bg_meta_object : Void*
+            # A subclass without meta members inherits this method, but has a
+            # class variable of its own: it shares this class's meta-object.
+            return \{{ @type }}.bg_meta_object unless self == \{{ @type }}
             return @@bg_meta_object unless @@bg_meta_object.null?
 
             \{% class_name = @type.name.stringify.split("::").last %}
