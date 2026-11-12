@@ -84,9 +84,9 @@ generators:
     # Output file preamble  (Optional)
     preamble: |-
       #include "bindgen_helper.hpp"
-    # Command to build the output.  (Optional!)
-    # NOTE: Not run by the current version of bindgen.  Build the generated
-    # C++ code yourself, e.g. with a Makefile.
+    # Command to build the output, run by the shell in the directory of the
+    # output file after it is written.  If it fails, so does bindgen.
+    # (Optional!)
     # build: make
   # Crystal generator.  Configuration style is exactly the same.
   crystal:

@@ -27,14 +27,16 @@ end
 
 # Changes the C++ generator of *config* to write a file per class.  Each of
 # them includes the spec's C++ file, so a function defined in it out-of-line
-# is in every object: the linker is told to keep one.
+# is in every object: the linker is told to keep one.  Apple's linker can't,
+# there the spec's C++ file must define its functions `inline`.
 private def use_multi_file_output(config)
   cpp = config.generators["cpp"]? || return # A C-only spec
   build = cpp.build || raise "BUG: The C++ generator has no build command"
 
   compile = build.sub("{SPEC_NAME}.o", %["$(basename "$f" .cpp).o"]).sub("{SPEC_NAME}.cpp", %["$f"])
   cpp.output = cpp.output.sub(/\.cpp$/, ".%.cpp")
-  cpp.build = "for f in {SPEC_NAME}.*.cpp; do #{compile} || exit 1; done && ld -r -z muldefs -o {SPEC_NAME}.o {SPEC_NAME}.*.o"
+  keep_one = {% if flag?(:darwin) %} "" {% else %} "-z muldefs " {% end %}
+  cpp.build = "for f in {SPEC_NAME}.*.cpp; do #{compile} || exit 1; done && ld -r #{keep_one}-o {SPEC_NAME}.o {SPEC_NAME}.*.o"
 end
 
 # Injects a `describe` block just before the first test-case.  This way, we can

@@ -20,6 +20,10 @@ module Bindgen
       end
 
       def write(node : Graph::Container)
+        if multi_file? # Nothing opens a file per section here
+          raise Tool::ExitError.new("The `output` of the crystal generator can't have a `%` in it: it is a single file")
+        end
+
         collect_classes(node)
         visit_node(node)
 

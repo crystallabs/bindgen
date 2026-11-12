@@ -6,7 +6,9 @@ describe "function pointer members of copied structures" do
       it "copies them as Procs" do
         ops = Test::Funcs.make
         typeof(ops.add).should eq(Proc(Int32, Int32, Int32))
-        typeof(ops.clear).should eq(Proc(Pointer(Test::Binding::Point), Nil))
+        # By name: Crystal 1.15 has a `Proc` returning `Void` in a `lib` as a
+        # type of its own, not equal to the one returning `Nil`.
+        typeof(ops.clear).to_s.should eq("Proc(Pointer(Test::Binding::Point), Nil)")
         ops.add.call(3, 4).should eq(7)
         ops.negate.call(5).should eq(-5)
       end
@@ -35,7 +37,12 @@ describe "function pointer members of copied structures" do
       it "uses Void pointers for those Crystal can't call" do
         ops = Test::Funcs.make
         typeof(ops.variadic).should eq(Pointer(Void))
-        typeof(ops.foreign).should eq(Pointer(Void))
+        # Only x86-64 has a second calling convention to declare it with.
+        {% if flag?(:x86_64) && !flag?(:win32) %}
+          typeof(ops.foreign).should eq(Pointer(Void))
+        {% else %}
+          typeof(ops.foreign).should eq(Proc(Int32, Int32))
+        {% end %}
         typeof(ops.converted).should eq(Pointer(Void))
         typeof(ops.table).should eq(StaticArray(Pointer(Void), 2))
         typeof(ops.indirect).should eq(Pointer(Pointer(Void)))

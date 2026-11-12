@@ -3,10 +3,14 @@
 // Long enough to live on the heap instead of in the string object itself.
 #define LONG_STRING "A string that is too long for the small string optimization"
 
-static int stringCalls = 0;
+// One counter, however many files include this one.
+inline int &stringCallCount() {
+  static int calls = 0;
+  return calls;
+}
 
 std::string string_by_value() {
-  stringCalls++;
+  stringCallCount()++;
   return LONG_STRING;
 }
 
@@ -15,7 +19,7 @@ const std::string string_by_const_value() {
 }
 
 int string_calls() {
-  return stringCalls;
+  return stringCallCount();
 }
 
 class Strings {
@@ -26,7 +30,7 @@ public:
   virtual ~Strings() { }
 
   std::string byValue() {
-    stringCalls++;
+    stringCallCount()++;
     return "btrfs";
   }
 

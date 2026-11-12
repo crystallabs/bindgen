@@ -44,8 +44,11 @@ running an integration test:
 
 Set `BINDGEN_SPEC_MULTI_FILE=1` to generate the C++ wrapper of every
 integration test as a file per class, `tmp/NAME.CLASS.cpp`, like the
-`multi_file` test does.  A test whose `NAME.cpp` defines a `static` variable
-outside of a class may fail then, as each file gets its own.
+`multi_file` test does.  Each of these files includes `NAME.cpp`, so a `static`
+variable it defines outside of a class exists once per file: keep such state
+in an `inline` function instead, like `strings.cpp` does.  On macOS, only tests
+whose `NAME.cpp` defines all its functions `inline` or in their class link
+this way, as `multi_file.cpp` does: Apple's linker can't drop the duplicates.
 
 ## Clang tool tests
 

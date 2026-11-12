@@ -25,6 +25,20 @@ private def generate(root)
 end
 
 describe Bindgen::Generator::Crystal do
+  it "rejects a file per class" do
+    config = Bindgen::Configuration.from_yaml <<-YAML
+      module: Test
+      generators: { crystal: { output: "tmp/test_%.cr" } }
+      parser: { files: [ "foo.h" ] }
+      YAML
+    db = Bindgen::TypeDatabase.new(config.types, config.cookbook)
+    generator = Bindgen::Generator::Crystal.new(config, config.generators["crystal"], db)
+
+    expect_raises(Bindgen::Tool::ExitError, "single file") do
+      generator.write_all(Bindgen::Graph::Namespace.new("Test"))
+    end
+  end
+
   describe "superclass order" do
     it "keeps the order if superclasses come first" do
       root = Bindgen::Graph::Namespace.new("Test")

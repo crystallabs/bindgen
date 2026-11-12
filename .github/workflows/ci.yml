@@ -32,7 +32,7 @@ jobs:
         run: bin/ameba
 
   spec:
-    name: LLVM ${{ matrix.llvm }} (${{ matrix.link }}, ${{ matrix.stdlib }})
+    name: LLVM ${{ matrix.llvm }} (${{ matrix.link }}, ${{ matrix.stdlib }}, Crystal ${{ matrix.crystal }}, ${{ matrix.output }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -40,18 +40,37 @@ jobs:
         llvm: [14, 16, 18, 20, 22, 23]
         link: [auto]
         stdlib: [default]
+        crystal: [latest]
+        output: [single-file]
         include:
           - llvm: 23
             link: shared
             stdlib: default
+            crystal: latest
+            output: single-file
           - llvm: 23
             link: auto
             stdlib: libc++
+            crystal: latest
+            output: single-file
+          # The oldest Crystal shard.yml allows
+          - llvm: 23
+            link: auto
+            stdlib: default
+            crystal: "1.15"
+            output: single-file
+          # The C++ wrapper of each integration test as a file per class
+          - llvm: 23
+            link: auto
+            stdlib: default
+            crystal: latest
+            output: multi-file
     env:
       LLVM: ${{ matrix.llvm }}
       # Left empty, static or shared linking is detected.
       BINDGEN_DYNAMIC: ${{ matrix.link == 'shared' && '1' || '' }}
       BINDGEN_CLANG_FLAGS: ${{ matrix.stdlib == 'libc++' && '-stdlib=libc++' || '' }}
+      BINDGEN_SPEC_MULTI_FILE: ${{ matrix.output == 'multi-file' && '1' || '' }}
     steps:
       - uses: actions/checkout@v5
 
@@ -61,6 +80,8 @@ jobs:
         run: sudo apt-get update
 
       - uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: ${{ matrix.crystal }}
 
       - name: Install dependencies
         run: |
@@ -81,10 +102,13 @@ jobs:
             sudo apt-get install -y --no-install-recommends "libc++-$LLVM-dev" "libc++abi-$LLVM-dev"
           fi
 
+      # Ameba, the development dependency, needs a newer Crystal than bindgen.
       - name: Install shards
-        run: shards install
+        run: shards install ${{ matrix.crystal != 'latest' && '--without-development' || '' }}
 
+      # The formatter's output differs between Crystal versions.
       - name: Check formatting
+        if: matrix.crystal == 'latest'
         run: crystal tool format --check src spec clang/find_clang.cr
 
       - name: Build clang tool

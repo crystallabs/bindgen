@@ -2,6 +2,28 @@
 
 Notable changes to bindgen.  For releases up to 0.7.0 see the Git history.
 
+## Unreleased
+
+### Fixed
+
+* A `%` in the `output:` of the `crystal` generator is an error.  Nothing was
+  written, without a word.
+* `TEMPLATE.yml` and `CONFIGURATION.md` no longer claim that the `build:`
+  command of a generator isn't run.  It is, after the generator wrote its
+  output.
+* The specs pass on Crystal 1.15, where one compared a `Proc` type of a `lib`
+  the compiler has as a type of its own.
+* The specs pass on macOS on ARM: the multi-file one passed the linker an
+  option Apple's doesn't have, and the function pointer one expected a second
+  calling convention, which only x86-64 has.
+
+### Added
+
+* `CONFIGURATION.md` describes the multi-file output of the C++ generator and
+  the files it writes.
+* CI runs the specs on Crystal 1.15, the oldest version supported, and the
+  integration specs with the C++ wrapper written as a file per class.
+
 ## 0.17.1 (2026-11-11)
 
 ### Fixed

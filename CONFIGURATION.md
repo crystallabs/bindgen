@@ -214,9 +214,9 @@ keys:
 
 | Key | Description |
 |-----|-------------|
-| `output` | **Mandatory.**  The output file.  Templated, with environment variables only.  For `cpp`, a `%` in it writes one file per class, `%` being the class name. |
+| `output` | **Mandatory.**  The output file.  Templated, with environment variables only.  For `cpp`, a `%` in it writes a file per class, see [below](#a-c-file-per-class). |
 | `preamble` | Text written at the start of each output file.  The C++ one has to include `bindgen_helper.hpp`. |
-| `build` | A command to build the output, run in the output's directory.  **Not run** by the current version of bindgen: Build the C++ code yourself, e.g. from `tool.sh`'s caller or a Makefile. |
+| `build` | A command to build the output, run by the shell in the output's directory once the generator wrote it.  Templated, with environment variables only.  If it fails, so does bindgen. |
 
 ```yaml
 generators:
@@ -227,6 +227,43 @@ generators:
   crystal:
     output: src/my_lib/binding.cr
 ```
+
+### A C++ file per class
+
+The C++ wrapper of a large library takes long to compile as a single file.
+With a `%` in the `output` of the `cpp` generator, a file is written per
+class instead, which can be compiled in parallel:
+
+```yaml
+generators:
+  cpp:
+    output: ext/my_bindings_%.cpp
+```
+
+The `%` is replaced by the C++ name of the class in snake case, anything but
+letters, digits and `_` turned into `_`:
+
+| File | Content |
+|------|---------|
+| `ext/my_bindings_my_class.cpp` | The wrapper functions of `MyClass`. |
+| `ext/my_bindings_outer__inner.cpp` | Those of the nested class `Outer::Inner`. |
+| `ext/my_bindings_container_std__vector_int_.cpp` | Those of the container `std::vector<int>`. |
+| `ext/my_bindings_bindgen_functions.cpp` | The wrappers of functions outside of a class. |
+| `ext/my_bindings_bindgen_declarations.cpp` | The type aliases, structures and constants the others share.  It includes the parsed headers, and every other file includes it. |
+
+Compile each of them, and link all the objects; a `build` command is run
+once, after all files are written.  The declarations file has
+no functions of its own; compiling it is harmless, but not needed.  The set
+of files changes with the classes wrapped, so let the build find them
+(`ext/my_bindings_*.cpp`) instead of listing them, and remove the old ones
+before generating anew: bindgen doesn't delete the file of a class which is
+gone.
+
+As every file includes the parsed headers, they have to be safe to include
+in more than one translation unit, as headers usually are.
+
+The `crystal` generator writes a single file, and rejects a `%` in its
+`output`.
 
 ## `find_paths`
 
